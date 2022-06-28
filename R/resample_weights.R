@@ -13,6 +13,7 @@
 
 # Package will not write to any data folder, and instead put objects into environment
 
+#' @export
 calc_raster_weights <- function(weights_raster, data_source, extent = "full"){
 
   ## Setup
