@@ -13,3 +13,12 @@ RoxygenNote: 7.2.0
 Depends: 
     R (>= 2.10)
 LazyData: true
+Imports: 
+    crayon,
+    data.table,
+    dplyr,
+    exactextractr,
+    here,
+    ncdf4,
+    raster,
+    sf

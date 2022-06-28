@@ -19,3 +19,7 @@ a data.table of geoweights (area weighted raster/polygon overlap)
 \description{
 Function that resamples a raster of interest to the ERA grid
 }
+\examples{
+calc_raster_weights(demo_weights, demo_era5)
+
+}

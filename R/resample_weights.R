@@ -10,9 +10,10 @@
 #' @param extent an optional extent to crop the weights_raster to for faster processing
 #'
 #' @return a data.table of geoweights (area weighted raster/polygon overlap)
-
-# Package will not write to any data folder, and instead put objects into environment
-
+#'
+#' @examples
+#' calc_raster_weights(demo_weights, demo_era5)
+#'
 #' @export
 calc_raster_weights <- function(weights_raster, data_source, extent = "full"){
 
