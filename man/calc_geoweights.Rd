@@ -22,9 +22,3 @@ a data.table of geoweights (area weighted raster/polygon overlap)
 \description{
 Function to find spatial overlap between a raster and a set of polygons
 }
-\examples{
-calc_geoweights(demo_era5, demo_polygon, "countyfp", demo_weights_table)
-calc_geoweights(demo_era5, demo_polygon, "countyfp", demo_weights_table)
-
-
-}
