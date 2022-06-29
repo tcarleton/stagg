@@ -9,13 +9,14 @@
 #' @param input_polygons a simple features polygon or multipolygon object
 #' @param polygon_id the name of a column in the sf object representing a unique
 #'   identifier for each polygon
-#' @param weights_table a data table of secondary weights if desired
+#' @param weights_table an optional data table of secondary weights
 #'
 #' @return a data.table of geoweights (area weighted raster/polygon overlap)
 #'
 #' @examples
 #' calc_geoweights(demo_era5, demo_polygon, "countyfp", demo_weights_table)
 #' calc_geoweights(demo_era5, demo_polygon, "countyfp", demo_weights_table)
+#'
 #'
 #' @export
 calc_geoweights <- function(data_source,  input_polygons, polygon_id, weights_table = NULL){
