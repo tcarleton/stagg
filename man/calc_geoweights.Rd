@@ -11,7 +11,10 @@ calc_geoweights(data_source, input_polygons, polygon_id, weights_table = NULL)
 
 \item{input_polygons}{a simple features polygon or multipolygon object}
 
-\item{polygon_id}{the name of a column in the sf object representing a unique identifier for each polygon}
+\item{polygon_id}{the name of a column in the sf object representing a unique
+identifier for each polygon}
+
+\item{weights_table}{a data table of secondary weights if desired}
 }
 \value{
 a data.table of geoweights (area weighted raster/polygon overlap)
@@ -20,5 +23,7 @@ a data.table of geoweights (area weighted raster/polygon overlap)
 Function to find spatial overlap between a raster and a set of polygons
 }
 \examples{
-calc_geoweights(demo_era5, demo_polygon, demo_weights_table)
+calc_geoweights(demo_era5, demo_polygon, "countyfp", demo_weights_table)
+calc_geoweights(demo_era5, demo_polygon, "countyfp", demo_weights_table)
+
 }
