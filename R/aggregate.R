@@ -37,7 +37,7 @@ agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 
     data.table::setnames(v, coln)
     v
   }
-  setMethod('as.data.table', signature(x='Raster'), as.data.table.raster)
+  #setMethod('as.data.table', signature(x='Raster'), as.data.table.raster)
 
 
 
