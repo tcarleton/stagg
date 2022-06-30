@@ -13,6 +13,10 @@
 #'
 #' @return a data.table of geoweights (area weighted raster/polygon overlap)
 #'
+#' @examples
+#' calc_geoweights(data_era5, data_polygon, "countyfp", output_weights)
+#' calc_geoweights(data_era5, data_polygon, "countyfp")
+#'
 #' @export
 calc_geoweights <- function(data_source,  input_polygons, polygon_id, weights_table = NULL){
 

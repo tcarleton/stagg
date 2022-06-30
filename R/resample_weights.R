@@ -11,6 +11,9 @@
 #'
 #' @return a data.table of geoweights (area weighted raster/polygon overlap)
 #'
+#' @examples
+#' calc_raster_weights(data_weights, data_era5)
+#'
 #' @export
 calc_raster_weights <- function(weights_raster, data_source, extent = "full"){
 
