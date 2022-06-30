@@ -5,7 +5,7 @@
 \alias{data_polygon}
 \title{A Demo Simple Feature Object}
 \format{
-An object of class \code{sf} (inherits from \code{data.frame}) with 6 rows and 18 columns.
+An object of class \code{sf} (inherits from \code{data.frame}) with 105 rows and 18 columns.
 }
 \usage{
 data_polygon
