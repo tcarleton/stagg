@@ -1,0 +1,3 @@
+#' A Polygon
+#' 
+"poly"
