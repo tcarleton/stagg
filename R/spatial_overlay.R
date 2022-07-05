@@ -78,6 +78,8 @@ calc_geoweights <- function(data_source,  input_polygons, polygon_id, weights_ta
     # Min/Max of secondary weights
     weights_xmin <- min(weights_dt$x)
     weights_xmax <- max(weights_dt$x)
+    weights_ymin <- min(weights_dt$y)
+    weights_ymax <- max(weights_dt$x)
 
     # If weights don't match raster convert them
     if(!dplyr::near(weights_xmax, rast_xmax, tol=1.01)) {
@@ -90,6 +92,17 @@ calc_geoweights <- function(data_source,  input_polygons, polygon_id, weights_ta
 
     }
 
+    # Warning if weights don't overlap fully with polygons
+    weights_ext <- extent(weights_xmin, weights_xmax, weights_ymin, weights_ymax)
+    poly_ext <- extent(input_polygons)
+
+    if(poly_ext@xmin < weights_ext@xmin | poly_ext@xmax > weights_ext@xmax |
+       poly_ext@ymin < weights_ext@ymin | poly_ext@ymax > weights_ext@ymax) {
+
+      warning(crayon::red("Warning: some of your polygons fall outside of the input weights data layer, meaning weights cannot be calculated and area-weights will be returned"))
+
+    }
+
     # Set key column in the merged dt table
     keycols = c("x", "y")
     data.table::setkeyv(area_weight, keycols)
@@ -99,6 +112,15 @@ calc_geoweights <- function(data_source,  input_polygons, polygon_id, weights_ta
 
     # Weight in pixel = w_area * weight
     w_merged[, weight := weight * w_area]
+
+    # List any polygons with NA values in 1 or more grid cells
+    na_polys <- data.frame(w_merged) %>%
+      dplyr::filter(is.na(weight)) %>%
+      dplyr::select(poly_id) %>%
+      distinct()
+
+    # Update the weight to equal w_area for all grid cells in na_polys
+    w_merged[, weight := data.table::fifelse(poly_id %in% na_polys$poly_id, w_area, weight)]
 
   }
 
