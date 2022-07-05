@@ -17,7 +17,7 @@
 ## Aggregate Climate Data: Pipeline Step 02
 
 #' @export
-agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 'polynomial', trans_specs, geoweights_table) {
+agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 'polynomial', trans_specs, geoweights_table, second_weights = FALSE) {
 
   # Function to convert raster to data.table from https://gist.github.com/etiennebr/9515738
   as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE, inmem = canProcessInMemory(x, 2), ...) {
@@ -173,7 +173,7 @@ agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 
 
   # Multiply by secondary weights if weights = TRUE (already normalized by polygon area)
   # Otherwise multiply by just area weights
-  if(!is.null(geoweights_table)){
+  if(second_weights){
     merged_dt[, (list_names) := lapply(list_names, function(x) {get(x) * weight})]
   } else {
     merged_dt[, (list_names) := lapply(list_names, function(x) {get(x) * w_area})]
