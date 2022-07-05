@@ -173,7 +173,7 @@ agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 
 
   # Multiply by secondary weights if weights = TRUE (already normalized by polygon area)
   # Otherwise multiply by just area weights
-  if(!is.null(weights_table)){
+  if(!is.null(geoweights_table)){
     merged_dt[, (list_names) := lapply(list_names, function(x) {get(x) * weight})]
   } else {
     merged_dt[, (list_names) := lapply(list_names, function(x) {get(x) * w_area})]
@@ -192,7 +192,7 @@ agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 
   sum_by_poly[, year := year]
 
   ## Order columns
-  setcolorder(sum_by_poly, neworder = c('year', 'month', 'poly_id', list_names))
+  data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'poly_id', list_names))
 
   ## Return the sums by polygon
   return(sum_by_poly)
