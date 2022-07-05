@@ -11,6 +11,7 @@
 #' @importFrom data.table .SD
 #' @importFrom data.table :=
 #' @importFrom data.table data.table
+#' @importFrom magrittr %>%
 #' @importFrom methods setMethod
 #' @importFrom methods signature
 ## usethis namespace: end

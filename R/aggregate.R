@@ -11,6 +11,7 @@
 #'   'polynomial', this is an integer indicating the degree.
 #' @param geoweights_table A table of weights which can be generated using
 #'   the function calc_geoweights()
+#' @param second_weights A boolean indicating whether secondary weights should be used
 
 ## Sara Orofino
 ## February 22, 2022
@@ -20,13 +21,13 @@
 agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 'polynomial', trans_specs, geoweights_table, second_weights = FALSE) {
 
   # Function to convert raster to data.table from https://gist.github.com/etiennebr/9515738
-  as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE, inmem = canProcessInMemory(x, 2), ...) {
+  as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE, inmem = raster::canProcessInMemory(x, 2), ...) {
     if(inmem) {
       v <- data.table::as.data.table(raster::as.data.frame(x, row.names=row.names, optional=optional, xy=xy, ...))
     } else {
-      tr <- blockSize(x, n=2)
+      tr <- raster::blockSize(x, n=2)
       l <- lapply(1:tr$n, function(i)
-        data.table::as.data.table(raster::as.data.frame(getValues(x,
+        data.table::as.data.table(raster::as.data.frame(raster::getValues(x,
                                                                   row=tr$row[i],
                                                                   nrows=tr$nrows[i]),
                                                         row.names=row.names, optional=optional, xy=xy, ...)))
@@ -88,7 +89,7 @@ agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 
     }
 
     # Average over each set of 24 layers
-    indices<-rep(1:(nlayers(clim_raster)/24),each=24)
+    indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
     clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=mean) #Stack of 365/366 layers
   }
 
@@ -103,7 +104,7 @@ agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 
     }
 
     # Sum over each set of 24 layers
-    indices<-rep(1:(nlayers(clim_raster)/24),each=24)
+    indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
     clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=sum) #Stack of 365/366 layers
   }
 

@@ -18,8 +18,8 @@ Imports:
     data.table,
     dplyr,
     exactextractr,
+    magrittr,
     methods,
     parallel,
     raster,
     sf
-

@@ -12,7 +12,8 @@ agg_climate_data(
   daily_agg,
   trans = "polynomial",
   trans_specs,
-  geoweights_table
+  geoweights_table,
+  second_weights = FALSE
 )
 
 agg_climate_data_multiyear(
@@ -43,6 +44,8 @@ supported)}
 
 \item{geoweights_table}{A table of weights which can be generated using
 the function calc_geoweights()}
+
+\item{second_weights}{A boolean indicating whether secondary weights should be used}
 
 \item{years}{A vector containing the years to aggregate over}
 }
