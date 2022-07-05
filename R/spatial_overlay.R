@@ -107,8 +107,15 @@ calc_geoweights <- function(data_source,  input_polygons, polygon_id, weights_ta
     keycols = c("x", "y")
     data.table::setkeyv(area_weight, keycols)
 
-    # Merge with secondary weights
-    w_merged <- area_weight[weights_dt, nomatch = 0]
+    ## NOTE from Tracey: I think that this fills non matches with zeros, not NAs
+    ## added the code below, which matches by x and y, retains all on left, and fills no matches with NAs.
+    # # Merge with secondary weights
+    # w_merged <- area_weight[weights_dt, nomatch = 0]
+
+    # Merge with secondary weights, NA for missing values
+    w_merged <- merge(area_weight, weights_dt,
+                      by = c('x', 'y'),
+                      all.x = T)
 
     # Weight in pixel = w_area * weight
     w_merged[, weight := weight * w_area]
