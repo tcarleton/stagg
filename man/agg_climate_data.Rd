@@ -57,3 +57,6 @@ Aggregate Climate Data
 \item \code{agg_climate_data_multiyear}: aggregate climate data over multiple years in parallel
 }}
 
+\examples{
+agg_climate_data(2011, demo_prcp, "prcp", "sum", "polynomial", 3, demo_output_geoweights, second_weights = TRUE)
+}
