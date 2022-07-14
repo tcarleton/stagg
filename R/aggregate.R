@@ -120,6 +120,12 @@ before_trans <- function(data_raster, climate_var, daily_agg, geoweights_table, 
     clim_daily <- clim_daily - 273.15
   }
 
+  ## convert prcp m to mm
+  if(climate_var == 'prcp'){
+
+    clim_daily <- clim_daily * 1000
+  }
+
   # Return a list of the necessary objects
   return(list(clim_daily, weights_dt, layer_names))
 }
