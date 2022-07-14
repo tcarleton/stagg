@@ -239,7 +239,7 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
   # Spline transformation
   num_knots <- length(knot_locs)
   list_length <- num_knots - 2
-  list_names <- sapply(1:list_length, FUN=function(x){paste("term", knot[x], sep="_")})
+  list_names <- sapply(1:list_length, FUN=function(x){paste("term", x, sep="_")})
 
 
   # Define spline function
@@ -266,7 +266,7 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
 
 
   # For each layer, create new spline variables
-  r <- lapply(knot, get_spline)
+  r <- lapply(1:list_length, get_spline)
 
 
   ## Function: Set names of data table by month, change from wide to long format, rename based on polynomial orders
