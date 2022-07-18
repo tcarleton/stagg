@@ -331,18 +331,18 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
 staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, binwidth = NULL, center_on = NULL, start_on = NULL, end_on = NULL, max = NULL, min = NULL, geoweights_table, second_weights, year){
   # Get climate data as a data table and aggregate to daily values
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights)
-
   clim_daily <- setup_list[[1]]
   weights_dt <- setup_list[[2]]
   layer_names <- setup_list[[3]]
 
   clim_daily_table <- values(clim_daily)
+  list_names <- sapply(1:num_bins, FUN=function(x){if(x == 0){paste(climate_var)}else{paste("bin", x, sep="_")}})
 
-  (is.null(max)){
-    max <- max(clim_daily)
+  if(is.null(max)){
+    max <- max(clim_daily_table)
   }
   if(is.null(min)){
-    min <- min(clim_daily)
+    min <- min(clim_daily_table)
   }
 
   # Write message that binwidth overrides num_bins
@@ -410,24 +410,27 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
   center <- sort(center)
 
   bins_table <- data.table::data.table(center)
-  bins_table[, ':=' (start = center - binwidth, end = center + binwidth)]
+  bins_table[, ':=' (start = center - (binwidth / 2), end = center + (binwidth / 2))]
 
   # bins_table lists center, start, and end of all bins in order
 
 
   # Function check_bins to determine which bins data points fall into
   check_bins <- function(x){
-    if(bins_table[x, start] <= clim_daily_table &
-       bins_table[x, end] >= clim_daily_table){
+    clim_daily_table <- raster::values(clim_daily)
 
-      return(1)
-    }
-    else{return(0)}
+    clim_daily_table <- ifelse(bins_table[x, start] <= clim_daily_table &
+       bins_table[x, end] >= clim_daily_table, 1, 0)
+
+    clim_daily_new <- clim_daily
+    raster::values(clim_daily_new) <- clim_daily_table
+
+    return(clim_daily_new)
   }
 
 
   # For each bin, create new brick of binary values
-  r <- lapply[1:num_bins, check_bins]
+  r <- lapply(1:num_bins, FUN = check_bins)
 
 
   create_dt <- function(x){
@@ -448,11 +451,11 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
   }
 
   # Make each raster layer a data.table
-  list_dt <- lapply(1:list_length, create_dt)
+  list_dt <- lapply(1:num_bins, create_dt)
 
   # Merge all data tables together
   clim_dt <- list_dt[[1]]
-  for(i in 2:list_length){
+  for(i in 2:num_bins){
     dt_m <- list_dt[[i]]
     clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
   }
