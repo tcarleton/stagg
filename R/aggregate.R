@@ -178,7 +178,7 @@ after_trans <- function(clim_dt, weights_dt, list_names, second_weights, year){
 }
 
 #' @export
-staggregate_poly <- function(data_raster, climate_var, daily_agg, k, geoweights_table, second_weights, year){
+staggregate_polynomial <- function(data_raster, climate_var, daily_agg, k, geoweights_table, second_weights, year){
 
   # Get climate data as a data table and aggregate to daily values
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights)
@@ -243,39 +243,193 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
 
 
   # Spline transformation
+  knot_locs <- sort(knot_locs)
   num_knots <- length(knot_locs)
   list_length <- num_knots - 2
-  list_names <- sapply(1:list_length, FUN=function(x){paste("term", x, sep="_")})
+  list_names <- sapply(0:list_length, FUN=function(x){if(x == 0){paste(climate_var)}else{paste("term", x, sep="_")}})
 
 
   # Define spline function
   get_spline <- function(x){
 
-    clim_daily_table <- raster::values(clim_daily)
+    # Make first raster returned just the climate variable to preserve it's column in the resulting data table
+    if(x == 0){
+      return(clim_daily)
+    }
+    # Add in spline terms, all of which are 0 if negative
+    else{
+      clim_daily_table <- raster::values(clim_daily)
 
-    clim_daily_table <-ifelse((clim_daily_table - knot_locs[x])^3 > 0,
-           (clim_daily_table - knot_locs[x])^3, 0)
-    - ((ifelse((clim_daily_table - knot_locs[num_knots - 1])^3 > 0,
-               (clim_daily_table - knot_locs[num_knots - 1])^3, 0))
-       *((knot_locs[num_knots] - knot_locs[x])
-         / (knot_locs[num_knots] - knot_locs[num_knots - 1])))
-    + ((ifelse((clim_daily_table - knot_locs[num_knots])^3 > 0,
-               (clim_daily_table - knot_locs[num_knots])^3, 0))
-       *((knot_locs[num_knots - 1] - knot_locs[x])
-         / (knot_locs[num_knots] - knot_locs[num_knots - 1])))
+      clim_daily_table <-ifelse((clim_daily_table - knot_locs[x])^3 > 0,
+                                (clim_daily_table - knot_locs[x])^3, 0)
+      - ((ifelse((clim_daily_table - knot_locs[num_knots - 1])^3 > 0,
+                 (clim_daily_table - knot_locs[num_knots - 1])^3, 0))
+         *((knot_locs[num_knots] - knot_locs[x]))
+           / (knot_locs[num_knots] - knot_locs[num_knots - 1]))
+      + ((ifelse((clim_daily_table - knot_locs[num_knots])^3 > 0,
+                 (clim_daily_table - knot_locs[num_knots])^3, 0))
+         *((knot_locs[num_knots - 1] - knot_locs[x])
+           / (knot_locs[num_knots] - knot_locs[num_knots - 1])))
 
-    clim_daily_new <- clim_daily
-    raster::values(clim_daily_new) <- clim_daily_table
+      clim_daily_new <- clim_daily
+      raster::values(clim_daily_new) <- clim_daily_table
 
-    return(clim_daily_new)
+      return(clim_daily_new)
+
+
+
+    }
   }
 
 
   # For each layer, create new spline variables
-  r <- lapply(1:list_length, get_spline)
+  r <- lapply(0:list_length, get_spline)
 
 
   ## Function: Set names of data table by month, change from wide to long format, rename based on polynomial orders
+  create_dt <- function(x){
+
+    # Should output raster cells x/y with 365 days as column names
+    dt <- as.data.table.raster(r[[x]], xy=TRUE)
+
+    # Set column names with months
+    new_names <- c('x', 'y', layer_names)
+    data.table::setnames(dt, new_names)
+
+    # Change from wide to long format
+    dt = data.table::melt(dt, id.vars = c("x", "y"))
+
+    # Update variable names
+    var_names <- c('date', list_names[x])
+    data.table::setnames(dt, old=c('variable', 'value'), new=var_names)
+  }
+
+  # Make each raster layer a data.table
+  list_dt <- lapply(1:(list_length + 1), create_dt)
+
+  # Merge all data tables together
+  clim_dt <- list_dt[[1]]
+
+  i <- 2
+  while(i <= list_length + 1){
+    dt_m <- list_dt[[i]]
+    clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
+    i <- i + 1
+  }
+
+
+
+  # Aggregate by polygon
+  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights, year)
+
+  return(sum_by_poly)
+}
+
+
+
+#' @export
+staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, binwidth = NULL, center_on = NULL, start_on = NULL, end_on = NULL, max = NULL, min = NULL, geoweights_table, second_weights, year){
+  # Get climate data as a data table and aggregate to daily values
+  setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights)
+
+  clim_daily <- setup_list[[1]]
+  weights_dt <- setup_list[[2]]
+  layer_names <- setup_list[[3]]
+
+  clim_daily_table <- values(clim_daily)
+
+  (is.null(max)){
+    max <- max(clim_daily)
+  }
+  if(is.null(min)){
+    min <- min(clim_daily)
+  }
+
+  # Write message that binwidth overrides num_bins
+  if(!is.null(binwidth)){
+    message(crayon::yellow("Binwidth argument supplied will override num_bins. Bins at the boundaries may extend beyond the maximum and minimum values of the data supplied"))
+  }
+
+  # If value not supplied to binwidth, calculate from num_bins
+  if(is.null(binwidth)){
+    binwidth <- (max - min) / num_bins
+  }
+
+  # Stop with message that only one of center_on, start_on, and end_on can be chosen if otherwise
+  if((!is.null(center_on) & !is.null(start_on)) |
+     (!is.null(center_on) & !is.null(end_on)) |
+     (!is.null(start_on) & !is.null(end_on))){
+    stop(crayon::red("Too many bin placement arguments specified. Please specify a value for only one variable out of center_on, start_on, or end_on"))
+  }
+
+  if(is.null(center_on) & is.null(start_on) & is.null(end_on)){
+    stop(crayon::red("No bin placement argument specified Please specify a value for one variable out of center_on, start_on, or end_on"))
+  }
+
+  # Put start_on and end_on in terms of center_on
+  if(!is.null(start_on)){
+    center_on <- start_on + (binwidth / 2)
+  }
+
+  if(!is.null(end_on)){
+    center_on <- end_on - (binwidth / 2)
+  }
+
+
+
+  # Check to see that center_on falls within the range of data, move it if not
+  if(max - min < binwidth){
+    stop(crayon::red("The binwidth is larger than the range of data. Please specify a different binwidth and rerun"))
+  }
+
+  if(center_on > max){
+    message(crayon::yellow("Bin center is greater than maximum value in data. Adjusting it by a multiple of the binwidth so that the bin center falls within the range of data"))
+
+    while(center_on > max){
+      center_on <- center_on - binwidth
+    }
+  }
+  if(center_on < min){
+    message(crayon::yellow("Bin center is less than minimum value in data. Adjusting it by a multiple of the binwidth so that the bin center falls within the range of data"))
+
+    while(center_on < min){
+      center_on <- center_on + binwidth
+    }
+  }
+
+
+  # Create table of bins
+  center <- c(center_on)
+  while(max(center) + binwidth < max){
+    center <- c(center, (max(center) + binwidth))
+  }
+  while(min(center) - binwidth > min){
+    center <- c(center, (min(center)) - binwidth)
+  }
+
+  center <- sort(center)
+
+  bins_table <- data.table::data.table(center)
+  bins_table[, ':=' (start = center - binwidth, end = center + binwidth)]
+
+  # bins_table lists center, start, and end of all bins in order
+
+
+  # Function check_bins to determine which bins data points fall into
+  check_bins <- function(x){
+    if(bins_table[x, start] <= clim_daily_table &
+       bins_table[x, end] >= clim_daily_table){
+
+      return(1)
+    }
+    else{return(0)}
+  }
+
+
+  # For each bin, create new brick of binary values
+  r <- lapply[1:num_bins, check_bins]
+
+
   create_dt <- function(x){
 
     # Should output raster cells x/y with 365 days as column names
@@ -298,12 +452,9 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
 
   # Merge all data tables together
   clim_dt <- list_dt[[1]]
-
-  i <- 2
-  while(i <= list_length){
+  for(i in 2:list_length){
     dt_m <- list_dt[[i]]
     clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
-    i <- i + 1
   }
 
   # Aggregate by polygon
@@ -311,6 +462,3 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
 
   return(sum_by_poly)
 }
-
-
-
