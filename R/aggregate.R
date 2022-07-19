@@ -335,14 +335,14 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
   weights_dt <- setup_list[[2]]
   layer_names <- setup_list[[3]]
 
+
   clim_daily_table <- values(clim_daily)
-  list_names <- sapply(1:num_bins, FUN=function(x){if(x == 0){paste(climate_var)}else{paste("bin", x, sep="_")}})
 
   if(is.null(max)){
-    max <- max(clim_daily_table)
+    max <- max(clim_daily_table) + .01
   }
   if(is.null(min)){
-    min <- min(clim_daily_table)
+    min <- min(clim_daily_table) - .01
   }
 
   # Write message that binwidth overrides num_bins
@@ -363,7 +363,8 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
   }
 
   if(is.null(center_on) & is.null(start_on) & is.null(end_on)){
-    stop(crayon::red("No bin placement argument specified Please specify a value for one variable out of center_on, start_on, or end_on"))
+    message(crayon::yellow("No bin placement argument specified. Drawing bins from min value."))
+    start_on <- min
   }
 
   # Put start_on and end_on in terms of center_on
@@ -400,20 +401,27 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
 
   # Create table of bins
   center <- c(center_on)
-  while(max(center) + binwidth < max){
+  while(max(center) + (binwidth / 2) < max){
     center <- c(center, (max(center) + binwidth))
   }
-  while(min(center) - binwidth > min){
+  while(min(center) - (binwidth / 2) > min){
     center <- c(center, (min(center)) - binwidth)
   }
 
   center <- sort(center)
 
+
   bins_table <- data.table::data.table(center)
   bins_table[, ':=' (start = center - (binwidth / 2), end = center + (binwidth / 2))]
 
-  # bins_table lists center, start, and end of all bins in order
+  #To deal with potential overlap, give warning
+  if(nrow(bins_table) > num_bins){
+    warning(crayon::red("Bins drawn extend beyond data, number of bins may be greater than previously specified by one"))
+    num_bins <- nrow(bins_table)
+  }
 
+
+  # bins_table lists center, start, and end of all bins in order
 
   # Function check_bins to determine which bins data points fall into
   check_bins <- function(x){
@@ -428,6 +436,9 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
     return(clim_daily_new)
   }
 
+
+  # Create names for new columns
+  list_names <- sapply(1:num_bins, FUN=function(x){paste("bin", x, sep="_")})
 
   # For each bin, create new brick of binary values
   r <- lapply(1:num_bins, FUN = check_bins)
@@ -460,8 +471,14 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
     clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
   }
 
+
+
   # Aggregate by polygon
   sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights, year)
 
   return(sum_by_poly)
 }
+
+
+
+
