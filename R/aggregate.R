@@ -411,6 +411,7 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
   center <- sort(center)
 
 
+
   bins_table <- data.table::data.table(center)
   bins_table[, ':=' (start = center - (binwidth / 2), end = center + (binwidth / 2))]
 
@@ -427,8 +428,17 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
   check_bins <- function(x){
     clim_daily_table <- raster::values(clim_daily)
 
-    clim_daily_table <- ifelse(bins_table[x, start] <= clim_daily_table &
-       bins_table[x, end] >= clim_daily_table, 1, 0)
+    if(x == 0){
+      clim_daily_table <- ifelse(min > clim_daily_table, 1, 0)
+    }
+    else if(x == num_bins + 1){
+      clim_daily_table <- ifelse(max < clim_daily_table, 1, 0)
+    }
+    else{
+      clim_daily_table <- ifelse(bins_table[x, start] <= clim_daily_table &
+                                   bins_table[x, end] >= clim_daily_table, 1, 0)
+    }
+
 
     clim_daily_new <- clim_daily
     raster::values(clim_daily_new) <- clim_daily_table
@@ -438,10 +448,20 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
 
 
   # Create names for new columns
-  list_names <- sapply(1:num_bins, FUN=function(x){paste("bin", x, sep="_")})
+  list_names <- sapply(0:(num_bins + 1), FUN=function(x){
+    if(x == 0){
+      paste("-inf", "to", min, sep = "_")
+    }
+    else if(x == num_bins + 1){
+      paste(max, "to", "inf", sep = "_")
+    }
+    else{
+      paste(bins_table[x, start], bins_table[x, end], "to", sep = "_")
+      }
+    })
 
-  # For each bin, create new brick of binary values
-  r <- lapply(1:num_bins, FUN = check_bins)
+  # For each bin, create new brick of binary values, including end bins which go from -inf to min, max to inf
+  r <- lapply(0:(num_bins + 1), FUN = check_bins)
 
 
   create_dt <- function(x){
@@ -481,4 +501,4 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
 
 
 
-
+# Create end bins from -inf to min and max to inf
