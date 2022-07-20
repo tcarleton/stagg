@@ -19,6 +19,8 @@
 #' sum_by_poly_multiyear <- parallel::parLapply(cl, years, agg_climate_data, data_raster, climate_var, daily_agg, trans, trans_specs, geoweights_table)
 #' parallel::stopCluster(cl)
 #'
+#' bin_output <- staggregate_bin(demo_prcp, "prcp", daily_agg = "sum", num_bins = 30, min = 5, year = 2011, geoweights_table = demo_output_geoweights, second_weights = TRUE)
+#'
 #'
 
 ## Sara Orofino
@@ -456,7 +458,7 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
       paste(max, "to", "inf", sep = "_")
     }
     else{
-      paste(bins_table[x, start], bins_table[x, end], "to", sep = "_")
+      paste(bins_table[x, start], "to", bins_table[x, end], sep = "_")
       }
     })
 
@@ -482,11 +484,11 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
   }
 
   # Make each raster layer a data.table
-  list_dt <- lapply(1:num_bins, create_dt)
+  list_dt <- lapply(1:(num_bins + 2), create_dt)
 
   # Merge all data tables together
   clim_dt <- list_dt[[1]]
-  for(i in 2:num_bins){
+  for(i in 2:(num_bins + 2)){
     dt_m <- list_dt[[i]]
     clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
   }
