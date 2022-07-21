@@ -330,7 +330,7 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
 
 
 #' @export
-staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, binwidth = NULL, center_on = NULL, start_on = NULL, end_on = NULL, max = NULL, min = NULL, geoweights_table, second_weights, year){
+staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, binwidth = NULL, center_on = NULL, start_on = NULL, end_on = NULL, max = NULL, min = NULL, geoweights_table, second_weights, year){
   # Get climate data as a data table and aggregate to daily values
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights)
   clim_daily <- setup_list[[1]]
@@ -349,7 +349,8 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
 
   # Write message that binwidth overrides num_bins
   if(!is.null(binwidth)){
-    message(crayon::yellow("Binwidth argument supplied will override num_bins. Bins at the boundaries may extend beyond the maximum and minimum values of the data supplied"))
+    message(crayon::yellow("Binwidth argument supplied will override num_bins"))
+    num_bins <- ceiling((max - min) / binwidth)
   }
 
   # If value not supplied to binwidth, calculate from num_bins
@@ -417,11 +418,19 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
   bins_table <- data.table::data.table(center)
   bins_table[, ':=' (start = center - (binwidth / 2), end = center + (binwidth / 2))]
 
-  #To deal with potential overlap, give warning
-  if(nrow(bins_table) > num_bins){
-    warning(crayon::red("Bins drawn extend beyond data, number of bins may be greater than previously specified by one"))
-    num_bins <- nrow(bins_table)
+  # Readjust max if bin boundaries don't line up properly
+  if(max(bins_table) > max){
+    max <- max(bins_table$end)
+
+    message(crayon::yellow("Max value increased to fit all bins"))
   }
+  if(min(bins_table) < min){
+    min <- min(bins_table$start)
+    message(crayon::yellow("Min value decreased to fit all bins"))
+  }
+
+  # Readjust number of bins in case the bin boundary's failure to line up cause the creation of an extra bin
+  num_bins <- nrow(bins_table)
 
 
   # bins_table lists center, start, and end of all bins in order
@@ -502,5 +511,3 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 5, b
 }
 
 
-
-# Create end bins from -inf to min and max to inf
