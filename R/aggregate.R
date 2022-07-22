@@ -338,7 +338,7 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, 
   layer_names <- setup_list[[3]]
 
 
-  clim_daily_table <- values(clim_daily)
+  clim_daily_table <- raster::values(clim_daily)
 
   if(is.null(max)){
     max <- max(clim_daily_table) + .01
@@ -432,8 +432,22 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, 
   # Readjust number of bins in case the bin boundary's failure to line up cause the creation of an extra bin
   num_bins <- nrow(bins_table)
 
+  # The bins_table created lists center, start, and end of all bins in order
 
-  # bins_table lists center, start, and end of all bins in order
+
+  # Create names for new columns
+  list_names <- sapply(0:(num_bins + 1), FUN=function(x){
+    if(x == 0){
+      paste("-inf", "to", min, sep = "_")
+    }
+    else if(x == num_bins + 1){
+      paste(max, "to", "inf", sep = "_")
+    }
+    else{
+      paste(bins_table[x, start], "to", bins_table[x, end], sep = "_")
+      }
+    })
+
 
   # Function check_bins to determine which bins data points fall into
   check_bins <- function(x){
@@ -456,20 +470,6 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, 
 
     return(clim_daily_new)
   }
-
-
-  # Create names for new columns
-  list_names <- sapply(0:(num_bins + 1), FUN=function(x){
-    if(x == 0){
-      paste("-inf", "to", min, sep = "_")
-    }
-    else if(x == num_bins + 1){
-      paste(max, "to", "inf", sep = "_")
-    }
-    else{
-      paste(bins_table[x, start], "to", bins_table[x, end], sep = "_")
-      }
-    })
 
   # For each bin, create new brick of binary values, including end bins which go from -inf to min, max to inf
   r <- lapply(0:(num_bins + 1), FUN = check_bins)
