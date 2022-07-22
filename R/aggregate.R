@@ -19,7 +19,9 @@
 #' sum_by_poly_multiyear <- parallel::parLapply(cl, years, agg_climate_data, data_raster, climate_var, daily_agg, trans, trans_specs, geoweights_table)
 #' parallel::stopCluster(cl)
 #'
-#' bin_output <- staggregate_bin(demo_prcp, "prcp", daily_agg = "sum", num_bins = 30, min = 5, year = 2011, geoweights_table = demo_output_geoweights, second_weights = TRUE)
+#' staggregate_poly(demo_prcp, "prcp", daily_agg = "sum", degree = 3, year = 2011, geoweights_table = demo_output_geoweights, second_weights = TRUE)
+#' staggregate_spline(demo_prcp, "prcp", daily_agg = "sum", knot_locs = c(1,2,3), year = 2011, geoweights_table = demo_output_geoweights, second_weights = TRUE)
+#' staggregate_bin(demo_prcp, "prcp", daily_agg = "sum", num_bins = 30, min = 5, year = 2011, geoweights_table = demo_output_geoweights, second_weights = TRUE)
 #'
 #'
 
@@ -180,7 +182,7 @@ after_trans <- function(clim_dt, weights_dt, list_names, second_weights, year){
 }
 
 #' @export
-staggregate_polynomial <- function(data_raster, climate_var, daily_agg, k, geoweights_table, second_weights, year){
+staggregate_polynomial <- function(data_raster, climate_var, daily_agg, degree, geoweights_table, second_weights, year){
 
   # Get climate data as a data table and aggregate to daily values
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights)
@@ -190,11 +192,11 @@ staggregate_polynomial <- function(data_raster, climate_var, daily_agg, k, geowe
   layer_names <- setup_list[[3]]
 
   # Polynomial transformation
-  poly_orders <- seq(1:k) # Compute values from 1 to K
+  poly_orders <- seq(1:degree) # Compute values from 1 to degree
   list_length <- length(poly_orders) # How many lists are in the final object
   list_names <- sapply(1:list_length, FUN=function(x){paste("order", poly_orders[x], sep="_")})
 
-  # For each daily layer, raise the value to k, k-1, k-2 etc. until 1
+  # For each daily layer, raise the value to degree, degree-1, degree-2 etc. until 1
   r <- lapply(poly_orders, FUN=function(x){clim_daily ^ x})
 
 

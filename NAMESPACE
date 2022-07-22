@@ -2,7 +2,8 @@
 
 export(calc_geoweights)
 export(calc_raster_weights)
-export(staggregate_poly)
+export(staggregate_bin)
+export(staggregate_polynomial)
 export(staggregate_spline)
 importFrom(data.table,":=")
 importFrom(data.table,.BY)

@@ -43,5 +43,9 @@ cl <- parallel::makeCluster(no_cores, type="FORK") # Initiate cluster. "FORK" me
 sum_by_poly_multiyear <- parallel::parLapply(cl, years, agg_climate_data, data_raster, climate_var, daily_agg, trans, trans_specs, geoweights_table)
 parallel::stopCluster(cl)
 
+staggregate_poly(demo_prcp, "prcp", daily_agg = "sum", degree = 3, year = 2011, geoweights_table = demo_output_geoweights, second_weights = TRUE)
+staggregate_spline(demo_prcp, "prcp", daily_agg = "sum", knot_locs = c(1,2,3), year = 2011, geoweights_table = demo_output_geoweights, second_weights = TRUE)
+staggregate_bin(demo_prcp, "prcp", daily_agg = "sum", num_bins = 30, min = 5, year = 2011, geoweights_table = demo_output_geoweights, second_weights = TRUE)
+
 
 }
