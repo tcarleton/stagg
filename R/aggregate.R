@@ -78,7 +78,7 @@ before_trans <- function(data_raster, climate_var, daily_agg, geoweights_table, 
   # Get layer names (dates)
   all_layers <- names(clim_raster)
   layer_names <- all_layers[seq(1, length(all_layers), 24)] # Keep every 24th layer name (1 per day)
-  layer_names <- paste0('month_', substring(layer_names, 7,8), '_day_', substring(layer_names, 10,11)) # Extract month/day for each layer
+  layer_names <- paste0('year_', substring(layer_names, 2,5), 'month_', substring(layer_names, 7,8), '_day_', substring(layer_names, 10,11)) # Extract month/day for each layer
 
   ## Aggregate to grid-day level
   ## -----------------------------------------------
@@ -91,12 +91,6 @@ before_trans <- function(data_raster, climate_var, daily_agg, geoweights_table, 
   ## Average
   if(daily_agg == 'average'){
 
-    # Check if there are 24*365 or 24*366 layers
-    if(!raster::nlayers(clim_raster) %in% c(8760, 8784)){
-
-      message(crayon::red("Warning: Incomplete year of data; raster has", length(all_layers),
-                          "layers, but a complete year should have 8760 layers or 8784 layers on a leap year"))
-    }
 
     # Average over each set of 24 layers
     indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
@@ -106,12 +100,7 @@ before_trans <- function(data_raster, climate_var, daily_agg, geoweights_table, 
   ## Sum
   if(daily_agg == 'sum'){
 
-    # Check if there are 24*365 or 24*366 layers
-    if(!raster::nlayers(clim_raster) %in% c(8760, 8784)){
 
-      message(crayon::red("Warning: Incomplete year of data; raster has", length(all_layers),
-                          "layers, but a complete year should have 8760 layers or 8784 layers on a leap year"))
-    }
 
     # Sum over each set of 24 layers
     indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
@@ -160,8 +149,8 @@ after_trans <- function(clim_dt, weights_dt, list_names, second_weights, year){
   }
 
   # Separate month and day columns
-  merged_dt[, ':=' (month = substring(date, first=1, last=8),
-                    day = substring(date, first=10))]
+  merged_dt[, ':=' (month = substring(date, first=10, last=17),
+                    day = substring(date, first=19))]
 
   # Can customize this in the future to aggregate by day & month
   # Right now just sum by month
