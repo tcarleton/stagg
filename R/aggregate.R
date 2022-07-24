@@ -14,14 +14,9 @@
 #' @param second_weights A boolean indicating whether secondary weights should be used
 #'
 #' @examples
-#' no_cores <- parallel::detectCores() - 1 # Calculate the number of cores. Leave one in case something else needs to be done on the same computer at the same time.
-#' cl <- parallel::makeCluster(no_cores, type="FORK") # Initiate cluster. "FORK" means bring everything in your current environment with you.
-#' sum_by_poly_multiyear <- parallel::parLapply(cl, years, agg_climate_data, data_raster, climate_var, daily_agg, trans, trans_specs, geoweights_table)
-#' parallel::stopCluster(cl)
-#'
-#' staggregate_poly(demo_prcp, "prcp", daily_agg = "sum", degree = 3, year = 2011, geoweights_table = demo_output_geoweights, second_weights = TRUE)
-#' staggregate_spline(demo_prcp, "prcp", daily_agg = "sum", knot_locs = c(1,2,3), year = 2011, geoweights_table = demo_output_geoweights, second_weights = TRUE)
-#' staggregate_bin(demo_prcp, "prcp", daily_agg = "sum", num_bins = 30, min = 5, year = 2011, geoweights_table = demo_output_geoweights, second_weights = TRUE)
+#' staggregate_polynomial(demo_prcp, "prcp", daily_agg = "sum", degree = 3, geoweights_table = demo_output_geoweights, second_weights = TRUE)
+#' staggregate_spline(demo_prcp, "prcp", daily_agg = "sum", knot_locs = c(1,2,3), geoweights_table = demo_output_geoweights, second_weights = TRUE)
+#' staggregate_bin(demo_prcp, "prcp", daily_agg = "sum", num_bins = 30, min = 5, geoweights_table = demo_output_geoweights, second_weights = TRUE)
 #'
 #'
 
@@ -125,7 +120,7 @@ before_trans <- function(data_raster, climate_var, daily_agg, geoweights_table, 
 
 
 # Function to merge with geoweights and aggregate by polygon
-after_trans <- function(clim_dt, weights_dt, list_names, second_weights, year){
+after_trans <- function(clim_dt, weights_dt, list_names, second_weights){
 
   ## Merge weights with climate raster
   ## -----------------------------------------------
@@ -149,16 +144,15 @@ after_trans <- function(clim_dt, weights_dt, list_names, second_weights, year){
   }
 
   # Separate month and day columns
-  merged_dt[, ':=' (month = substring(date, first=10, last=17),
+  merged_dt[, ':=' (year = substring(date, first = 1, last = 9),
+                    month = substring(date, first=10, last=17),
                     day = substring(date, first=19))]
 
   # Can customize this in the future to aggregate by day & month
   # Right now just sum by month
-  sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, month),
+  sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month),
                            .SDcols = list_names]
 
-  ## Add year column
-  sum_by_poly[, year := year]
 
   ## Order columns
   data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'poly_id', list_names))
@@ -171,7 +165,7 @@ after_trans <- function(clim_dt, weights_dt, list_names, second_weights, year){
 }
 
 #' @export
-staggregate_polynomial <- function(data_raster, climate_var, daily_agg, degree, geoweights_table, second_weights, year){
+staggregate_polynomial <- function(data_raster, climate_var, daily_agg, degree, geoweights_table, second_weights){
 
   # Get climate data as a data table and aggregate to daily values
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights)
@@ -218,14 +212,14 @@ staggregate_polynomial <- function(data_raster, climate_var, daily_agg, degree, 
   }
 
   # Aggregate by polygon
-  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights, year)
+  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights)
 
   return(sum_by_poly)
 
 }
 
 #' @export
-staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, geoweights_table, second_weights, year){
+staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, geoweights_table, second_weights){
 
   # Get climate data as a data table and aggregate to daily values
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights)
@@ -313,7 +307,7 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
 
 
   # Aggregate by polygon
-  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights, year)
+  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights)
 
   return(sum_by_poly)
 }
@@ -321,7 +315,7 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
 
 
 #' @export
-staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, binwidth = NULL, center_on = NULL, start_on = NULL, end_on = NULL, max = NULL, min = NULL, geoweights_table, second_weights, year){
+staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, binwidth = NULL, center_on = NULL, start_on = NULL, end_on = NULL, max = NULL, min = NULL, geoweights_table, second_weights){
   # Get climate data as a data table and aggregate to daily values
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights)
   clim_daily <- setup_list[[1]]
@@ -496,9 +490,15 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, 
 
 
   # Aggregate by polygon
-  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights, year)
+  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights)
 
   return(sum_by_poly)
 }
 
+
+########
+# no_cores <- parallel::detectCores() - 1 # Calculate the number of cores. Leave one in case something else needs to be done on the same computer at the same time.
+# cl <- parallel::makeCluster(no_cores, type="FORK") # Initiate cluster. "FORK" means bring everything in your current environment with you.
+# sum_by_poly_multiyear <- parallel::parLapply(cl, years, agg_climate_data, data_raster, climate_var, daily_agg, trans, trans_specs, geoweights_table)
+# parallel::stopCluster(cl)
 

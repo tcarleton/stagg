@@ -20,6 +20,5 @@ Imports:
     exactextractr,
     magrittr,
     methods,
-    parallel,
     raster,
     sf
