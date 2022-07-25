@@ -333,9 +333,9 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
 
 
 #' @export
-staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, binwidth = NULL, center_on = NULL, start_on = NULL, end_on = NULL, max = NULL, min = NULL, geoweights_table, second_weights){
+staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, binwidth = NULL, center_on = NULL, start_on = NULL, end_on = NULL, max = NULL, min = NULL, geoweights_table, second_weights, agg_to = "month"){
   # Get climate data as a data table and aggregate to daily values
-  setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights, agg_to = "month")
+  setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights)
   clim_daily <- setup_list[[1]]
   weights_dt <- setup_list[[2]]
   layer_names <- setup_list[[3]]
