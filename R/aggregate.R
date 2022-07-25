@@ -120,7 +120,7 @@ before_trans <- function(data_raster, climate_var, daily_agg, geoweights_table, 
 
 
 # Function to merge with geoweights and aggregate by polygon
-after_trans <- function(clim_dt, weights_dt, list_names, second_weights){
+after_trans <- function(clim_dt, weights_dt, list_names, second_weights, agg_to){
 
   ## Merge weights with climate raster
   ## -----------------------------------------------
@@ -143,19 +143,37 @@ after_trans <- function(clim_dt, weights_dt, list_names, second_weights){
     merged_dt[, (list_names) := lapply(list_names, function(x) {get(x) * w_area})]
   }
 
-  # Separate month and day columns
+  # Separate year, month, and day columns
   merged_dt[, ':=' (year = substring(date, first = 1, last = 9),
                     month = substring(date, first=10, last=17),
                     day = substring(date, first=19))]
 
-  # Can customize this in the future to aggregate by day & month
-  # Right now just sum by month
-  sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month),
-                           .SDcols = list_names]
+  # Temporal Aggregation
+  if(agg_to == "year"){
+    sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year),
+                             .SDcols = list_names]
+
+    ## Order columns
+    data.table::setcolorder(sum_by_poly, neworder = c('year', 'poly_id', list_names))
+  }
+
+  if(agg_to == "month"){
+    sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month),
+                             .SDcols = list_names]
+
+    ## Order columns
+    data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'poly_id', list_names))
+  }
+
+  if(agg_to == "day"){
+    sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month, day),
+                             .SDcols = list_names]
+
+    ## Order columns
+    data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'day', 'poly_id', list_names))
+  }
 
 
-  ## Order columns
-  data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'poly_id', list_names))
 
   ## Return the sums by polygon
   return(sum_by_poly)
@@ -165,7 +183,7 @@ after_trans <- function(clim_dt, weights_dt, list_names, second_weights){
 }
 
 #' @export
-staggregate_polynomial <- function(data_raster, climate_var, daily_agg, degree, geoweights_table, second_weights){
+staggregate_polynomial <- function(data_raster, climate_var, daily_agg, degree, geoweights_table, second_weights, agg_to = "month"){
 
   # Get climate data as a data table and aggregate to daily values
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights)
@@ -212,14 +230,14 @@ staggregate_polynomial <- function(data_raster, climate_var, daily_agg, degree, 
   }
 
   # Aggregate by polygon
-  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights)
+  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights, agg_to)
 
   return(sum_by_poly)
 
 }
 
 #' @export
-staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, geoweights_table, second_weights){
+staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, geoweights_table, second_weights, agg_to = "month"){
 
   # Get climate data as a data table and aggregate to daily values
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights)
@@ -307,7 +325,7 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
 
 
   # Aggregate by polygon
-  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights)
+  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights, agg_to)
 
   return(sum_by_poly)
 }
@@ -317,7 +335,7 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
 #' @export
 staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, binwidth = NULL, center_on = NULL, start_on = NULL, end_on = NULL, max = NULL, min = NULL, geoweights_table, second_weights){
   # Get climate data as a data table and aggregate to daily values
-  setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights)
+  setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table, second_weights, agg_to = "month")
   clim_daily <- setup_list[[1]]
   weights_dt <- setup_list[[2]]
   layer_names <- setup_list[[3]]
@@ -490,7 +508,7 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, 
 
 
   # Aggregate by polygon
-  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights)
+  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, second_weights, agg_to)
 
   return(sum_by_poly)
 }
