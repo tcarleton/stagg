@@ -197,7 +197,7 @@ agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 
   merged_dt[, ':=' (month = substring(date, first=1, last=8),
                     day = substring(date, first=10))]
 
-  # Can customize this in the columnsfuture to aggregate by day & month
+  # Can customize this in the future to aggregate by day & month
   # Right now just sum by month
   sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, month),
                            .SDcols = list_names]

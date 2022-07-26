@@ -107,7 +107,7 @@ calc_geoweights <- function(data_source,  input_polygons, polygon_id, weights_ta
     # Weight in pixel = w_area * weight
     w_merged[, weight := weight * w_area]
 
-    # Create column that detirmines if entire polygon has a weight == 0
+    # Create column that determines if entire polygon has a weight == 0
     zero_polys <- data.frame(w_merged) %>%
       group_by(poly_id) %>%
       summarise(sum_weight = sum(weight)) %>%
