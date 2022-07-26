@@ -88,25 +88,11 @@ calc_geoweights <- function(data_source,  input_polygons, polygon_id, weights_ta
 
     }
 
-    # Warning if weights don't overlap fully with polygons
-    weights_ext <- raster::extent(weights_xmin, weights_xmax, weights_ymin, weights_ymax)
-    poly_ext <- raster::extent(input_polygons)
-
-    if(poly_ext@xmin < weights_ext@xmin | poly_ext@xmax > weights_ext@xmax |
-       poly_ext@ymin < weights_ext@ymin | poly_ext@ymax > weights_ext@ymax) {
-
-      warning(crayon::red("Warning: some of your polygons fall outside of the input weights data layer, meaning weights cannot be calculated and area-weights will be returned"))
-
-    }
 
     # Set key column in the merged dt table
     keycols = c("x", "y")
     data.table::setkeyv(area_weight, keycols)
 
-    ## NOTE from Tracey: I think that this fills non matches with zeros, not NAs
-    ## added the code below, which matches by x and y, retains all on left, and fills no matches with NAs.
-    # # Merge with secondary weights
-    # w_merged <- area_weight[weights_dt, nomatch = 0]
 
     # Merge with secondary weights, NA for missing values
     w_merged <- merge(area_weight, weights_dt,
@@ -116,14 +102,40 @@ calc_geoweights <- function(data_source,  input_polygons, polygon_id, weights_ta
     # Weight in pixel = w_area * weight
     w_merged[, weight := weight * w_area]
 
+    # Create column that determines if entire polygon has a weight == 0
+    zero_polys <- data.frame(w_merged) %>%
+      group_by(poly_id) %>%
+      summarise(sum_weight = sum(weight)) %>%
+      ungroup() %>%
+      filter(sum_weight == 0) %>%
+      dplyr::select(poly_id) %>%
+      distinct()
+
+    if(nrow(zero_polys > 0)) {
+
+      warning(crayon::red("Warning: weight = 0 for all pixels in some of your polygons; area-weights will be returned"))
+
+    }
+
+
+
     # List any polygons with NA values in 1 or more grid cells
     na_polys <- data.frame(w_merged) %>%
       dplyr::filter(is.na(weight)) %>%
       dplyr::select(poly_id) %>%
       dplyr::distinct()
 
+
+    # Warning if there are polygons with NA weight values
+    if(nrow(na_polys > 0)) {
+
+      warning(crayon::red("Warning: some of the secondary weights are NA, meaning weights cannot be calculated and area-weights will be returned"))
+
+    }
+
+
     # Update the weight to equal w_area for all grid cells in na_polys
-    w_merged[, weight := data.table::fifelse(poly_id %in% na_polys$poly_id, w_area, weight)]
+    w_merged[, weight := data.table::fifelse(poly_id %in% c(na_polys$poly_id, zero_polys$poly_id), w_area, weight)]
 
   }
 
