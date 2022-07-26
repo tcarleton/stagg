@@ -1,8 +1,3 @@
-## Sara Orofino
-## January 31, 2022
-## Spatial Overlap: Pipeline Step 01
-
-
 #' Function to find spatial overlap between a raster and a set of polygons
 #'
 #' @param data_source the source of climate data (default is era5)

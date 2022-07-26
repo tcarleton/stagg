@@ -16,12 +16,6 @@
 #' staggregate_polynomial(demo_prcp, "prcp", daily_agg = "sum", degree = 3, geoweights_table = demo_output_geoweights, second_weights = TRUE)
 #' staggregate_spline(demo_prcp, "prcp", daily_agg = "sum", knot_locs = c(1,2,3), geoweights_table = demo_output_geoweights, second_weights = TRUE)
 #' staggregate_bin(demo_prcp, "prcp", daily_agg = "sum", num_bins = 30, min = 5, geoweights_table = demo_output_geoweights, second_weights = TRUE)
-#'
-#'
-
-## Sara Orofino
-## February 22, 2022
-## Aggregate Climate Data: Pipeline Step 02
 
 # Function to convert raster to data.table from https://gist.github.com/etiennebr/9515738
 as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE, inmem = raster::canProcessInMemory(x, 2), ...) {
@@ -114,7 +108,7 @@ before_trans <- function(data_raster, climate_var, daily_agg, geoweights_table){
   }
 
   # Return a list of the necessary objects
-  return(list(clim_daily, weights_dt, layer_names))
+  return(list(clim_daily, layer_names))
 }
 
 
@@ -188,8 +182,7 @@ staggregate_polynomial <- function(data_raster, climate_var, daily_agg, degree, 
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table)
 
   clim_daily <- setup_list[[1]]
-  weights_dt <- setup_list[[2]]
-  layer_names <- setup_list[[3]]
+  layer_names <- setup_list[[2]]
 
   # Polynomial transformation
   poly_orders <- seq(1:degree) # Compute values from 1 to degree
@@ -229,7 +222,7 @@ staggregate_polynomial <- function(data_raster, climate_var, daily_agg, degree, 
   }
 
   # Aggregate by polygon
-  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, agg_to)
+  sum_by_poly <- after_trans(clim_dt, geoweights_table, list_names, agg_to)
 
   return(sum_by_poly)
 
@@ -242,8 +235,7 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table)
 
   clim_daily <- setup_list[[1]]
-  weights_dt <- setup_list[[2]]
-  layer_names <- setup_list[[3]]
+  layer_names <- setup_list[[2]]
 
 
   # Spline transformation
@@ -324,7 +316,7 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
 
 
   # Aggregate by polygon
-  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, agg_to)
+  sum_by_poly <- after_trans(clim_dt, geoweights_table, list_names, agg_to)
 
   return(sum_by_poly)
 }
@@ -336,8 +328,7 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, 
   # Get climate data as a data table and aggregate to daily values
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table)
   clim_daily <- setup_list[[1]]
-  weights_dt <- setup_list[[2]]
-  layer_names <- setup_list[[3]]
+  layer_names <- setup_list[[2]]
 
 
   clim_daily_table <- raster::values(clim_daily)
@@ -507,7 +498,7 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, 
 
 
   # Aggregate by polygon
-  sum_by_poly <- after_trans(clim_dt, weights_dt, list_names, agg_to)
+  sum_by_poly <- after_trans(clim_dt, geoweights_table, list_names, agg_to)
 
   return(sum_by_poly)
 }

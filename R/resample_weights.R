@@ -1,8 +1,3 @@
-## Anna Boser
-## March 27, 2022
-## Make a general function that resamples a raster of interest to the ERA grid
-## Processing step for potapov crop weights to turn into a single global map by year
-
 #' Function that resamples a raster of interest to the ERA grid
 #'
 #' @param weights_raster a raster of a continuous variable, for example cropland coverage or population
