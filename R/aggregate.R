@@ -16,7 +16,10 @@
 #' staggregate_polynomial(demo_prcp, "prcp", daily_agg = "sum", degree = 3, geoweights_table = demo_output_geoweights)
 #' staggregate_spline(demo_prcp, "prcp", daily_agg = "sum", knot_locs = c(1,2,3), geoweights_table = demo_output_geoweights)
 #' staggregate_bin(demo_prcp, "prcp", daily_agg = "sum", num_bins = 30, min = 5, geoweights_table = demo_output_geoweights)
+#'
 
+
+#' @noRd
 # Function to convert raster to data.table from https://gist.github.com/etiennebr/9515738
 as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE, inmem = raster::canProcessInMemory(x, 2), ...) {
   if(inmem) {
