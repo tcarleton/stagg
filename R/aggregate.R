@@ -12,6 +12,9 @@
 #' @param geoweights_table A table of weights which can be generated using
 #'   the function calc_geoweights()
 #' @param second_weights A boolean indicating whether secondary weights should be used
+#'
+#' @examples
+#' agg_climate_data(2011, demo_prcp, "prcp", "sum", "polynomial", 3, demo_output_geoweights, second_weights = TRUE)
 
 ## Sara Orofino
 ## February 22, 2022
@@ -84,13 +87,20 @@ agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 
     # Check if there are 24*365 or 24*366 layers
     if(!raster::nlayers(clim_raster) %in% c(8760, 8784)){
 
-      message(crayon::red("Warning: Incomplete year of data; raster has", length(all_layers),
+      warning(crayon::red("Warning: Incomplete year of data; raster has", length(all_layers),
                        "layers, but a complete year should have 8760 layers or 8784 layers on a leap year"))
     }
 
     # Average over each set of 24 layers
     indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
     clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=mean) #Stack of 365/366 layers
+
+    # For temperature convert values in Kelvin to Celsius C = K - 273.15
+    if(climate_var == 'temp'){
+
+      clim_daily <- clim_daily - 273.15
+    }
+
   }
 
   ## Sum
@@ -99,20 +109,23 @@ agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 
     # Check if there are 24*365 or 24*366 layers
     if(!raster::nlayers(clim_raster) %in% c(8760, 8784)){
 
-      message(crayon::red("Warning: Incomplete year of data; raster has", length(all_layers),
+      warning(crayon::red("Warning: Incomplete year of data; raster has", length(all_layers),
                        "layers, but a complete year should have 8760 layers or 8784 layers on a leap year"))
     }
 
     # Sum over each set of 24 layers
     indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
     clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=sum) #Stack of 365/366 layers
+
+
+    # For temperature convert values in Kelvin to Celsius C = K - 273.15
+    if(climate_var == 'temp'){
+
+      clim_daily <- clim_daily - (273.15 * 24)
+    }
+
   }
 
-  # For temperature convert values in Kelvin to Celsius C = K - 273.15
-  if(climate_var == 'temp'){
-
-    clim_daily <- clim_daily - 273.15
-  }
 
   ## Nonlinearities
   ## -----------------------------------------------
@@ -125,7 +138,6 @@ agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 
     poly_orders <- seq(1:k) # Compute values from 1 to K
     list_length <- length(poly_orders) # How many lists are in the final object
     list_names <- sapply(1:list_length, FUN=function(x){paste("order", poly_orders[x], sep="_")})
-
     # For each daily layer, raise the value to k, k-1, k-2 etc. until 1
     r <- lapply(poly_orders, FUN=function(x){clim_daily ^ x})
 
@@ -166,8 +178,9 @@ agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 
   keycols = c("x", "y")
   data.table::setkeyv(clim_dt, keycols)
 
+
   # Keyed merge on the x/y column
-  merged_dt <- clim_dt[weights_dt] #cols: x, y, date, value cols 1:k, poly_id, w_area, weight (if weights = T)
+  merged_dt <- clim_dt[weights_dt, allow.cartesian = TRUE] #cols: x, y, date, value cols 1:k, poly_id, w_area, weight (if weights = T)
 
   ## Multiply weights x climate value (all 1:k values); aggregate by month and polygon
   ## -----------------------------------------------
@@ -192,7 +205,7 @@ agg_climate_data <- function(year, data_raster, climate_var, daily_agg, trans = 
   ## Add year column
   sum_by_poly[, year := year]
 
-  ## Order columns
+  ## Order
   data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'poly_id', list_names))
 
   ## Return the sums by polygon
