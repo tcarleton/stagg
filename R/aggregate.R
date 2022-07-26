@@ -430,7 +430,7 @@ staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, 
   # Create names for new columns
   list_names <- sapply(0:(num_bins + 1), FUN=function(x){
     if(x == 0){
-      paste("-inf", "to", min, sep = "_")
+      paste("neg_inf", "to", min, sep = "_")
     }
     else if(x == num_bins + 1){
       paste(max, "to", "inf", sep = "_")
