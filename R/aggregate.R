@@ -13,9 +13,9 @@
 #'   the function calc_geoweights()
 #'
 #' @examples
-#' staggregate_polynomial(demo_prcp, "prcp", daily_agg = "sum", degree = 3, geoweights_table = demo_output_geoweights, second_weights = TRUE)
-#' staggregate_spline(demo_prcp, "prcp", daily_agg = "sum", knot_locs = c(1,2,3), geoweights_table = demo_output_geoweights, second_weights = TRUE)
-#' staggregate_bin(demo_prcp, "prcp", daily_agg = "sum", num_bins = 30, min = 5, geoweights_table = demo_output_geoweights, second_weights = TRUE)
+#' staggregate_polynomial(demo_prcp, "prcp", daily_agg = "sum", degree = 3, geoweights_table = demo_output_geoweights)
+#' staggregate_spline(demo_prcp, "prcp", daily_agg = "sum", knot_locs = c(1,2,3), geoweights_table = demo_output_geoweights)
+#' staggregate_bin(demo_prcp, "prcp", daily_agg = "sum", num_bins = 30, min = 5, geoweights_table = demo_output_geoweights)
 
 # Function to convert raster to data.table from https://gist.github.com/etiennebr/9515738
 as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE, inmem = raster::canProcessInMemory(x, 2), ...) {
@@ -53,11 +53,6 @@ before_trans <- function(data_raster, climate_var, daily_agg, geoweights_table){
 
   ## Load climate data
   ## -----------------------------------------------
-
-  # Check if the climate variable is one we have data for
-  if(!climate_var %in% c('prcp', 'temp', 'uv')){
-    stop(crayon::red('No ERA5 data available. Supported variables are: prcp, temp, or uv'))
-  }
 
 
   # Immediately crop to weights extent
@@ -98,8 +93,9 @@ before_trans <- function(data_raster, climate_var, daily_agg, geoweights_table){
   # For temperature convert values in Kelvin to Celsius C = K - 273.15
   if(climate_var == 'temp'){
 
-    clim_daily <- clim_daily - 273.15
+    clim_daily <- clim_daily - (273.15 * 24)
   }
+
 
   ## convert prcp m to mm
   if(climate_var == 'prcp'){
@@ -107,7 +103,7 @@ before_trans <- function(data_raster, climate_var, daily_agg, geoweights_table){
     clim_daily <- clim_daily * 1000
   }
 
-  # Return a list of the necessary objects
+  # Return a list containing, in order, daily aggregated climate data as a raster brick, and the layer_names created.
   return(list(clim_daily, layer_names))
 }
 
@@ -130,7 +126,7 @@ after_trans <- function(clim_dt, weights_dt, list_names, agg_to){
 
   # Multiply by secondary weights if weights = TRUE (already normalized by polygon area)
   # Otherwise multiply by just area weights
-  if(weight %in% names(merged_dt)){
+  if("weight" %in% names(merged_dt)){
     merged_dt[, (list_names) := lapply(list_names, function(x) {get(x) * weight})]
   } else {
     merged_dt[, (list_names) := lapply(list_names, function(x) {get(x) * w_area})]
@@ -181,8 +177,8 @@ staggregate_polynomial <- function(data_raster, climate_var, daily_agg, degree, 
   # Get climate data as a data table and aggregate to daily values
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table)
 
-  clim_daily <- setup_list[[1]]
-  layer_names <- setup_list[[2]]
+  clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
+  layer_names <- setup_list[[2]] # Pulls the saved layer names
 
   # Polynomial transformation
   poly_orders <- seq(1:degree) # Compute values from 1 to degree
@@ -234,8 +230,8 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
   # Get climate data as a data table and aggregate to daily values
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table)
 
-  clim_daily <- setup_list[[1]]
-  layer_names <- setup_list[[2]]
+  clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
+  layer_names <- setup_list[[2]] # Pulls the saved layer names
 
 
   # Spline transformation
@@ -327,8 +323,8 @@ staggregate_spline <- function(data_raster, climate_var, daily_agg, knot_locs, g
 staggregate_bin <- function(data_raster, climate_var, daily_agg, num_bins = 30, binwidth = NULL, center_on = NULL, start_on = NULL, end_on = NULL, max = NULL, min = NULL, geoweights_table, agg_to = "month"){
   # Get climate data as a data table and aggregate to daily values
   setup_list <- before_trans(data_raster, climate_var, daily_agg, geoweights_table)
-  clim_daily <- setup_list[[1]]
-  layer_names <- setup_list[[2]]
+  clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
+  layer_names <- setup_list[[2]] # Pulls the saved layer names
 
 
   clim_daily_table <- raster::values(clim_daily)
