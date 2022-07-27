@@ -2,24 +2,26 @@
 % Please edit documentation in R/secondary_weights.R
 \name{secondary_weights}
 \alias{secondary_weights}
-\title{Function that resamples a raster of interest to the ERA grid}
+\title{Function that resamples a raster of interest}
 \usage{
-secondary_weights(secondary_raster, grid, extent = "full")
+secondary_weights(secondary_raster, grid = era5_grid, extent = "full")
 }
 \arguments{
-\item{secondary_raster}{a raster of a continuous variable, for example cropland coverage or population}
+\item{secondary_raster}{a raster of a continuous variable, for example
+cropland coverage or population}
 
-\item{grid}{the source of climate data (default is era5)}
+\item{grid}{a raster layer with the same spatial resolution as the data}
 
-\item{extent}{an optional extent to crop the secondary_raster to for faster processing}
+\item{extent}{an optional extent to crop the secondary_raster to for faster
+processing}
 }
 \value{
 a data.table of secondary weights
 }
 \description{
-Function that resamples a raster of interest to the ERA grid
+Function that resamples a raster of interest
 }
 \examples{
-secondary_weights(data_weights, data_era5)
+secondary_weights(cropland_kansas_2011)
 
 }

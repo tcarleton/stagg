@@ -12,12 +12,14 @@ overlay(polygons, polygon_id, grid, secondary_weights = NULL)
 \item{polygon_id}{the name of a column in the sf object representing a unique
 identifier for each polygon}
 
-\item{grid}{the source of climate data (default is era5)}
+\item{grid}{a raster layer with the same spatial resolution as the data}
 
-\item{secondary_weights}{an optional data table of secondary weights}
+\item{secondary_weights}{an optional data table of secondary weights, output
+from secondary_weights()}
 }
 \value{
-a data.table of geoweights (area weighted raster/polygon overlap)
+a data.table of area weights and possibly secondary weights for each
+cell within polygons (area weighted raster/polygon overlap)
 }
 \description{
 Function to find spatial overlap between a raster and a set of polygons

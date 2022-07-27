@@ -1,19 +1,21 @@
 #' Function to find spatial overlap between a raster and a set of polygons
 #'
-#' @param grid the source of climate data (default is era5)
 #' @param polygons a simple features polygon or multipolygon object
 #' @param polygon_id the name of a column in the sf object representing a unique
 #'   identifier for each polygon
-#' @param secondary_weights an optional data table of secondary weights
+#' @param grid a raster layer with the same spatial resolution as the data
+#' @param secondary_weights an optional data table of secondary weights, output
+#'   from secondary_weights()
 #'
-#' @return a data.table of geoweights (area weighted raster/polygon overlap)
+#' @return a data.table of area weights and possibly secondary weights for each
+#'   cell within polygons (area weighted raster/polygon overlap)
 #'
 #' @examples
-#' overlay(data_era5, data_polygon, "countyfp", output_weights)
-#' overlay(data_era5, data_polygon, "countyfp")
+#' ###overlay(kansas_counties, "countyfp", era5_grid, output_weights)
+#' overlay(kansas_counties, "countyfp")
 #'
 #' @export
-overlay <- function(polygons, polygon_id, grid, secondary_weights = NULL){
+overlay <- function(polygons, polygon_id, grid = era5_grid, secondary_weights = NULL){
 
   # Create raster
   clim_raster <- raster::raster(grid) # only reads the first band
