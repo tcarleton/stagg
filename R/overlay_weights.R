@@ -11,11 +11,11 @@
 #'   cell within polygons (area weighted raster/polygon overlap)
 #'
 #' @examples
-#' ###overlay(kansas_counties, "countyfp", era5_grid, output_weights)
-#' overlay(kansas_counties, "countyfp")
+#' overlay_weights(kansas_counties, "countyfp", era5_grid, cropland_kansas_2011)
+#' overlay_weights(kansas_counties, "countyfp")
 #'
 #' @export
-overlay <- function(polygons, polygon_id, grid = era5_grid, secondary_weights = NULL){
+overlay_weights <- function(polygons, polygon_id, grid = era5_grid, secondary_weights = NULL){
 
   # Create raster
   clim_raster <- raster::raster(grid) # only reads the first band
