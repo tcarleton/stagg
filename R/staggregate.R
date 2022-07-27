@@ -171,12 +171,8 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, agg_to){
 #' @param degree the highest exponent to raise the data to
 #'
 #' @examples
-<<<<<<< HEAD
 #' staggregate_polynomial(prcp_kansas_dec2011_era5, overlay_weights_kansas,
 #' variable = "prcp", daily_agg = "sum", degree = 3)
-=======
-#' staggregate_polynomial(prcp_kansas_dec2011_era5, overlay_weights_kansas, variable = "prcp", daily_agg = "sum", degree = 3)
->>>>>>> 894e95cd181c8815d1167602b99b64d099d2473c
 #'
 #' @export
 staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, agg_to = "month", degree){
@@ -254,12 +250,9 @@ staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, a
 #' @param degree the highest exponent to raise the data to
 #'
 #' @examples
-<<<<<<< HEAD
+
 #' staggregate_spline(prcp_kansas_dec2011_era5, overlay_weights_kansas,
 #' variable = "prcp", daily_agg = "sum", knot_locs = c(1, 2, 3, 4, 5))
-=======
-#' staggregate_spline(prcp_kansas_dec2011_era5, overlay_weights_kansas, variable = "prcp", daily_agg = "sum", knot_locs = c(1, 2, 3, 4, 5))
->>>>>>> 894e95cd181c8815d1167602b99b64d099d2473c
 #'
 #' @export
 staggregate_spline <- function(data, overlay_weights, variable, daily_agg, agg_to = "month", knot_locs){
@@ -361,7 +354,6 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, agg_t
 #' @param data The raster brick with the data to be transformed and aggregated
 #' @param variable The  climate variable of interest ('prcp, 'temp', and 'uv'
 #'   currently supported)
-<<<<<<< HEAD
 #' @param overlay_weights A table of weights which can be generated using the
 #'   function calc_geoweights()
 #' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
@@ -372,28 +364,13 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, agg_t
 #'   default is the data minimum
 #' @param max the largest value that must be captured by a non-edge bin, default
 #'   is the data maximum
-=======
-#' @param overlay_weights A table of weights which can be generated using
-#'   the function calc_geoweights()
-#' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
-#'   supported)
-#'   'polynomial', this is an integer indicating the degree.
-#' @param num_bins number of bins to group the data into
-#' @param binwidth width of bins, overrides num_bins
-#' @param min the smallest value that must be captured by a non-edge bin, default is the data minimum
-#' @param max the largest value that must be captured by a non-edge bin, default is the data maximum
->>>>>>> 894e95cd181c8815d1167602b99b64d099d2473c
 #' @param start_on where to place the left edge of one of the bins
 #' @param center_on where to place the center of one of the bins
 #' @param end_on where to place the right edge of one of the bins
 #'
 #' @examples
-<<<<<<< HEAD
 #' staggregate_bin(prcp_kansas_dec2011_era5, overlay_weights_kansas,
 #' variable = "prcp", daily_agg = "sum", binwidth = 2, min = 0, max = 10)
-=======
-#' staggregate_bin(prcp_kansas_dec2011_era5, overlay_weights_kansas, variable = "prcp", daily_agg = "sum", binwidth = 2, min = 0, max = 10)
->>>>>>> 894e95cd181c8815d1167602b99b64d099d2473c
 #'
 #' @export
 staggregate_bin <- function(data, overlay_weights, variable, daily_agg, agg_to = "month", num_bins = 10, binwidth = NULL, min = NULL, max = NULL, start_on = NULL, center_on = NULL, end_on = NULL){
