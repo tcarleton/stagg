@@ -11,7 +11,7 @@
 #'   cell within polygons (area weighted raster/polygon overlap)
 #'
 #' @examples
-#' overlay_weights(kansas_counties, "countyfp", era5_grid, cropland_kansas_2011)
+#' overlay_weights(kansas_counties, "countyfp", era5_grid, cropland_world_2003_era5)
 #' overlay_weights(kansas_counties, "countyfp")
 #'
 #' @export
@@ -106,12 +106,12 @@ overlay_weights <- function(polygons, polygon_id, grid = era5_grid, secondary_we
 
     # Create column that determines if entire polygon has a weight == 0
     zero_polys <- data.frame(w_merged) %>%
-      group_by(poly_id) %>%
-      summarise(sum_weight = sum(weight)) %>%
-      ungroup() %>%
-      filter(sum_weight == 0) %>%
+      dplyr::group_by(poly_id) %>%
+      dplyr::summarise(sum_weight = sum(weight)) %>%
+      dplyr::ungroup() %>%
+      dplyr::filter(sum_weight == 0) %>%
       dplyr::select(poly_id) %>%
-      distinct()
+      dplyr::distinct()
 
     if(nrow(zero_polys > 0)) {
 
