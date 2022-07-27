@@ -9,7 +9,7 @@ staggregate_spline(
   overlay_weights,
   variable,
   daily_agg,
-  agg_to = "month",
+  time_agg = "month",
   knot_locs
 )
 }
@@ -23,7 +23,10 @@ the function calc_geoweights()}
 currently supported)}
 
 \item{daily_agg}{How to aggregate daily values ('sum' and 'average' currently
-supported)
+supported)}
+
+\item{time_agg}{the temporal scale to aggregate data to ('day', 'month', and
+'year' currently supported)
 'polynomial', this is an integer indicating the degree.}
 
 \item{degree}{the highest exponent to raise the data to}
@@ -32,6 +35,7 @@ supported)
 Restricted Cubic Spline Transformation and Aggregation of Climate Data
 }
 \examples{
-staggregate_spline(prcp_kansas_dec2011_era5, overlay_weights_kansas, variable = "prcp", daily_agg = "sum", knot_locs = c(1, 2, 3, 4, 5))
+staggregate_spline(prcp_kansas_dec2011_era5, overlay_weights_kansas,
+variable = "prcp", daily_agg = "sum", knot_locs = c(1, 2, 3, 4, 5))
 
 }

@@ -9,7 +9,7 @@ staggregate_bin(
   overlay_weights,
   variable,
   daily_agg,
-  agg_to = "month",
+  time_agg = "month",
   num_bins = 10,
   binwidth = NULL,
   min = NULL,
@@ -22,23 +22,27 @@ staggregate_bin(
 \arguments{
 \item{data}{The raster brick with the data to be transformed and aggregated}
 
-\item{overlay_weights}{A table of weights which can be generated using
-the function calc_geoweights()}
+\item{overlay_weights}{A table of weights which can be generated using the
+function calc_geoweights()}
 
 \item{variable}{The  climate variable of interest ('prcp, 'temp', and 'uv'
 currently supported)}
 
 \item{daily_agg}{How to aggregate daily values ('sum' and 'average' currently
-supported)
-'polynomial', this is an integer indicating the degree.}
+supported) 'polynomial', this is an integer indicating the degree.}
+
+\item{time_agg}{the temporal scale to aggregate data to ('day', 'month', and
+'year' currently supported)}
 
 \item{num_bins}{number of bins to group the data into}
 
 \item{binwidth}{width of bins, overrides num_bins}
 
-\item{min}{the smallest value that must be captured by a non-edge bin, default is the data minimum}
+\item{min}{the smallest value that must be captured by a non-edge bin,
+default is the data minimum}
 
-\item{max}{the largest value that must be captured by a non-edge bin, default is the data maximum}
+\item{max}{the largest value that must be captured by a non-edge bin, default
+is the data maximum}
 
 \item{start_on}{where to place the left edge of one of the bins}
 
@@ -50,6 +54,7 @@ supported)
 Bin Transformation and Aggregation of Climate Data
 }
 \examples{
-staggregate_bin(prcp_kansas_dec2011_era5, overlay_weights_kansas, variable = "prcp", daily_agg = "sum", binwidth = 2, min = 0, max = 10)
+staggregate_bin(prcp_kansas_dec2011_era5, overlay_weights_kansas,
+variable = "prcp", daily_agg = "sum", binwidth = 2, min = 0, max = 10)
 
 }

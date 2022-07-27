@@ -90,7 +90,7 @@ daily_aggregation <- function(data, variable, daily_agg, overlay_weights){
 
 
 # Function to merge with geoweights and aggregate by polygon
-polygon_aggregation <- function(clim_dt, weights_dt, list_names, agg_to){
+polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 
   ## Merge weights with climate raster
   ## -----------------------------------------------
@@ -119,7 +119,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, agg_to){
                     day = substring(date, first=19))]
 
   # Temporal Aggregation
-  if(agg_to == "year"){
+  if(time_agg == "year"){
     sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year),
                              .SDcols = list_names]
 
@@ -127,7 +127,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, agg_to){
     data.table::setcolorder(sum_by_poly, neworder = c('year', 'poly_id', list_names))
   }
 
-  if(agg_to == "month"){
+  if(time_agg == "month"){
     sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month),
                              .SDcols = list_names]
 
@@ -135,7 +135,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, agg_to){
     data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'poly_id', list_names))
   }
 
-  if(agg_to == "day"){
+  if(time_agg == "day"){
     sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month, day),
                              .SDcols = list_names]
 
@@ -168,6 +168,8 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, agg_to){
 #'   the function calc_geoweights()
 #' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
 #'   supported)
+#' @param time_agg the temporal scale to aggregate data to ('day', 'month', and
+#'   'year' currently supported)
 #' @param degree the highest exponent to raise the data to
 #'
 #' @examples
@@ -175,7 +177,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, agg_to){
 #' variable = "prcp", daily_agg = "sum", degree = 3)
 #'
 #' @export
-staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, agg_to = "month", degree){
+staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", degree){
 
   # Get climate data as a data table and aggregate to daily values
   setup_list <- daily_aggregation(data, variable, daily_agg, overlay_weights)
@@ -221,7 +223,7 @@ staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, a
   }
 
   # Aggregate by polygon
-  sum_by_poly <- polygon_aggregation(clim_dt, overlay_weights, list_names, agg_to)
+  sum_by_poly <- polygon_aggregation(clim_dt, overlay_weights, list_names, time_agg)
 
   return(sum_by_poly)
 
@@ -246,8 +248,10 @@ staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, a
 #'   the function calc_geoweights()
 #' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
 #'   supported)
+#' @param time_agg the temporal scale to aggregate data to ('day', 'month', and
+#'   'year' currently supported)
 #'   'polynomial', this is an integer indicating the degree.
-#' @param degree the highest exponent to raise the data to
+#' @param knot_locs where to place the knots
 #'
 #' @examples
 
@@ -255,7 +259,7 @@ staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, a
 #' variable = "prcp", daily_agg = "sum", knot_locs = c(1, 2, 3, 4, 5))
 #'
 #' @export
-staggregate_spline <- function(data, overlay_weights, variable, daily_agg, agg_to = "month", knot_locs){
+staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", knot_locs){
 
   # Get climate data as a data table and aggregate to daily values
   setup_list <- daily_aggregation(data, variable, daily_agg, overlay_weights)
@@ -342,7 +346,7 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, agg_t
 
 
   # Aggregate by polygon
-  sum_by_poly <- polygon_aggregation(clim_dt, overlay_weights, list_names, agg_to)
+  sum_by_poly <- polygon_aggregation(clim_dt, overlay_weights, list_names, time_agg)
 
   return(sum_by_poly)
 }
@@ -358,6 +362,8 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, agg_t
 #'   function calc_geoweights()
 #' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
 #'   supported) 'polynomial', this is an integer indicating the degree.
+#' @param time_agg the temporal scale to aggregate data to ('day', 'month', and
+#'   'year' currently supported)
 #' @param num_bins number of bins to group the data into
 #' @param binwidth width of bins, overrides num_bins
 #' @param min the smallest value that must be captured by a non-edge bin,
@@ -373,7 +379,7 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, agg_t
 #' variable = "prcp", daily_agg = "sum", binwidth = 2, min = 0, max = 10)
 #'
 #' @export
-staggregate_bin <- function(data, overlay_weights, variable, daily_agg, agg_to = "month", num_bins = 10, binwidth = NULL, min = NULL, max = NULL, start_on = NULL, center_on = NULL, end_on = NULL){
+staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", num_bins = 10, binwidth = NULL, min = NULL, max = NULL, start_on = NULL, center_on = NULL, end_on = NULL){
   # Get climate data as a data table and aggregate to daily values
   setup_list <- daily_aggregation(data, variable, daily_agg, overlay_weights)
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
@@ -547,7 +553,7 @@ staggregate_bin <- function(data, overlay_weights, variable, daily_agg, agg_to =
 
 
   # Aggregate by polygon
-  sum_by_poly <- polygon_aggregation(clim_dt, overlay_weights, list_names, agg_to)
+  sum_by_poly <- polygon_aggregation(clim_dt, overlay_weights, list_names, time_agg)
 
   return(sum_by_poly)
 }

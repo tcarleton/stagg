@@ -9,7 +9,7 @@ staggregate_polynomial(
   overlay_weights,
   variable,
   daily_agg,
-  agg_to = "month",
+  time_agg = "month",
   degree
 )
 }
@@ -25,12 +25,16 @@ currently supported)}
 \item{daily_agg}{How to aggregate daily values ('sum' and 'average' currently
 supported)}
 
+\item{time_agg}{the temporal scale to aggregate data to ('day', 'month', and
+'year' currently supported)}
+
 \item{degree}{the highest exponent to raise the data to}
 }
 \description{
 Polynomial Transformation and Aggregation of Climate Data
 }
 \examples{
-staggregate_polynomial(prcp_kansas_dec2011_era5, overlay_weights_kansas, variable = "prcp", daily_agg = "sum", degree = 3)
+staggregate_polynomial(prcp_kansas_dec2011_era5, overlay_weights_kansas,
+variable = "prcp", daily_agg = "sum", degree = 3)
 
 }
