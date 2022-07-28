@@ -7,6 +7,9 @@
 \format{
 An object of class \code{data.table} (inherits from \code{data.frame}) with 380458 rows and 3 columns.
 }
+\source{
+\url{https://landscan.ornl.gov/}
+}
 \usage{
 pop_world_2015_era5
 }

@@ -19,7 +19,7 @@ identifier for each polygon}
 
 \item{grid}{a raster layer with the same spatial resolution as the data}
 
-\item{secondary_weights}{an optional data table of secondary weights, output
+\item{secondary_weights}{an optional data.table of secondary weights, output
 from secondary_weights()}
 }
 \value{

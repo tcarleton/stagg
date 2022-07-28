@@ -9,7 +9,7 @@
 #'     \item{y}{latitude, ranging from -90 to 90}
 #'     \item{polygon_id}{unique identifiers for counties in Kansas}
 #'     \item{w_area}{the proportion of the polygon that falls within a cell}
-#'     \item{weight}{value to weight by in aggregation, detirmined by
+#'     \item{weight}{value to weight by in aggregation, determined by
 #'                   multiplying the w_area value of a cell by its secondary
 #'                   weight}
 #'   }

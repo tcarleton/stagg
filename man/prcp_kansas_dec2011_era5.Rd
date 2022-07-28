@@ -6,7 +6,7 @@
 \title{Precipitation data for Kansas in December}
 \format{
 A raster brick containing 720 layers, each representing one hour of
-precipitation data
+precipitation data for a total of 30 days worth of data
 }
 \usage{
 prcp_kansas_dec2011_era5

@@ -11,7 +11,7 @@ An object of class \code{RasterLayer} of dimension 721 x 1440 x 1.
 era5_grid
 }
 \description{
-An empty raster layer with the spatial resolution of era5 data to be used in
+An empty raster layer of global extent with the spatial resolution of ERA5 data to be used in
 resampling a secondary raster.
 }
 \keyword{datasets}
