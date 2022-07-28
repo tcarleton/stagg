@@ -470,11 +470,11 @@ staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg
   if(max(bins_table) > max){
     max <- max(bins_table$end)
 
-    message(crayon::yellow("Max value increased to fit all bins"))
+    message(crayon::yellow("Non-edge bins extend beyond max value"))
   }
   if(min(bins_table) < min){
     min <- min(bins_table$start)
-    message(crayon::yellow("Min value decreased to fit all bins"))
+    message(crayon::yellow("Non-edge bins extend beyond min value"))
   }
 
   # Readjust number of bins in case the bin boundary's failure to line up cause the creation of an extra bin

@@ -29,7 +29,7 @@ supported)}
 'year' currently supported)
 'polynomial', this is an integer indicating the degree.}
 
-\item{degree}{the highest exponent to raise the data to}
+\item{knot_locs}{where to place the knots}
 }
 \description{
 Restricted Cubic Spline Transformation and Aggregation of Climate Data

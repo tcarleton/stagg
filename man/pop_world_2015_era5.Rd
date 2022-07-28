@@ -5,7 +5,7 @@
 \alias{pop_world_2015_era5}
 \title{Global population weights}
 \format{
-An object of class \code{data.table} (inherits from \code{data.frame}) with 1036800 rows and 3 columns.
+An object of class \code{data.table} (inherits from \code{data.frame}) with 380458 rows and 3 columns.
 }
 \usage{
 pop_world_2015_era5

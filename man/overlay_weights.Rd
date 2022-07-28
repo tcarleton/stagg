@@ -6,7 +6,7 @@
 \usage{
 overlay_weights(
   polygons,
-  polygon_id,
+  polygon_id_col,
   grid = era5_grid,
   secondary_weights = NULL
 )
@@ -14,7 +14,7 @@ overlay_weights(
 \arguments{
 \item{polygons}{a simple features polygon or multipolygon object}
 
-\item{polygon_id}{the name of a column in the sf object representing a unique
+\item{polygon_id_col}{the name of a column in the sf object with a unique
 identifier for each polygon}
 
 \item{grid}{a raster layer with the same spatial resolution as the data}
@@ -30,7 +30,9 @@ cell within polygons (area weighted raster/polygon overlap)
 Function to find spatial overlap between a raster and a set of polygons
 }
 \examples{
-overlay_weights(kansas_counties, "countyfp", era5_grid, cropland_world_2003_era5)
-overlay_weights(kansas_counties, "countyfp")
+kansas_counties <- tigris::counties("Kansas")
+
+overlay_weights(kansas_counties, "COUNTYFP", era5_grid, cropland_world_2003_era5)
+overlay_weights(kansas_counties, "COUNTYFP")
 
 }

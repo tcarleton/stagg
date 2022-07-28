@@ -1,7 +1,7 @@
 #' Function to find spatial overlap between a raster and a set of polygons
 #'
 #' @param polygons a simple features polygon or multipolygon object
-#' @param polygon_id the name of a column in the sf object representing a unique
+#' @param polygon_id_col the name of a column in the sf object with a unique
 #'   identifier for each polygon
 #' @param grid a raster layer with the same spatial resolution as the data
 #' @param secondary_weights an optional data table of secondary weights, output
@@ -11,11 +11,13 @@
 #'   cell within polygons (area weighted raster/polygon overlap)
 #'
 #' @examples
-#' overlay_weights(kansas_counties, "countyfp", era5_grid, cropland_world_2003_era5)
-#' overlay_weights(kansas_counties, "countyfp")
+#' kansas_counties <- tigris::counties("Kansas")
+#'
+#' overlay_weights(kansas_counties, "COUNTYFP", era5_grid, cropland_world_2003_era5)
+#' overlay_weights(kansas_counties, "COUNTYFP")
 #'
 #' @export
-overlay_weights <- function(polygons, polygon_id, grid = era5_grid, secondary_weights = NULL){
+overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondary_weights = NULL){
 
   # Create raster
   clim_raster <- raster::raster(grid) # only reads the first band
@@ -57,7 +59,7 @@ overlay_weights <- function(polygons, polygon_id, grid = era5_grid, secondary_we
   message(crayon::yellow('Extracting raster polygon overlap'))
 
   overlap <- data.table::rbindlist(exactextractr::exact_extract(clim_area_raster, polygons_reproj, progress = T, include_xy = T), idcol = "poly_id")
-  overlap[, ':=' (poly_id = polygons_reproj[[polygon_id]][poly_id], cell_area_km2 = value)] # Add the unique id for each polygon based on the input col name
+  overlap[, ':=' (poly_id = polygons_reproj[[polygon_id_col]][poly_id], cell_area_km2 = value)] # Add the unique id for each polygon based on the input col name
 
 
   ## Calculate weights

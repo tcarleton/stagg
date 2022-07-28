@@ -22,3 +22,5 @@ Imports:
     methods,
     raster,
     sf
+Suggests: 
+    tigris
