@@ -51,7 +51,7 @@ library(stagg)
 It is common when studying interactions between human and natural
 systems to weight a climate variable by a social variable that it is
 likely to have an impact on, typically population or cropland. Thus,
-`stagg` allows for the conversion of a raster into a data table of
+`stagg` allows for the conversion of a raster into a data.table of
 weights via `secondary_weights()`.
 
 ``` r
@@ -267,7 +267,7 @@ we are working with only 30 days of data to meet size constraints, and
 so each polygon only has one row corresponding to the only month
 present, December. Were this a full year of data, each polygon would
 appear 12 times. Note also that passing `time_agg = "day"` would create
-a data table 30 times longer, with another column to the right of
+a data.table 30 times longer, with another column to the right of
 `month` called `day`.
 
 #### Restricted Cubic Spline Transfromation

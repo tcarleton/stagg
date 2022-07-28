@@ -17,7 +17,7 @@ as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE
   v
 }
 
-# Function to convert raster to data table and aggregate to daily values before transformation
+# Function to convert raster to data.table and aggregate to daily values before transformation
 daily_aggregation <- function(data, variable, daily_agg, overlay_weights){
 
 
@@ -95,7 +95,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
   ## Merge weights with climate raster
   ## -----------------------------------------------
 
-  # Set key column in the climate data table
+  # Set key column in the climate data.table
   keycols = c("x", "y")
   data.table::setkeyv(clim_dt, keycols)
 
@@ -179,7 +179,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' @export
 staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", degree){
 
-  # Get climate data as a data table and aggregate to daily values
+  # Get climate data as a data.table and aggregate to daily values
   setup_list <- daily_aggregation(data, variable, daily_agg, overlay_weights)
 
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
@@ -194,7 +194,7 @@ staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, t
   r <- lapply(poly_orders, FUN=function(x){clim_daily ^ x})
 
 
-  ## Function: Set names of data table by month, change from wide to long format, rename based on polynomial orders
+  ## Function: Set names of data.table by month, change from wide to long format, rename based on polynomial orders
   create_dt <- function(x){
 
     # Should output raster cells x/y with 365 days as column names
@@ -215,7 +215,7 @@ staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, t
   # Make each raster layer a data.table
   list_dt <- lapply(1:list_length, create_dt)
 
-  # Merge all data tables together
+  # Merge all data.tables together
   clim_dt <- list_dt[[1]]
   for(i in 2:list_length){
     dt_m <- list_dt[[i]]
@@ -261,7 +261,7 @@ staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, t
 #' @export
 staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", knot_locs){
 
-  # Get climate data as a data table and aggregate to daily values
+  # Get climate data as a data.table and aggregate to daily values
   setup_list <- daily_aggregation(data, variable, daily_agg, overlay_weights)
 
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
@@ -278,7 +278,7 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
   # Define spline function
   get_spline <- function(x){
 
-    # Make first raster returned just the climate variable to preserve it's column in the resulting data table
+    # Make first raster returned just the climate variable to preserve it's column in the resulting data.table
     if(x == 0){
       return(clim_daily)
     }
@@ -312,7 +312,7 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
   r <- lapply(0:list_length, get_spline)
 
 
-  ## Function: Set names of data table by month, change from wide to long format, rename based on polynomial orders
+  ## Function: Set names of data.table by month, change from wide to long format, rename based on polynomial orders
   create_dt <- function(x){
 
     # Should output raster cells x/y with 365 days as column names
@@ -333,7 +333,7 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
   # Make each raster layer a data.table
   list_dt <- lapply(1:(list_length + 1), create_dt)
 
-  # Merge all data tables together
+  # Merge all data.tables together
   clim_dt <- list_dt[[1]]
 
   i <- 2
@@ -380,7 +380,7 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
 #'
 #' @export
 staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", num_bins = 10, binwidth = NULL, min = NULL, max = NULL, start_on = NULL, center_on = NULL, end_on = NULL){
-  # Get climate data as a data table and aggregate to daily values
+  # Get climate data as a data.table and aggregate to daily values
   setup_list <- daily_aggregation(data, variable, daily_agg, overlay_weights)
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
@@ -543,7 +543,7 @@ staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg
   # Make each raster layer a data.table
   list_dt <- lapply(1:(num_bins + 2), create_dt)
 
-  # Merge all data tables together
+  # Merge all data.tables together
   clim_dt <- list_dt[[1]]
   for(i in 2:(num_bins + 2)){
     dt_m <- list_dt[[i]]

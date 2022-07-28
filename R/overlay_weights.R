@@ -4,7 +4,7 @@
 #' @param polygon_id_col the name of a column in the sf object with a unique
 #'   identifier for each polygon
 #' @param grid a raster layer with the same spatial resolution as the data
-#' @param secondary_weights an optional data table of secondary weights, output
+#' @param secondary_weights an optional data.table of secondary weights, output
 #'   from secondary_weights()
 #'
 #' @return a data.table of area weights and possibly secondary weights for each
