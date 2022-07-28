@@ -36,10 +36,14 @@ library(stagg)
 ```
 
 
-### Step 1 (Optional): Resample any secondary data to weight the primary data by
-It is common when studying interactions between human and natural systems to weight a climate variable by a social variable that it is likely to have an impact on, typically population or cropland. Thus, `stagg` allows for the conversion of a raster into a data.table of weights via `secondary_weights()`. 
+### Step 1 (Optional): Resample a secondary data input and generate weights to be used with the polygon overlay in Step 2
+It is common when studying interactions between human and natural systems to weight a climate variable by another variable of interest such as population or cropland. This allows the user to retrieve the climate experienced by humans or crops. Thus, `stagg` allows for the  conversion of a raster into a data.table of weights via the `secondary_weights()` function.
+
+The following example shows how one would go about generating cropland weights for the state of kansas. 
 
 ```{r, include = TRUE}
+kansas_extent <- c(-95.75, -95.25, 37.25, 37.75)
+
 cropland_weights <- secondary_weights(
   
   secondary_raster = cropland_kansas_2011, # A raster layer of the social 
@@ -53,7 +57,7 @@ cropland_weights <- secondary_weights(
                                            # data and the grid will be taken 
                                            # from its first layer
   
-  extent = c(-95.75, -95.25, 37.25, 37.75) # The extent to crop the  
+  extent = kansas_extent # The extent to crop the  
                                            # secondary_raster to, use whenever  
                                            # possible to save time (default is 
                                            # "full")
@@ -65,18 +69,16 @@ cropland_weights
 
 As you can see from the output, `secondary_weights()` checks for alignment, and rotates the `secondary_raster` coordinates if necessary. It also resamples the data to the spatial resolution of the grid, before outputting a data.table with latitudes, longitudes, and cropland weights.
 
+Due to size constraints, cropland_kansas_2011 is very small. Here we'll replace the output from this example with pre-loaded, global cropland weights but keep the same name to demonstrate how the package normally would flow. Note that the pre-processed global cropland weights as well as global population weights are available as part of the package and can be used for analysis in any part of the globe. 
 
 ```{r}
-# Due to size constraints, cropland_kansas_2011 is very small. Here we'll
-# replace the output from this example with pre-loaded, global cropland weights
-# but keep the same name to demonstrate how the package normally would flow
 cropland_weights <- dplyr::filter(cropland_world_2003_era5, 
                                   x >= -103, x <= -94, y >= 37, y <= 41)
 ```
 
 
-### Step 2: Overlap administrative regions onto the your data's grid
-A core part of `stagg`'s functionality is to aggregate gridded data to the level of administrative regions. In order to do this, it calculates what portion of each region is covered by a particular cell. This is accomplished using the `overlay_weights()` function. 
+### Step 2: Overlay administrative regions onto the your data's grid
+A core part of `stagg`'s functionality is to aggregate gridded data to the level of administrative regions. In order to do this, it first calculates the  portion of each region is covered by a particular cell, or the weight each grid cell has for a given administrative region. These weights may also be scaled by the secondary weights calcualted in Step 1. This is accomplished using the `overlay_weights()` function. 
 
 ```{r, echo = TRUE, message = FALSE, results = FALSE}
  # Using polygons outlining counties of Kansas as administrative regions
@@ -113,11 +115,11 @@ county_weights
 
 You can see that the function outputs multiple rows for each polygon, one for every grid cell it overlaps. The column `w_area` represents the proportion of that polygon that falls within the grid cell corresponding to the x and y coordinates. If you included secondary_weights from Step 1, as we have here, `overlay_weights()` also creates a column named `weight`, which is determined by normalizing the secondary_weights by `w_area`. This is what will be used in the aggregation of values. If you wish only to use `w_area` in aggregating by polygon, you need not run `secondary_weights()` and can omit the argument `secondary_weights` from your call to `overlay_weights()`. Once again, note that the function is 
 
-Given all of this information, we can interpret the top row in the output as follows: About 11% of the area in the Kansas county represented by COUNTYFP 129 falls within the grid cell at 258 degrees longitude (0-360 range), 37 degrees latitude. The area-normalized cropland weight for this cell is around 10%. 
+Given all of this information, we can interpret the top row in the output as follows: About 11% of the area in the Kansas county represented by COUNTYFP 129 falls within the grid cell at 258 degrees longitude (0-360 range), 37 degrees latitude. It appears that this particular pixel has slightly less cropland than other pixels in this polygon though, since the area-normalized cropland weight for this cell is only around 10%. 
 
 
 ### Step 3: Transform and aggregate data using the `staggregate_*` family of functions
-After completing Step 2, you are ready to transform and aggregate your data. This is the final step before the data is ready for use in downstream statistical analyses. The `stagg` package provides a family of functions to perform this final step, each offering a different type of non-linear transformation. Regardless of the specific function,`staggregate_*`'s general flow is to aggregate gridded values to the daily level, perform a transformation on the daily values, and these aggregate these values to the administrative regions and desired temporal scale based on the `overlay_weights()` output from Step 2.
+After completing Step 2, you are ready to transform and aggregate your data. This is the final step before the data is ready for use in downstream statistical analyses. The `stagg` package provides a family of functions to perform this final step, each offering a different type of non-linear transformation. Regardless of the specific function,`staggregate_*`'s workflow is to aggregate gridded values to the daily level, perform a transformation on the daily values, and aggregate these values to the administrative regions and desired temporal scale based on the `overlay_weights()` output from Step 2.
 
 
 #### Polynomial Transformation
@@ -155,7 +157,7 @@ polynomial_output
 
 ```
 
-You can see that 3 variables are created. `order_1` represents the original values, aggregated to the county, monthly level. `order_2` and `order_3` represent the original values squared and cubed, respectively, prior to being aggregated to the county and monthly level. In this case, we are working with only 30 days of data to meet size constraints, and so each polygon only has one row corresponding to the only month present, December. Were this a full year of data, each polygon would appear 12 times. Note also that passing `time_agg = "day"` would create a data.table 30 times longer, with another column to the right of `month` called `day`.
+You can see that 3 variables are created. `order_1` represents the original values, linearly aggregated to the county, monthly level. `order_2` and `order_3` represent the original values squared and cubed, respectively, prior to being aggregated to the county and monthly level. In this case, we are working with only 30 days of data to meet size constraints, and so each polygon only has one row corresponding to the only month present, December. Were this a full year of data, each polygon would appear 12 times. Note also that passing `time_agg = "day"` would create a data.table 30 times longer, with another column to the right of `month` called `day`.
 
 
 #### Restricted Cubic Spline Transfromation
