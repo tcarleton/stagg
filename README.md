@@ -46,7 +46,7 @@ step is used in the one that follows it.
 library(stagg)
 ```
 
-### Step 1 (Optional): Resample a secondary data input and generate weights to be used with the polygon overlay in Step 2
+### Step 1 (Optional): Resample a secondary data input and generate secondary weights for Step 2
 
 It is common when studying interactions between human and natural
 systems to weight a climate variable by another variable of interest
