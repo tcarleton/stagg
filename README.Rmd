@@ -159,7 +159,7 @@ You can see that 3 variables are created. `order_1` represents the original valu
 
 
 #### Restricted Cubic Spline Transfromation
-Another type of transformation `stagg` supports is a restricted cubic spline. This, essentially is a piecewise function where 3rd degree polynomials intersect at knots such that the function's first and second derivatives are continuous from negative infinity to positive infinity, and that the function is linear before the first knot and after the last one. A more detailed explanation, as well as the formula used to transform the data, can be found [here](https://support.sas.com/resources/papers/proceedings16/5621-2016.pdf). `staggregate_spline()` executes this formula to create number of knots minus two new variables, in addition to preserving the original untransformed values. 
+Another type of transformation `stagg` supports is a restricted cubic spline. This, essentially, is a piecewise function where 3rd degree polynomials intersect at knots such that the function's first and second derivatives are continuous from negative infinity to positive infinity, and that the function is linear before the first knot and after the last one. A more detailed explanation, as well as the formula used to transform the data, can be found [here](https://support.sas.com/resources/papers/proceedings16/5621-2016.pdf). `staggregate_spline()` executes this formula to create number of knots minus two new variables, in addition to preserving the original untransformed values. 
 
 ```{r}
 spline_output <- staggregate_spline(
