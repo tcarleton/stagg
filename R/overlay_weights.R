@@ -20,11 +20,17 @@
 #'   cropland_world_2003_era5 # Output from secondary_weights
 #'   )
 #'
+#' head(overlay_output_with_secondary_weights)
+#'
+#'
 #'
 #' overlay_output_without_secondary_weights <- overlay_weights(
 #'   kansas_counties, # Polygons outlining the 105 counties of Kansas
 #'   "COUNTYFP" # The name of the column with the unique county identifiers
 #'   )
+#'
+#' head(overlay_output_without_secondary_weights)
+#'
 #'
 #' @export
 overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondary_weights = NULL){

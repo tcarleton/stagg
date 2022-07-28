@@ -64,4 +64,6 @@ bin_output <- staggregate_bin(
   max = 10 # The maximum value that non-edge bins must capture
   )
 
+head(bin_output)
+
 }

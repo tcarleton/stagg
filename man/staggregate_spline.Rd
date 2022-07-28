@@ -43,4 +43,6 @@ spline_output <- staggregate_spline(
   knot_locs = c(1, 2, 3, 4, 5) # Where to place knots
   )
 
+head(spline_output)
+
 }

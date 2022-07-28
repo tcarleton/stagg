@@ -173,13 +173,15 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' @param degree the highest exponent to raise the data to
 #'
 #' @examples
-#' staggregate_polynomial(
+#' polynomial_output <- staggregate_polynomial(
 #'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 #'   variable = "prcp", # Climate variable name
 #'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
 #'   degree = 4 # Highest order
 #'   )
+#'
+#' head(polynomial_output)
 #'
 #' @export
 staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", degree){
@@ -267,6 +269,8 @@ staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, t
 #'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
 #'   knot_locs = c(1, 2, 3, 4, 5) # Where to place knots
 #'   )
+#'
+#' head(spline_output)
 #'
 #' @export
 staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", knot_locs){
@@ -394,6 +398,8 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
 #'   min = 0, # The minimum value that non-edge bins must capture
 #'   max = 10 # The maximum value that non-edge bins must capture
 #'   )
+#'
+#' head(bin_output)
 #'
 #' @export
 staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", num_bins = 10, binwidth = NULL, min = NULL, max = NULL, start_on = NULL, center_on = NULL, end_on = NULL){
