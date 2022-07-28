@@ -252,4 +252,3 @@ Although `stagg` is not yet on CRAN, you can install the development version of 
 # install.packages("devtools")
 devtools::install_github("tcarleton/stagg")
 ```
-Test commit
