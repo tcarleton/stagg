@@ -32,7 +32,17 @@ Function to find spatial overlap between a raster and a set of polygons
 \examples{
 kansas_counties <- tigris::counties("Kansas")
 
-overlay_weights(kansas_counties, "COUNTYFP", era5_grid, cropland_world_2003_era5)
-overlay_weights(kansas_counties, "COUNTYFP")
+overlay_output_with_secondary_weights <- overlay_weights(
+  kansas_counties, # Polygons outlining the 105 counties of Kansas
+  "COUNTYFP", # The name of the column with the unique county identifiers
+  era5_grid, # The empty grid to resample to and align with
+  cropland_world_2003_era5 # Output from secondary_weights
+  )
+
+
+overlay_output_without_secondary_weights <- overlay_weights(
+  kansas_counties, # Polygons outlining the 105 counties of Kansas
+  "COUNTYFP" # The name of the column with the unique county identifiers
+  )
 
 }

@@ -22,6 +22,6 @@ a data.table of secondary weights
 Function that resamples a raster of interest
 }
 \examples{
-secondary_weights(cropland_kansas_2011)
+secondary_weights(cropland_kansas_2011) # A raster of cropland to resample and convert to a data.table
 
 }

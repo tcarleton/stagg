@@ -34,7 +34,12 @@ supported)}
 Polynomial Transformation and Aggregation of Climate Data
 }
 \examples{
-staggregate_polynomial(prcp_kansas_dec2011_era5, overlay_weights_kansas,
-variable = "prcp", daily_agg = "sum", degree = 3)
+staggregate_polynomial(
+  data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+  overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
+  variable = "prcp", # Climate variable name
+  daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+  degree = 4 # Highest order
+  )
 
 }

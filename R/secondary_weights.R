@@ -9,7 +9,7 @@
 #' @return a data.table of secondary weights
 #'
 #' @examples
-#' secondary_weights(cropland_kansas_2011)
+#' secondary_weights(cropland_kansas_2011) # A raster of cropland to resample and convert to a data.table
 #'
 #' @export
 secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full"){

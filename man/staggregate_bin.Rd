@@ -54,7 +54,14 @@ is the data maximum}
 Bin Transformation and Aggregation of Climate Data
 }
 \examples{
-staggregate_bin(prcp_kansas_dec2011_era5, overlay_weights_kansas,
-variable = "prcp", daily_agg = "sum", binwidth = 2, min = 0, max = 10)
+bin_output <- staggregate_bin(
+  data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+  overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
+  variable = "prcp", # Climate variable name
+  daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+  binwidth = 2, # Draw bins of width 2
+  min = 0, # The minimum value that non-edge bins must capture
+  max = 10 # The maximum value that non-edge bins must capture
+  )
 
 }

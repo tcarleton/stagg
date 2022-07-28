@@ -173,8 +173,13 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' @param degree the highest exponent to raise the data to
 #'
 #' @examples
-#' staggregate_polynomial(prcp_kansas_dec2011_era5, overlay_weights_kansas,
-#' variable = "prcp", daily_agg = "sum", degree = 3)
+#' staggregate_polynomial(
+#'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+#'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
+#'   variable = "prcp", # Climate variable name
+#'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+#'   degree = 4 # Highest order
+#'   )
 #'
 #' @export
 staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", degree){
@@ -255,8 +260,13 @@ staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, t
 #'
 #' @examples
 
-#' staggregate_spline(prcp_kansas_dec2011_era5, overlay_weights_kansas,
-#' variable = "prcp", daily_agg = "sum", knot_locs = c(1, 2, 3, 4, 5))
+#' spline_output <- staggregate_spline(
+#'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+#'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
+#'   variable = "prcp", # Climate variable name
+#'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+#'   knot_locs = c(1, 2, 3, 4, 5) # Where to place knots
+#'   )
 #'
 #' @export
 staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", knot_locs){
@@ -375,8 +385,15 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
 #' @param end_on where to place the right edge of one of the bins
 #'
 #' @examples
-#' staggregate_bin(prcp_kansas_dec2011_era5, overlay_weights_kansas,
-#' variable = "prcp", daily_agg = "sum", binwidth = 2, min = 0, max = 10)
+#' bin_output <- staggregate_bin(
+#'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+#'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
+#'   variable = "prcp", # Climate variable name
+#'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+#'   binwidth = 2, # Draw bins of width 2
+#'   min = 0, # The minimum value that non-edge bins must capture
+#'   max = 10 # The maximum value that non-edge bins must capture
+#'   )
 #'
 #' @export
 staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", num_bins = 10, binwidth = NULL, min = NULL, max = NULL, start_on = NULL, center_on = NULL, end_on = NULL){
@@ -464,23 +481,23 @@ staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg
 
 
   bins_table <- data.table::data.table(center)
-  bins_table[, ':=' (start = center - (binwidth / 2), end = center + (binwidth / 2))]
+  bins_table[, ':=' (left = center - (binwidth / 2), right = center + (binwidth / 2))]
 
   # Readjust max if bin boundaries don't line up properly
   if(max(bins_table) > max){
-    max <- max(bins_table$end)
+    max <- max(bins_table$right)
 
     message(crayon::yellow("Non-edge bins extend beyond max value"))
   }
   if(min(bins_table) < min){
-    min <- min(bins_table$start)
+    min <- min(bins_table$left)
     message(crayon::yellow("Non-edge bins extend beyond min value"))
   }
 
   # Readjust number of bins in case the bin boundary's failure to line up cause the creation of an extra bin
   num_bins <- nrow(bins_table)
 
-  # The bins_table created lists center, start, and end of all bins in order
+  # The bins_table created lists center, left, and right of all bins in order
 
 
   # Create names for new columns
@@ -492,7 +509,7 @@ staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg
       paste(max, "to", "inf", sep = "_")
     }
     else{
-      paste(bins_table[x, start], "to", bins_table[x, end], sep = "_")
+      paste(bins_table[x, left], "to", bins_table[x, right], sep = "_")
       }
     })
 
@@ -508,8 +525,8 @@ staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg
       clim_daily_table <- ifelse(max < clim_daily_table, 1, 0)
     }
     else{
-      clim_daily_table <- ifelse(bins_table[x, start] <= clim_daily_table &
-                                   bins_table[x, end] >= clim_daily_table, 1, 0)
+      clim_daily_table <- ifelse(bins_table[x, left] <= clim_daily_table &
+                                   bins_table[x, right] >= clim_daily_table, 1, 0)
     }
 
 
@@ -519,7 +536,7 @@ staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg
     return(clim_daily_new)
   }
 
-  # For each bin, create new brick of binary values, including end bins which go from -inf to min, max to inf
+  # For each bin, create new brick of binary values, including edge bins which go from -inf to min, max to inf
   r <- lapply(0:(num_bins + 1), FUN = check_bins)
 
 

@@ -433,12 +433,13 @@ established, a bin is drawn using one of the placement arguments:
 `start_on`, `center_on`, or `end_on`, which draw the bin’s left edge,
 center, or right edge on that value, respectively. If this value falls
 outside the range, it is moved over by a bin-width at a time until it is
-within the range. Bins are then constructed around that bin until the
-full range is covered. If you specify `num_bins` but choose a placement
-where the max or min value will be overlapped, you will get one more
-non-edge bin than requested. Lastly, edge bins, from negative infinity
-to the start of the leftmost bin and from the end of the rightmost bin
-to infinity, are constructed to capture any other data.
+within the range, and if no value is specified, `min` is passed to
+`start_on`. Bins are then constructed around that bin until the full
+range is covered. Note that if you specify `num_bins` but choose a
+placement where the max or min value will be overlapped, you will get
+one more non-edge bin than requested. Lastly, edge bins, from negative
+infinity to the start of the leftmost bin and from the end of the
+rightmost bin to infinity, are constructed to capture any other data.
 
 ## Installation
 
