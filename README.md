@@ -46,15 +46,21 @@ step is used in the one that follows it.
 library(stagg)
 ```
 
-### Step 1 (Optional): Resample any secondary data to weight the primary data by
+### Step 1 (Optional): Resample a secondary data input and generate secondary weights for Step 2
 
 It is common when studying interactions between human and natural
-systems to weight a climate variable by a social variable that it is
-likely to have an impact on, typically population or cropland. Thus,
-`stagg` allows for the conversion of a raster into a data.table of
-weights via `secondary_weights()`.
+systems to weight a climate variable by another variable of interest
+such as population or cropland. This allows the user to retrieve the
+climate experienced by humans or crops. Thus, `stagg` allows for the
+conversion of a raster into a data.table of weights via the
+`secondary_weights()` function.
+
+The following example shows how one would go about generating cropland
+weights for the state of kansas.
 
 ``` r
+kansas_extent <- c(-95.75, -95.25, 37.25, 37.75)
+
 cropland_weights <- secondary_weights(
   
   secondary_raster = cropland_kansas_2011, # A raster layer of the social 
@@ -68,7 +74,7 @@ cropland_weights <- secondary_weights(
                                            # data and the grid will be taken 
                                            # from its first layer
   
-  extent = c(-95.75, -95.25, 37.25, 37.75) # The extent to crop the  
+  extent = kansas_extent # The extent to crop the  
                                            # secondary_raster to, use whenever  
                                            # possible to save time (default is 
                                            # "full")
@@ -98,20 +104,26 @@ It also resamples the data to the spatial resolution of the grid, before
 outputting a data.table with latitudes, longitudes, and cropland
 weights.
 
+Due to size constraints, cropland_kansas_2011 is very small. Here we’ll
+replace the output from this example with pre-loaded, global cropland
+weights but keep the same name to demonstrate how the package normally
+would flow. Note that the pre-processed global cropland weights as well
+as global population weights are available as part of the package and
+can be used for analysis in any part of the globe.
+
 ``` r
-# Due to size constraints, cropland_kansas_2011 is very small. Here we'll
-# replace the output from this example with pre-loaded, global cropland weights
-# but keep the same name to demonstrate how the package normally would flow
 cropland_weights <- dplyr::filter(cropland_world_2003_era5, 
                                   x >= -103, x <= -94, y >= 37, y <= 41)
 ```
 
-### Step 2: Overlap administrative regions onto the your data’s grid
+### Step 2: Overlay administrative regions onto the your data’s grid
 
 A core part of `stagg`’s functionality is to aggregate gridded data to
-the level of administrative regions. In order to do this, it calculates
-what portion of each region is covered by a particular cell. This is
-accomplished using the `overlay_weights()` function.
+the level of administrative regions. In order to do this, it first
+calculates the portion of each region is covered by a particular cell,
+or the weight each grid cell has for a given administrative region.
+These weights may also be scaled by the secondary weights calcualted in
+Step 1. This is accomplished using the `overlay_weights()` function.
 
 ``` r
  # Using polygons outlining counties of Kansas as administrative regions
@@ -189,8 +201,10 @@ your call to `overlay_weights()`. Once again, note that the function is
 Given all of this information, we can interpret the top row in the
 output as follows: About 11% of the area in the Kansas county
 represented by COUNTYFP 129 falls within the grid cell at 258 degrees
-longitude (0-360 range), 37 degrees latitude. The area-normalized
-cropland weight for this cell is around 10%.
+longitude (0-360 range), 37 degrees latitude. It appears that this
+particular pixel has slightly less cropland than other pixels in this
+polygon though, since the area-normalized cropland weight for this cell
+is only around 10%.
 
 ### Step 3: Transform and aggregate data using the `staggregate_*` family of functions
 
@@ -199,9 +213,9 @@ data. This is the final step before the data is ready for use in
 downstream statistical analyses. The `stagg` package provides a family
 of functions to perform this final step, each offering a different type
 of non-linear transformation. Regardless of the specific
-function,`staggregate_*`’s general flow is to aggregate gridded values
-to the daily level, perform a transformation on the daily values, and
-these aggregate these values to the administrative regions and desired
+function,`staggregate_*`’s workflow is to aggregate gridded values to
+the daily level, perform a transformation on the daily values, and
+aggregate these values to the administrative regions and desired
 temporal scale based on the `overlay_weights()` output from Step 2.
 
 #### Polynomial Transformation
@@ -260,20 +274,20 @@ polynomial_output
     #> 105: year_2011 month_12     209 80.44296 1310.9832 24942.720
 
 You can see that 3 variables are created. `order_1` represents the
-original values, aggregated to the county, monthly level. `order_2` and
-`order_3` represent the original values squared and cubed, respectively,
-prior to being aggregated to the county and monthly level. In this case,
-we are working with only 30 days of data to meet size constraints, and
-so each polygon only has one row corresponding to the only month
-present, December. Were this a full year of data, each polygon would
-appear 12 times. Note also that passing `time_agg = "day"` would create
-a data.table 30 times longer, with another column to the right of
-`month` called `day`.
+original values, linearly aggregated to the county, monthly level.
+`order_2` and `order_3` represent the original values squared and cubed,
+respectively, prior to being aggregated to the county and monthly level.
+In this case, we are working with only 30 days of data to meet size
+constraints, and so each polygon only has one row corresponding to the
+only month present, December. Were this a full year of data, each
+polygon would appear 12 times. Note also that passing `time_agg = "day"`
+would create a data.table 30 times longer, with another column to the
+right of `month` called `day`.
 
 #### Restricted Cubic Spline Transfromation
 
 Another type of transformation `stagg` supports is a restricted cubic
-spline. This, essentially is a piecewise function where 3rd degree
+spline. This, essentially, is a piecewise function where 3rd degree
 polynomials intersect at knots such that the function’s first and second
 derivatives are continuous from negative infinity to positive infinity,
 and that the function is linear before the first knot and after the last
@@ -415,31 +429,33 @@ bin_output
     #> 105: 0.02093395 3.979066
 
 Like before, the output table features one row for every county for
-every time period specified by the `time_to` argument. What has changed
+every time period specified by the `time_agg` argument. What has changed
 is that there is a new column for each bin created, representing the
-number of days in which that grid cell had a value that fell within that
-bin, weighted by the `overlay_weights` provided and aggregated, here, to
-the county and monthly level.
+number of days a polygon had a value that fell within that bin during
+the timespan specified by the `time_agg` argument. These outputs are not
+necessarily integers since the polygon is made up of pixels that are
+sorted into bins and then weighted by the `overlay_weights` provided and
+aggregated, here, to the county level.
 
-Because there are many ways to draw bins, `staggregate_bin()` has many
-optional arguments which can influence the location, extent, and width
-of the bins. The process we use to construct is worth discussing. First,
-the non-edge bins are all of equal width. This is taken from the
-`binwidth` argument if it is supplied, otherwise from the `num_bins`
-argument by dividing the range (`max` minus `min`) by the number of
-bins. The max and min, if not supplied are taken directly from the
-maximum and minimum values in the data. Once the width has been
-established, a bin is drawn using one of the placement arguments:
-`start_on`, `center_on`, or `end_on`, which draw the bin’s left edge,
-center, or right edge on that value, respectively. If this value falls
-outside the range, it is moved over by a bin-width at a time until it is
-within the range, and if no value is specified, `min` is passed to
-`start_on`. Bins are then constructed around that bin until the full
-range is covered. Note that if you specify `num_bins` but choose a
-placement where the max or min value will be overlapped, you will get
-one more non-edge bin than requested. Lastly, edge bins, from negative
-infinity to the start of the leftmost bin and from the end of the
-rightmost bin to infinity, are constructed to capture any other data.
+Because there are many ways to specify bins, `staggregate_bin()` has
+many optional arguments which can influence the placement, extent, and
+width of the bins. First, the non-edge bins are all of equal width. This
+is taken from the `binwidth` argument if it is supplied, or otherwise
+from the `num_bins` argument by dividing the range (`max` minus `min`)
+by the number of bins. The max and min, if not supplied are taken
+directly from the maximum and minimum values in the data. Once the width
+has been established, a bin is drawn using one of the placement
+arguments: `start_on`, `center_on`, or `end_on`, which draw the bin’s
+left edge, center, or right edge on that value, respectively. If this
+value falls outside the range, it is moved over by a bin-width at a time
+until it is within the range. If no placement value is specified, `min`
+is passed to `start_on`. Bins are then constructed around that bin until
+the full range is covered. Note that if you specify `num_bins` but
+choose a placement where the max or min value will be overlapped, you
+will get one more non-edge bin than requested. Lastly, edge bins, from
+negative infinity to the start of the leftmost bin and from the end of
+the rightmost bin to infinity, are constructed to capture any other
+data.
 
 ## Installation
 
