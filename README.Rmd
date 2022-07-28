@@ -36,7 +36,7 @@ library(stagg)
 ```
 
 
-### Step 1 (Optional): Resample a secondary data input and generate weights to be used with the polygon overlay in Step 2
+### Step 1 (Optional): Resample a secondary data input and generate secondary weights for Step 2
 It is common when studying interactions between human and natural systems to weight a climate variable by another variable of interest such as population or cropland. This allows the user to retrieve the climate experienced by humans or crops. Thus, `stagg` allows for the  conversion of a raster into a data.table of weights via the `secondary_weights()` function.
 
 The following example shows how one would go about generating cropland weights for the state of kansas. 
