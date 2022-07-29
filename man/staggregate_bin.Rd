@@ -7,7 +7,6 @@
 staggregate_bin(
   data,
   overlay_weights,
-  variable,
   daily_agg,
   time_agg = "month",
   num_bins = 10,
@@ -25,9 +24,6 @@ staggregate_bin(
 \item{overlay_weights}{A table of weights which can be generated using the
 function calc_geoweights()}
 
-\item{variable}{The  climate variable of interest ('prcp, 'temp', and 'uv'
-currently supported)}
-
 \item{daily_agg}{How to aggregate daily values ('sum' and 'average' currently
 supported) 'polynomial', this is an integer indicating the degree.}
 
@@ -39,10 +35,10 @@ supported) 'polynomial', this is an integer indicating the degree.}
 \item{binwidth}{width of bins, overrides num_bins}
 
 \item{min}{the smallest value that must be captured by a non-edge bin,
-default is the data minimum}
+default is the data minimum, set manually if you are breaking up your data}
 
 \item{max}{the largest value that must be captured by a non-edge bin, default
-is the data maximum}
+is the data maximum, set manually if you are breaking up your data}
 
 \item{start_on}{where to place the left edge of one of the bins}
 
@@ -57,7 +53,6 @@ Bin Transformation and Aggregation of Climate Data
 bin_output <- staggregate_bin(
   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
-  variable = "prcp", # Climate variable name
   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
   binwidth = 2, # Draw bins of width 2
   min = 0, # The minimum value that non-edge bins must capture

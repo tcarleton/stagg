@@ -7,7 +7,6 @@
 staggregate_spline(
   data,
   overlay_weights,
-  variable,
   daily_agg,
   time_agg = "month",
   knot_locs
@@ -18,9 +17,6 @@ staggregate_spline(
 
 \item{overlay_weights}{A table of weights which can be generated using
 the function calc_geoweights()}
-
-\item{variable}{The  climate variable of interest ('prcp, 'temp', and 'uv'
-currently supported)}
 
 \item{daily_agg}{How to aggregate daily values ('sum' and 'average' currently
 supported)}
@@ -38,7 +34,6 @@ Restricted Cubic Spline Transformation and Aggregation of Climate Data
 spline_output <- staggregate_spline(
   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
-  variable = "prcp", # Climate variable name
   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
   knot_locs = c(1, 2, 3, 4, 5) # Where to place knots
   )
