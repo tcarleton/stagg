@@ -22,7 +22,7 @@ daily_aggregation <- function(data, variable, daily_agg, overlay_weights){
 
 
   # Data.table of weights
-  weights_dt <- overlay_weights
+  weights_dt <- data.table::as.data.table(overlay_weights)
 
   # Extent of area weights with slight buffer to make sure all cells are included
   min_x <- min(weights_dt$x) - 0.5
@@ -299,7 +299,7 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
   list_names <- sapply(0:list_length, FUN=function(x){if(x == 0){paste(variable)}else{paste("term", x, sep="_")}})
 
 
-  # Define spline function
+  # Define restricted cubic spline function
   get_spline <- function(x){
 
     # Make first raster returned just the climate variable to preserve it's column in the resulting data.table
@@ -426,20 +426,27 @@ staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg
   clim_daily_table <- raster::values(clim_daily)
 
   if(is.null(max)){
-    max <- max(clim_daily_table) + .01
+    max <- ceiling(max(clim_daily_table))
   }
   if(is.null(min)){
-    min <- min(clim_daily_table) - .01
+    min <- floor(min(clim_daily_table))
   }
 
   # Write message that binwidth overrides num_bins
   if(!is.null(binwidth)){
+    if(binwidth <= 0){
+      stop(crayon::red("Binwidth must be greater than zero"))
+    }
     message(crayon::yellow("Binwidth argument supplied will override num_bins"))
     num_bins <- ceiling((max - min) / binwidth)
   }
 
   # If value not supplied to binwidth, calculate from num_bins
   if(is.null(binwidth)){
+    if(!is.integer(num_bins) | num_bins < 1){
+      stop(crayon::red("Number of bins must be a natural number"))
+    }
+
     binwidth <- (max - min) / num_bins
   }
 
@@ -451,7 +458,7 @@ staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg
   }
 
   if(is.null(center_on) & is.null(start_on) & is.null(end_on)){
-    message(crayon::yellow("No bin placement argument specified. Drawing bins from min value."))
+    message(crayon::yellow(paste0("No bin placement argument specified. Drawing bins from min value of ", min, " with width of ", binwidth)))
     start_on <- min
   }
 
