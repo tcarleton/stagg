@@ -244,10 +244,6 @@ polynomial_output <- staggregate_polynomial(
                             # area-normalized cropland weights for grid cells 
                             # within each county in Kansas
   
-  variable = "prcp",        # The name of your variable ("prcp" [precipitation] 
-                            # and "temp" [temperature] currently get converted
-                            # from m to mm and kelvin to Celsius, respectively)
-  
   daily_agg = "sum",        # How to aggregate hourly values to the daily level,
                             # "sum" and "average" are the only options. Here we 
                             # want total daily precipitation. 
@@ -272,18 +268,18 @@ polynomial_output <- staggregate_polynomial(
 polynomial_output
 ```
 
-    #>           year    month poly_id  order_1   order_2   order_3
-    #>   1: year_2011 month_12     129 56.43332  779.1418 12654.711
-    #>   2: year_2011 month_12     187 56.80940  760.0893 12321.646
-    #>   3: year_2011 month_12     075 51.49176  655.6775  9875.916
-    #>   4: year_2011 month_12     071 47.00092  523.6172  6729.562
-    #>   5: year_2011 month_12     199 42.79329  409.9400  4543.805
-    #>  ---                                                        
-    #> 101: year_2011 month_12     011 70.18325  984.8000 16878.346
-    #> 102: year_2011 month_12     107 75.32783 1077.2387 18191.414
-    #> 103: year_2011 month_12     121 77.34484 1145.8564 20095.483
-    #> 104: year_2011 month_12     091 78.75736 1230.5217 22694.882
-    #> 105: year_2011 month_12     209 80.44296 1310.9832 24942.720
+    #>           year    month poly_id    order_1      order_2      order_3
+    #>   1: year_2011 month_12     129 0.05643332 0.0007791418 1.265471e-05
+    #>   2: year_2011 month_12     187 0.05680940 0.0007600893 1.232165e-05
+    #>   3: year_2011 month_12     075 0.05149176 0.0006556775 9.875916e-06
+    #>   4: year_2011 month_12     071 0.04700092 0.0005236172 6.729562e-06
+    #>   5: year_2011 month_12     199 0.04279329 0.0004099400 4.543805e-06
+    #>  ---                                                                
+    #> 101: year_2011 month_12     011 0.07018325 0.0009848000 1.687835e-05
+    #> 102: year_2011 month_12     107 0.07532783 0.0010772387 1.819141e-05
+    #> 103: year_2011 month_12     121 0.07734484 0.0011458564 2.009548e-05
+    #> 104: year_2011 month_12     091 0.07875736 0.0012305217 2.269488e-05
+    #> 105: year_2011 month_12     209 0.08044296 0.0013109832 2.494272e-05
 
 You can see that 3 variables are created. `order_1` represents the
 original values, linearly aggregated to the county, monthly level.
@@ -321,10 +317,6 @@ spline_output <- staggregate_spline(
                             # area-normalized cropland weights for grid cells 
                             # within each county in Kansas
   
-  variable = "prcp",        # The name of your variable ("prcp" [precipitation] 
-                            # and "temp" [temperature] currently get converted
-                            # from m to mm and kelvin to Celsius, respectively)
-  
   daily_agg = "sum",        # How to aggregate hourly values to the daily level,
                             # "sum" and "average" are the only options. Here we 
                             # want total daily precipitation. 
@@ -351,18 +343,18 @@ spline_output <- staggregate_spline(
 spline_output
 ```
 
-    #>           year    month poly_id     prcp    term_1   term_2
-    #>   1: year_2011 month_12     129 56.43332  741.7914 238.4962
-    #>   2: year_2011 month_12     187 56.80940  730.9924 232.8851
-    #>   3: year_2011 month_12     075 51.49176  649.0831 206.5648
-    #>   4: year_2011 month_12     071 47.00092  571.9687 180.9144
-    #>   5: year_2011 month_12     199 42.79329  494.3836 154.8043
-    #>  ---                                                       
-    #> 101: year_2011 month_12     011 70.18325  911.5578 293.8432
-    #> 102: year_2011 month_12     107 75.32783 1000.2813 323.3202
-    #> 103: year_2011 month_12     121 77.34484 1019.5924 329.3409
-    #> 104: year_2011 month_12     091 78.75736 1036.1663 335.2066
-    #> 105: year_2011 month_12     209 80.44296 1073.2920 348.6183
+    #>           year    month poly_id untransformed_value term_1 term_2
+    #>   1: year_2011 month_12     129          0.05643332      0      0
+    #>   2: year_2011 month_12     187          0.05680940      0      0
+    #>   3: year_2011 month_12     075          0.05149176      0      0
+    #>   4: year_2011 month_12     071          0.04700092      0      0
+    #>   5: year_2011 month_12     199          0.04279329      0      0
+    #>  ---                                                             
+    #> 101: year_2011 month_12     011          0.07018325      0      0
+    #> 102: year_2011 month_12     107          0.07532783      0      0
+    #> 103: year_2011 month_12     121          0.07734484      0      0
+    #> 104: year_2011 month_12     091          0.07875736      0      0
+    #> 105: year_2011 month_12     209          0.08044296      0      0
 
 You can see that your output looks very similar to the table from the
 polynomial transformation. The only difference here is that 4 - 2
@@ -387,9 +379,6 @@ bin_output <- staggregate_bin(
                             # area-normalized cropland weights for grid cells 
                             # within each county in Kansas
   
-  variable = "prcp",        # The name of your variable ("prcp" [precipitation] 
-                            # and "temp" [temperature] currently get converted
-                            # from m to mm and kelvin to Celsius, respectively)
   
   daily_agg = "sum",        # How to aggregate hourly values to the daily level,
                             # "sum" and "average" are the only options. Here we 
@@ -431,30 +420,30 @@ bin_output <- staggregate_bin(
 bin_output
 ```
 
-    #>           year    month poly_id neg_inf_to_-1  -1_to_1    1_to_3     3_to_5
-    #>   1: year_2011 month_12     129             0 24.34811 1.5923821 0.07290524
-    #>   2: year_2011 month_12     187             0 24.00000 0.8131273 1.60559826
-    #>   3: year_2011 month_12     075             0 24.00000 1.6553116 1.29075407
-    #>   4: year_2011 month_12     071             0 24.00000 1.4981656 1.50183437
-    #>   5: year_2011 month_12     199             0 24.00728 1.4112732 1.59799724
-    #>  ---                                                                       
-    #> 101: year_2011 month_12     011             0 23.79043 1.2095733 0.57381456
-    #> 102: year_2011 month_12     107             0 23.02129 1.9787146 0.00000000
-    #> 103: year_2011 month_12     121             0 21.82867 3.1713324 0.14564756
-    #> 104: year_2011 month_12     091             0 21.71583 3.7219037 0.27809628
-    #> 105: year_2011 month_12     209             0 21.54763 4.4314368 0.02093395
-    #>          5_to_7 7_to_inf
-    #>   1: 0.34987250 3.636732
-    #>   2: 0.42246915 3.158805
-    #>   3: 0.05393433 3.000000
-    #>   4: 0.00000000 3.000000
-    #>   5: 0.18129906 2.802155
-    #>  ---                    
-    #> 101: 0.42618544 4.000000
-    #> 102: 0.59269926 4.407301
-    #> 103: 0.84045279 4.013900
-    #> 104: 0.31388143 3.970293
-    #> 105: 0.02093395 3.979066
+    #>           year    month poly_id neg_inf_to_-1 -1_to_1 1_to_3 3_to_5 5_to_7
+    #>   1: year_2011 month_12     129             0      30      0      0      0
+    #>   2: year_2011 month_12     187             0      30      0      0      0
+    #>   3: year_2011 month_12     075             0      30      0      0      0
+    #>   4: year_2011 month_12     071             0      30      0      0      0
+    #>   5: year_2011 month_12     199             0      30      0      0      0
+    #>  ---                                                                      
+    #> 101: year_2011 month_12     011             0      30      0      0      0
+    #> 102: year_2011 month_12     107             0      30      0      0      0
+    #> 103: year_2011 month_12     121             0      30      0      0      0
+    #> 104: year_2011 month_12     091             0      30      0      0      0
+    #> 105: year_2011 month_12     209             0      30      0      0      0
+    #>      7_to_inf
+    #>   1:        0
+    #>   2:        0
+    #>   3:        0
+    #>   4:        0
+    #>   5:        0
+    #>  ---         
+    #> 101:        0
+    #> 102:        0
+    #> 103:        0
+    #> 104:        0
+    #> 105:        0
 
 Like before, the output table features one row for every county for
 every time period specified by the `time_agg` argument. What has changed

@@ -18,7 +18,7 @@ as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE
 }
 
 # Function to convert raster to data.table and aggregate to daily values before transformation
-daily_aggregation <- function(data, variable, daily_agg, overlay_weights){
+daily_aggregation <- function(data, daily_agg, overlay_weights){
 
 
   # Data.table of weights
@@ -72,19 +72,7 @@ daily_aggregation <- function(data, variable, daily_agg, overlay_weights){
     clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=sum) #Stack of 365/366 layers
   }
 
-  # For temperature convert values in Kelvin to Celsius C = K - 273.15
-  if(variable == 'temp'){
 
-    clim_daily <- clim_daily - (273.15 * 24)
-  }
-
-
-  ## convert prcp m to mm
-  if(variable == 'prcp'){
-
-    clim_daily <- clim_daily * 1000
-
-  }
 
   # Return a list containing, in order, daily aggregated climate data as a raster brick, and the layer_names created.
   return(list(clim_daily, layer_names))
@@ -170,8 +158,6 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' Polynomial Transformation and Aggregation of Climate Data
 #'
 #' @param data The raster brick with the data to be transformed and aggregated
-#' @param variable The  climate variable of interest ('prcp, 'temp', and 'uv'
-#'   currently supported)
 #' @param overlay_weights A table of weights which can be generated using
 #'   the function calc_geoweights()
 #' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
@@ -184,7 +170,6 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' polynomial_output <- staggregate_polynomial(
 #'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
-#'   variable = "prcp", # Climate variable name
 #'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
 #'   degree = 4 # Highest order
 #'   )
@@ -192,10 +177,10 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' head(polynomial_output)
 #'
 #' @export
-staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", degree){
+staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = "month", degree){
 
   # Get climate data as a data.table and aggregate to daily values
-  setup_list <- daily_aggregation(data, variable, daily_agg, overlay_weights)
+  setup_list <- daily_aggregation(data, daily_agg, overlay_weights)
 
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
@@ -259,8 +244,6 @@ staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, t
 #' Restricted Cubic Spline Transformation and Aggregation of Climate Data
 #'
 #' @param data The raster brick with the data to be transformed and aggregated
-#' @param variable The  climate variable of interest ('prcp, 'temp', and 'uv'
-#'   currently supported)
 #' @param overlay_weights A table of weights which can be generated using
 #'   the function calc_geoweights()
 #' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
@@ -275,7 +258,6 @@ staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, t
 #' spline_output <- staggregate_spline(
 #'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
-#'   variable = "prcp", # Climate variable name
 #'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
 #'   knot_locs = c(1, 2, 3, 4, 5) # Where to place knots
 #'   )
@@ -283,10 +265,10 @@ staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, t
 #' head(spline_output)
 #'
 #' @export
-staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", knot_locs){
+staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "month", knot_locs){
 
   # Get climate data as a data.table and aggregate to daily values
-  setup_list <- daily_aggregation(data, variable, daily_agg, overlay_weights)
+  setup_list <- daily_aggregation(data, daily_agg, overlay_weights)
 
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
@@ -296,7 +278,7 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
   knot_locs <- sort(knot_locs)
   num_knots <- length(knot_locs)
   list_length <- num_knots - 2
-  list_names <- sapply(0:list_length, FUN=function(x){if(x == 0){paste(variable)}else{paste("term", x, sep="_")}})
+  list_names <- sapply(0:list_length, FUN=function(x){if(x == 0){"untransformed_value"}else{paste("term", x, sep="_")}})
 
 
   # Define restricted cubic spline function
@@ -384,8 +366,6 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
 #' Bin Transformation and Aggregation of Climate Data
 #'
 #' @param data The raster brick with the data to be transformed and aggregated
-#' @param variable The  climate variable of interest ('prcp, 'temp', and 'uv'
-#'   currently supported)
 #' @param overlay_weights A table of weights which can be generated using the
 #'   function calc_geoweights()
 #' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
@@ -406,7 +386,6 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
 #' bin_output <- staggregate_bin(
 #'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
-#'   variable = "prcp", # Climate variable name
 #'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
 #'   binwidth = 2, # Draw bins of width 2
 #'   min = 0, # The minimum value that non-edge bins must capture
@@ -416,9 +395,9 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
 #' head(bin_output)
 #'
 #' @export
-staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg = "month", num_bins = 10, binwidth = NULL, min = NULL, max = NULL, start_on = NULL, center_on = NULL, end_on = NULL){
+staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month", num_bins = 10, binwidth = NULL, min = NULL, max = NULL, start_on = NULL, center_on = NULL, end_on = NULL){
   # Get climate data as a data.table and aggregate to daily values
-  setup_list <- daily_aggregation(data, variable, daily_agg, overlay_weights)
+  setup_list <- daily_aggregation(data, daily_agg, overlay_weights)
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
 
@@ -454,7 +433,7 @@ staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg
   if((!is.null(center_on) & !is.null(start_on)) |
      (!is.null(center_on) & !is.null(end_on)) |
      (!is.null(start_on) & !is.null(end_on))){
-    stop(crayon::red("Too many bin placement arguments specified. Please specify a value for only one variable out of center_on, start_on, or end_on"))
+    stop(crayon::red("Too many bin placement arguments specified. Please specify a value for only one argument out of center_on, start_on, or end_on"))
   }
 
   if(is.null(center_on) & is.null(start_on) & is.null(end_on)){

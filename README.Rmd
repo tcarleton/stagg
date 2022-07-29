@@ -136,10 +136,6 @@ polynomial_output <- staggregate_polynomial(
                             # area-normalized cropland weights for grid cells 
                             # within each county in Kansas
   
-  variable = "prcp",        # The name of your variable ("prcp" [precipitation] 
-                            # and "temp" [temperature] currently get converted
-                            # from m to mm and kelvin to Celsius, respectively)
-  
   daily_agg = "sum",        # How to aggregate hourly values to the daily level,
                             # "sum" and "average" are the only options. Here we 
                             # want total daily precipitation. 
@@ -173,10 +169,6 @@ spline_output <- staggregate_spline(
   county_weights,           # Output from Step 2, determined here by 
                             # area-normalized cropland weights for grid cells 
                             # within each county in Kansas
-  
-  variable = "prcp",        # The name of your variable ("prcp" [precipitation] 
-                            # and "temp" [temperature] currently get converted
-                            # from m to mm and kelvin to Celsius, respectively)
   
   daily_agg = "sum",        # How to aggregate hourly values to the daily level,
                             # "sum" and "average" are the only options. Here we 
@@ -213,9 +205,6 @@ bin_output <- staggregate_bin(
                             # area-normalized cropland weights for grid cells 
                             # within each county in Kansas
   
-  variable = "prcp",        # The name of your variable ("prcp" [precipitation] 
-                            # and "temp" [temperature] currently get converted
-                            # from m to mm and kelvin to Celsius, respectively)
   
   daily_agg = "sum",        # How to aggregate hourly values to the daily level,
                             # "sum" and "average" are the only options. Here we 
