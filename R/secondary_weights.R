@@ -10,14 +10,10 @@
 #'
 #' @examples
 #' secondary_weights_output <- secondary_weights(
-<<<<<<< HEAD
 #'
 #'   cropland_kansas_2011 # A raster of cropland to resample and convert to a
 #'                        # data.table
 #'
-=======
-#'   cropland_kansas_2011 # A raster of cropland to resample and convert to a data.table
->>>>>>> 7941fc9816a8b361d7a48a269141034720c4f7b6
 #'   )
 #'
 #' head(secondary_weights_output)
