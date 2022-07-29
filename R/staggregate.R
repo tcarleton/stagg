@@ -55,6 +55,7 @@ daily_aggregation <- function(data, variable, daily_agg, overlay_weights){
   ## Average
   if(daily_agg == 'average'){
 
+    message(crayon::green("Averaging hourly values to get daily values"))
 
     # Average over each set of 24 layers
     indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
@@ -64,7 +65,7 @@ daily_aggregation <- function(data, variable, daily_agg, overlay_weights){
   ## Sum
   if(daily_agg == 'sum'){
 
-
+    message(crayon::green("Summing hourly values to daily values"))
 
     # Sum over each set of 24 layers
     indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
@@ -82,6 +83,7 @@ daily_aggregation <- function(data, variable, daily_agg, overlay_weights){
   if(variable == 'prcp'){
 
     clim_daily <- clim_daily * 1000
+
   }
 
   # Return a list containing, in order, daily aggregated climate data as a raster brick, and the layer_names created.
@@ -120,6 +122,8 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 
   # Temporal Aggregation
   if(time_agg == "year"){
+    message(crayon::green("Aggregating by polygon and year"))
+
     sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year),
                              .SDcols = list_names]
 
@@ -128,6 +132,8 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
   }
 
   if(time_agg == "month"){
+    message(crayon::green("Aggregating by polygon and month"))
+
     sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month),
                              .SDcols = list_names]
 
@@ -136,6 +142,8 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
   }
 
   if(time_agg == "day"){
+    message(crayon::green("Aggregating by polygon"))
+
     sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month, day),
                              .SDcols = list_names]
 
@@ -196,6 +204,8 @@ staggregate_polynomial <- function(data, overlay_weights, variable, daily_agg, t
   poly_orders <- seq(1:degree) # Compute values from 1 to degree
   list_length <- length(poly_orders) # How many lists are in the final object
   list_names <- sapply(1:list_length, FUN=function(x){paste("order", poly_orders[x], sep="_")})
+
+  message(crayon::green("Executing polynomial transformation"))
 
   # For each daily layer, raise the value to degree, degree-1, degree-2 etc. until 1
   r <- lapply(poly_orders, FUN=function(x){clim_daily ^ x})
@@ -300,16 +310,18 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
     else{
       clim_daily_table <- raster::values(clim_daily)
 
-      clim_daily_table <-ifelse((clim_daily_table - knot_locs[x])^3 > 0,
-                                (clim_daily_table - knot_locs[x])^3, 0)
-      - ((ifelse((clim_daily_table - knot_locs[num_knots - 1])^3 > 0,
-                 (clim_daily_table - knot_locs[num_knots - 1])^3, 0))
-         *((knot_locs[num_knots] - knot_locs[x]))
-           / (knot_locs[num_knots] - knot_locs[num_knots - 1]))
-      + ((ifelse((clim_daily_table - knot_locs[num_knots])^3 > 0,
-                 (clim_daily_table - knot_locs[num_knots])^3, 0))
-         *((knot_locs[num_knots - 1] - knot_locs[x])
-           / (knot_locs[num_knots] - knot_locs[num_knots - 1])))
+       term1 <- ifelse((clim_daily_table - knot_locs[x]) > 0,
+                       (clim_daily_table - knot_locs[x])^3, 0)
+
+       term2 <- (ifelse((clim_daily_table - knot_locs[num_knots - 1]) > 0,
+                 (clim_daily_table - knot_locs[num_knots - 1])^3, 0)) *
+         ((knot_locs[num_knots] - knot_locs[x]) / (knot_locs[num_knots] - knot_locs[num_knots - 1]))
+
+       term3 <- (ifelse((clim_daily_table - knot_locs[num_knots]) > 0,
+                 (clim_daily_table - knot_locs[num_knots])^3, 0)) *
+         ((knot_locs[num_knots - 1] - knot_locs[x]) / (knot_locs[num_knots] - knot_locs[num_knots - 1]))
+
+      clim_daily_table <- term1 - term2 + term3
 
       clim_daily_new <- clim_daily
       raster::values(clim_daily_new) <- clim_daily_table
@@ -321,6 +333,8 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
     }
   }
 
+
+  message(crayon::green("Executing spline transformation"))
 
   # For each layer, create new spline variables
   r <- lapply(0:list_length, get_spline)
@@ -381,9 +395,9 @@ staggregate_spline <- function(data, overlay_weights, variable, daily_agg, time_
 #' @param num_bins number of bins to group the data into
 #' @param binwidth width of bins, overrides num_bins
 #' @param min the smallest value that must be captured by a non-edge bin,
-#'   default is the data minimum
+#'   default is the data minimum, set manually if you are breaking up your data
 #' @param max the largest value that must be captured by a non-edge bin, default
-#'   is the data maximum
+#'   is the data maximum, set manually if you are breaking up your data
 #' @param start_on where to place the left edge of one of the bins
 #' @param center_on where to place the center of one of the bins
 #' @param end_on where to place the right edge of one of the bins
@@ -475,7 +489,7 @@ staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg
 
   # Create table of bins
   center <- c(center_on)
-  while(max(center) + (binwidth / 2) < max){
+  while(max(center) + (binwidth / 2) <= max){
     center <- c(center, (max(center) + binwidth))
   }
   while(min(center) - (binwidth / 2) > min){
@@ -532,7 +546,7 @@ staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg
     }
     else{
       clim_daily_table <- ifelse(bins_table[x, left] <= clim_daily_table &
-                                   bins_table[x, right] >= clim_daily_table, 1, 0)
+                                   bins_table[x, right] > clim_daily_table, 1, 0)
     }
 
 
@@ -541,6 +555,8 @@ staggregate_bin <- function(data, overlay_weights, variable, daily_agg, time_agg
 
     return(clim_daily_new)
   }
+
+  message(crayon::green("Executing binning transformation"))
 
   # For each bin, create new brick of binary values, including edge bins which go from -inf to min, max to inf
   r <- lapply(0:(num_bins + 1), FUN = check_bins)

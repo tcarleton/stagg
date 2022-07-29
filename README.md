@@ -87,6 +87,10 @@ cropland_weights <- secondary_weights(
 
     #> Longitude ranges match
 
+    #> Resampling secondary_raster
+
+    #> Creating a table of weights
+
 ``` r
 #Display resulting table
 cropland_weights
@@ -255,7 +259,15 @@ polynomial_output <- staggregate_polynomial(
   degree = 3                # The highest order of the polynomial. Here this 
                             # will create variable 3 columns: x, x^2, and x^3
   )
+```
 
+    #> Summing hourly values to daily values
+
+    #> Executing polynomial transformation
+
+    #> Aggregating by polygon and month
+
+``` r
 # Display results
 polynomial_output
 ```
@@ -326,23 +338,31 @@ spline_output <- staggregate_spline(
                             # gridded values and choose knot_locs based on 
                             # those.
 )
+```
 
+    #> Summing hourly values to daily values
+
+    #> Executing spline transformation
+
+    #> Aggregating by polygon and month
+
+``` r
 # Display output
 spline_output
 ```
 
-    #>           year    month poly_id     prcp    term_1    term_2
-    #>   1: year_2011 month_12     129 56.43332 10478.432  8598.792
-    #>   2: year_2011 month_12     187 56.80940 10204.216  8387.316
-    #>   3: year_2011 month_12     075 51.49176  8056.294  6507.137
-    #>   4: year_2011 month_12     071 47.00092  5292.950  4100.694
-    #>   5: year_2011 month_12     199 42.79329  3435.749  2547.144
-    #>  ---                                                        
-    #> 101: year_2011 month_12     011 70.18325 14121.396 11723.011
-    #> 102: year_2011 month_12     107 75.32783 15172.898 12544.289
-    #> 103: year_2011 month_12     121 77.34484 16877.688 14061.765
-    #> 104: year_2011 month_12     091 78.75736 19226.936 16166.683
-    #> 105: year_2011 month_12     209 80.44296 21238.066 17949.934
+    #>           year    month poly_id     prcp    term_1   term_2
+    #>   1: year_2011 month_12     129 56.43332  741.7914 238.4962
+    #>   2: year_2011 month_12     187 56.80940  730.9924 232.8851
+    #>   3: year_2011 month_12     075 51.49176  649.0831 206.5648
+    #>   4: year_2011 month_12     071 47.00092  571.9687 180.9144
+    #>   5: year_2011 month_12     199 42.79329  494.3836 154.8043
+    #>  ---                                                       
+    #> 101: year_2011 month_12     011 70.18325  911.5578 293.8432
+    #> 102: year_2011 month_12     107 75.32783 1000.2813 323.3202
+    #> 103: year_2011 month_12     121 77.34484 1019.5924 329.3409
+    #> 104: year_2011 month_12     091 78.75736 1036.1663 335.2066
+    #> 105: year_2011 month_12     209 80.44296 1073.2920 348.6183
 
 You can see that your output looks very similar to the table from the
 polynomial transformation. The only difference here is that 4 - 2
@@ -382,9 +402,11 @@ bin_output <- staggregate_bin(
   binwidth = 2,             # The width of the bins to draw (overrides any 
                             # num_bin argument)
   
-  min = 0,                  # The smallest value that non-edge bins must cover
+  min = 0,                  # The smallest value that non-edge bins must cover,
+                            # use this if you are chunking your data
   
-  max = 6,                  # The largest value that non-edge bins must cover
+  max = 6,                  # The largest value that non-edge bins must cover,
+                            # use this if you are chunking your data
   
   center_on = 4,            # Where to center the first bin drawn on. Bins of 
                             # equal width will be drawn around this one until 
@@ -392,11 +414,17 @@ bin_output <- staggregate_bin(
 )
 ```
 
+    #> Summing hourly values to daily values
+
     #> Binwidth argument supplied will override num_bins
 
     #> Non-edge bins extend beyond max value
 
     #> Non-edge bins extend beyond min value
+
+    #> Executing binning transformation
+
+    #> Aggregating by polygon and month
 
 ``` r
 # Display output

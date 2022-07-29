@@ -72,7 +72,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
 
   ## Raster / Polygon overlap (using data.table)
   ## -----------------------------------------------
-  message(crayon::yellow('Extracting raster polygon overlap'))
+  message(crayon::green('Extracting raster polygon overlap'))
 
   overlap <- data.table::rbindlist(exactextractr::exact_extract(clim_area_raster, polygons_reproj, progress = T, include_xy = T), idcol = "poly_id")
   overlap[, ':=' (poly_id = polygons_reproj[[polygon_id_col]][poly_id], cell_area_km2 = value)] # Add the unique id for each polygon based on the input col name

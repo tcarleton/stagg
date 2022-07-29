@@ -70,12 +70,16 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
 
   ## Make the values of the clim_raster resampled weights
   ## -----------------------------------------------
+  message(crayon::green("Resampling secondary_raster"))
+
   resampled_raster = raster::resample(secondary_raster, clim_raster, method="bilinear")
 
 
 
   ## Make a data.table of the values of the resampled raster with lat/lon
   ## -----------------------------------------------
+  message(crayon::green("Creating a table of weights"))
+
   weight_table <- raster::as.data.frame(resampled_raster, xy=TRUE)
   colnames(weight_table) <- c("x", "y", "weight")
   weight_table <- data.table::as.data.table(weight_table)

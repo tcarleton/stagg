@@ -228,9 +228,11 @@ bin_output <- staggregate_bin(
   binwidth = 2,             # The width of the bins to draw (overrides any 
                             # num_bin argument)
   
-  min = 0,                  # The smallest value that non-edge bins must cover
+  min = 0,                  # The smallest value that non-edge bins must cover,
+                            # use this if you are chunking your data
   
-  max = 6,                  # The largest value that non-edge bins must cover
+  max = 6,                  # The largest value that non-edge bins must cover,
+                            # use this if you are chunking your data
   
   center_on = 4,            # Where to center the first bin drawn on. Bins of 
                             # equal width will be drawn around this one until 
