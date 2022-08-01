@@ -288,7 +288,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
   knot_locs <- sort(knot_locs)
   num_knots <- length(knot_locs)
   list_length <- num_knots - 2
-  list_names <- sapply(0:list_length, FUN=function(x){if(x == 0){"untransformed_value"}else{paste("term", x, sep="_")}})
+  list_names <- sapply(0:list_length, FUN=function(x){if(x == 0){"value"}else{paste("term", x, sep="_")}})
 
 
   # Define restricted cubic spline function
@@ -302,16 +302,17 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
     else{
       clim_daily_table <- raster::values(clim_daily)
 
-       term1 <- ifelse((clim_daily_table - knot_locs[x]) > 0,
+       part1 <- ifelse((clim_daily_table - knot_locs[x]) > 0,
                        (clim_daily_table - knot_locs[x])^3, 0)
 
-       term2 <- (ifelse((clim_daily_table - knot_locs[num_knots - 1]) > 0,
-                 (clim_daily_table - knot_locs[num_knots - 1])^3, 0)) *
-         ((knot_locs[num_knots] - knot_locs[x]) / (knot_locs[num_knots] - knot_locs[num_knots - 1]))
+       part2 <- (ifelse((clim_daily_table - knot_locs[num_knots - 1]) > 0,
+                 (clim_daily_table - knot_locs[num_knots - 1])^3 *
+                   ((knot_locs[num_knots] - knot_locs[x]) / (knot_locs[num_knots] - knot_locs[num_knots - 1])), 0))
 
-       term3 <- (ifelse((clim_daily_table - knot_locs[num_knots]) > 0,
-                 (clim_daily_table - knot_locs[num_knots])^3, 0)) *
-         ((knot_locs[num_knots - 1] - knot_locs[x]) / (knot_locs[num_knots] - knot_locs[num_knots - 1]))
+
+       part3 <- (ifelse((clim_daily_table - knot_locs[num_knots]) > 0,
+                 (clim_daily_table - knot_locs[num_knots])^3 *
+                   ((knot_locs[num_knots - 1] - knot_locs[x]) / (knot_locs[num_knots] - knot_locs[num_knots - 1])), 0))
 
       clim_daily_table <- term1 - term2 + term3
 
