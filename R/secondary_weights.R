@@ -13,8 +13,8 @@
 #'
 #'   cropland_kansas_2011 # A raster of cropland to resample and convert to a
 #'                        # data.table
-#'
 #'   )
+#'
 #'
 #' head(secondary_weights_output)
 #'

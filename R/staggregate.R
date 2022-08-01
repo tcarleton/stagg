@@ -168,11 +168,16 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #'
 #' @examples
 #' polynomial_output <- staggregate_polynomial(
+#'
 #'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+#'
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
+#'
 #'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+#'
 #'   degree = 4 # Highest order
 #'   )
+#'
 #'
 #' head(polynomial_output)
 #'
@@ -256,11 +261,16 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #' @examples
 
 #' spline_output <- staggregate_spline(
+#'
 #'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+#'
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
+#'
 #'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+#'
 #'   knot_locs = c(1, 2, 3, 4, 5) # Where to place knots
 #'   )
+#'
 #'
 #' head(spline_output)
 #'
@@ -384,13 +394,20 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'
 #' @examples
 #' bin_output <- staggregate_bin(
+#'
 #'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+#'
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
+#'
 #'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+#'
 #'   binwidth = 2, # Draw bins of width 2
+#'
 #'   min = 0, # The minimum value that non-edge bins must capture
+#'
 #'   max = 10 # The maximum value that non-edge bins must capture
 #'   )
+#'
 #'
 #' head(bin_output)
 #'
