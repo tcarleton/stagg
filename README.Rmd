@@ -6,7 +6,7 @@ output: github_document
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
-  collapse = TRUE,
+  collapse = FALSE,
   comment = "#>",
   fig.path = "man/figures/README-",
   out.width = "100%"
@@ -18,37 +18,232 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of stagg is to ...
+The R Package `stagg` aims to harmonize the preparation spatiotemporal data for use in statistical analyses. This allows for more efficient use of researchers' time, and avoids common missteps. The end goal is a greater quantity of quality research into the study of coupled human-geophysical systems. 
 
 ## Installation
 
-You can install the development version of stagg from [GitHub](https://github.com/) with:
+Although `stagg` is not yet on CRAN, you can install the development version of `stagg` from [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("tliddell4/stagg")
+devtools::install_github("tcarleton/stagg")
 ```
 
-## Example
+## Abstract (Work in Progress)
+Spatiotemporal climate data must be properly transformed and aggregated before it can be utilized in statistical research. In particular, most statistical analyses of coupled human-geophysical systems require a careful aligning of gridded, high-resolution climate information with irregular and often temporally coarse administrative or survey data.  For researchers familiar with  popular climate datasets and the steps required to use them, the preparation process is tedious; to the uninitiated, it can act as a barrier to entry into the study of interactions between human and natural systems. Here, we present the R package stagg, which aims to reduce the time and expertise required to use climate data for statistical analysis by automating the following key facets: (1) resampling, reprojection, and aggregation of raster data to resolve any spatial and temporal scale mismatches; (2) nonlinear transformations of data at grid scale for use in nonlinear regression causal analysis; (3) aggregation of climate data over administrative regions, with the capability to weight gridded climate values based on non-climate datasets, such as population and cropland.
 
-This is a basic example which shows you how to solve a common problem:
+In automating these critical components, the stagg package enables computationally efficient, simple, and generalizable preparation of  climate data for downstream use in statistical analyses.
 
-```{r example}
+
+
+## Workflow
+
+Below is example code and commentary aimed at demonstrating expected typical usage. The order of the steps is important, as output from each step is used in the one that follows it. 
+
+```{r}
 library(stagg)
-## basic example code
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
 
-```{r cars}
-summary(cars)
+### Step 1 (Optional): Resample a secondary data input and generate secondary weights for Step 2
+It is common when studying interactions between human and natural systems to weight a climate variable by another variable of interest such as population or cropland. This allows the user to retrieve the climate experienced by humans or crops. Thus, `stagg` allows for the  conversion of a raster into a data.table of weights via the `secondary_weights()` function.
+
+The following example shows how one would go about generating cropland weights for the state of kansas. 
+
+```{r, include = TRUE}
+kansas_extent <- c(-95.75, -95.25, 37.25, 37.75)
+
+cropland_weights <- secondary_weights(
+  
+  secondary_raster = cropland_kansas_2011, # A raster layer of the social 
+                                           # variable to generate weights from
+  
+  grid = era5_grid,                        # A raster layer with the same 
+                                           # coordinate system and spatial 
+                                           # resolution as the climate data 
+                                           # (defaults to the era5_grid). 
+                                           # You can also pass in your climate 
+                                           # data and the grid will be taken 
+                                           # from its first layer
+  
+  extent = kansas_extent # The extent to crop the  
+                                           # secondary_raster to, use whenever  
+                                           # possible to save time (default is 
+                                           # "full")
+)
+
+#Display resulting table
+cropland_weights
 ```
 
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this. You could also use GitHub Actions to re-render `README.Rmd` every time you push. An example workflow can be found here: <https://github.com/r-lib/actions/tree/v1/examples>.
+As you can see from the output, `secondary_weights()` checks for alignment, and rotates the `secondary_raster` coordinates if necessary. It also resamples the data to the spatial resolution of the grid, before outputting a data.table with latitudes, longitudes, and cropland weights.
 
-You can also embed plots, for example:
+Due to size constraints, cropland_kansas_2011 is very small. Here we'll replace the output from this example with pre-loaded, global cropland weights but keep the same name to demonstrate how the package normally would flow. Note that the pre-processed global cropland weights as well as global population weights are available as part of the package and can be used for analysis in any part of the globe. 
 
-```{r pressure, echo = FALSE}
+```{r}
+cropland_weights <- dplyr::filter(cropland_world_2003_era5, 
+                                  x >= -103, x <= -94, y >= 37, y <= 41)
 ```
 
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
+
+### Step 2: Overlay administrative regions onto the your data's grid
+A core part of `stagg`'s functionality is to aggregate gridded data to the level of administrative regions. In order to do this, it first calculates the  portion of each region is covered by a particular cell, or the weight each grid cell has for a given administrative region. These weights may also be scaled by the secondary weights calcualted in Step 1. This is accomplished using the `overlay_weights()` function. 
+
+```{r, echo = TRUE, message = FALSE, results = FALSE}
+ # Using polygons outlining counties of Kansas as administrative regions
+kansas_counties <- tigris::counties("Kansas")
+```
+
+
+
+```{r, include = TRUE}
+
+county_weights <- overlay_weights(
+  
+  polygons = kansas_counties,          # A simple features object with the 
+                                       # desired polygons
+  
+  polygon_id_col = "COUNTYFP",         # The name of the column containing 
+                                       # polygons' identifiers
+  
+  grid = era5_grid,                    # A raster layer with the same coordinate
+                                       # system and spatial resolution as the 
+                                       # climate_data (defaults to the 
+                                       # era5_grid). You can also pass in your 
+                                       # climate data and a grid will be taken 
+                                       # from its first layer
+  
+  secondary_weights = cropland_weights # Optional output from Step 1, a table of
+                                       # weights, determined here by cropland in
+                                       # each grid cell
+)
+
+# Display results
+county_weights
+```
+
+You can see that the function outputs multiple rows for each polygon, one for every grid cell it overlaps. The column `w_area` represents the proportion of that polygon that falls within the grid cell corresponding to the x and y coordinates. If you included secondary_weights from Step 1, as we have here, `overlay_weights()` also creates a column named `weight`, which is determined by normalizing the secondary_weights by `w_area`. This is what will be used in the aggregation of values. If you wish only to use `w_area` in aggregating by polygon, you need not run `secondary_weights()` and can omit the argument `secondary_weights` from your call to `overlay_weights()`. Once again, note that the function is 
+
+Given all of this information, we can interpret the top row in the output as follows: About 11% of the area in the Kansas county represented by COUNTYFP 129 falls within the grid cell at 258 degrees longitude (0-360 range), 37 degrees latitude. It appears that this particular pixel has slightly less cropland than other pixels in this polygon though, since the area-normalized cropland weight for this cell is only around 10%. 
+
+
+### Step 3: Transform and aggregate data using the `staggregate_*` family of functions
+After completing Step 2, you are ready to transform and aggregate your data. This is the final step before the data is ready for use in downstream statistical analyses. The `stagg` package provides a family of functions to perform this final step, each offering a different type of non-linear transformation. Regardless of the specific function,`staggregate_*`'s workflow is to aggregate gridded values to the daily level, perform a transformation on the daily values, and aggregate these values to the administrative regions and desired temporal scale based on the `overlay_weights()` output from Step 2.
+
+
+#### Polynomial Transformation
+One common transformation is to create new variables by raising a value to an exponent. Treating these new values as independent variables within a linear regression allows researchers to identify non-linear trends within the data. `stagg` prepares the data for this type of statistical analyses while preserving its high spatiotemporal resolution by calculating the new variables from daily gridded values prior to aggregating to the polygon and monthly/yearly level through with `staggregate_polynomial()`. 
+
+```{r}
+polynomial_output <- staggregate_polynomial(
+  
+  prcp_kansas_dec2011_era5, # A raster brick of our primary data, typically but 
+                            # not necessarily climate data. For now, data must 
+                            # start at midnight and be hourly.
+  
+  county_weights,           # Output from Step 2, determined here by 
+                            # area-normalized cropland weights for grid cells 
+                            # within each county in Kansas
+  
+  daily_agg = "sum",        # How to aggregate hourly values to the daily level,
+                            # "sum" and "average" are the only options. Here we 
+                            # want total daily precipitation. 
+  
+  time_agg = "month",       # The temporal level to aggregate daily transformed 
+                            # values to. Current options are "day", "month", and
+                            # "year" 
+  
+  degree = 3                # The highest order of the polynomial. Here this 
+                            # will create variable 3 columns: x, x^2, and x^3
+  )
+
+# Display results
+polynomial_output
+
+```
+
+You can see that 3 variables are created. `order_1` represents the original values, linearly aggregated to the county, monthly level. `order_2` and `order_3` represent the original values squared and cubed, respectively, prior to being aggregated to the county and monthly level. In this case, we are working with only 30 days of data to meet size constraints, and so each polygon only has one row corresponding to the only month present, December. Were this a full year of data, each polygon would appear 12 times. Note also that passing `time_agg = "day"` would create a data.table 30 times longer, with another column to the right of `month` called `day`.
+
+
+#### Restricted Cubic Spline Transfromation
+Another type of transformation `stagg` supports is a restricted cubic spline. This, essentially, is a piecewise function where 3rd degree polynomials intersect at knots such that the function's first and second derivatives are continuous from negative infinity to positive infinity, and that the function is linear before the first knot and after the last one. A more detailed explanation, as well as the formula used to transform the data, can be found [here](https://support.sas.com/resources/papers/proceedings16/5621-2016.pdf). `staggregate_spline()` executes this formula to create number of knots minus two new variables, in addition to preserving the original untransformed values. 
+
+```{r}
+spline_output <- staggregate_spline(
+  
+  prcp_kansas_dec2011_era5,    # A raster brick of our primary data, typically 
+                               # but not necessarily climate data. For now, data 
+                               # must start at midnight and be hourly.
+  
+  county_weights,              # Output from Step 2, determined here by 
+                               # area-normalized cropland weights for grid cells 
+                               # within each county in Kansas
+  
+  daily_agg = "sum",           # How to aggregate hourly values to the daily 
+                               # level, "sum" and "average" are the only 
+                               # options. Here we want total daily 
+                               # precipitation. 
+  
+  time_agg = "month",          # The temporal level to aggregate daily 
+                               # transformed values to. Current options are 
+                               # "day", "month", and "year" 
+  
+  knot_locs = c(-1.665335e-16, # Where to place the knots. Most likely, you'd 
+                -1.665335e-16, # want to calculate different quantiles in your
+                1.129775e-06,  # daily grided values and choose knot_locs based
+                3.852533e-04,  # on those
+                1.594356e-02)
+)
+
+# Display output
+spline_output
+```
+
+You can see that your output looks very similar to the table from the polynomial transformation. The only difference here is that 4 - 2 (number of knots minus two) new variables are being created. This data is now ready for use in a regression. 
+
+
+#### Binning Transformation
+The last tranformation `stagg` offers is to divide the daily values into different bins specified by the user. This can be useful in identifying outliers and nonlinearities within the data, and accomplished by calling `staggregate_bin()`. 
+
+```{r}
+bin_output <- staggregate_bin(
+  
+  prcp_kansas_dec2011_era5, # A raster brick of our primary data, typically but 
+                            # not necessarily climate data. For now, data must 
+                            # start at midnight and be hourly.
+  
+  county_weights,           # Output from Step 2, determined here by 
+                            # area-normalized cropland weights for grid cells 
+                            # within each county in Kansas
+  
+  
+  daily_agg = "sum",        # How to aggregate hourly values to the daily level,
+                            # "sum" and "average" are the only options. Here we 
+                            # want total daily precipitation. 
+  
+  time_agg = "month",       # The temporal level to aggregate daily transformed 
+                            # values to. Current options are "day", "month", and
+                            # "year" 
+  
+  binwidth = 2,             # The width of the bins to draw (overrides any 
+                            # num_bin argument)
+  
+  min = 0,                  # The smallest value that non-edge bins must cover,
+                            # use this if you are chunking your data
+  
+  max = 6,                  # The largest value that non-edge bins must cover,
+                            # use this if you are chunking your data
+  
+  center_on = 4,            # Where to center the first bin drawn on. Bins of 
+                            # equal width will be drawn around this one until 
+                            # both min and max are contained by non-edge bins
+)
+
+# Display output
+bin_output
+```
+
+Like before, the output table features one row for every county for every time period specified by the `time_agg` argument. What has changed is that there is a new column for each bin created, representing the number of days a polygon had a value that fell within that bin during the timespan specified by the `time_agg` argument. These outputs are not necessarily integers since the polygon is made up of pixels that are sorted into bins and then weighted by the `overlay_weights` provided and aggregated, here, to the county level. 
+
+Because there are many ways to specify bins, `staggregate_bin()` has many optional arguments which can influence the placement, extent, and width of the bins. First, the non-edge bins are all of equal width. This is taken from the `binwidth` argument if it is supplied, or otherwise from the `num_bins` argument by dividing the range (`max` minus `min`) by the number of bins. The max and min, if not supplied are taken directly from the maximum and minimum values in the data. Once the width has been established, a bin is drawn using one of the placement arguments: `start_on`, `center_on`, or `end_on`, which draw the bin's left edge, center, or right edge on that value, respectively. If this value falls outside the range, it is moved over by a bin-width at a time until it is within the range. If no placement value is specified, `min` is passed to `start_on`. Bins are then constructed around that bin until the full range is covered. Note that if you specify `num_bins` but choose a placement where the max or min value will be overlapped, you will get one more non-edge bin than requested. Lastly, edge bins, from negative infinity to the start of the leftmost bin and from the end of the rightmost bin to infinity, are constructed to capture any other data. 
+

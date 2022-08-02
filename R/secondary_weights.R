@@ -1,35 +1,35 @@
-## Anna Boser
-## March 27, 2022
-## Make a general function that resamples a raster of interest to the ERA grid
-## Processing step for potapov crop weights to turn into a single global map by year
-
-#' Function that resamples a raster of interest to the ERA grid
+#' Function that resamples a raster of interest
 #'
-#' @param weights_raster a raster of a continuous variable, for example cropland coverage or population
-#' @param data_source the source of climate data (default is era5)
-#' @param extent an optional extent to crop the weights_raster to for faster processing
+#' @param secondary_raster a raster of a continuous variable, for example
+#'   cropland coverage or population
+#' @param grid a raster layer with the same spatial resolution as the data
+#' @param extent an optional extent to crop the secondary_raster to for faster
+#'   processing
 #'
-#' @return a data.table of geoweights (area weighted raster/polygon overlap)
+#' @return a data.table of secondary weights
 #'
 #' @examples
-#' calc_raster_weights(data_weights, data_era5)
+#' secondary_weights_output <- secondary_weights(
+#'
+#'   cropland_kansas_2011 # A raster of cropland to resample and convert to a
+#'                        # data.table
+#'   )
+#'
+#'
+#' head(secondary_weights_output)
 #'
 #' @export
-calc_raster_weights <- function(weights_raster, data_source, extent = "full"){
-
-  ## Setup
-  ## -----------------------------------------------
-  # Removed load packages lines which will be installed by the imports section in description and called using the pkg::fun() syntax. See bottom of user_run_example for full list of packages to be included in imports.
+secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full"){
 
   ## If an extent was included, crop it to the extent to save ram
   ## -----------------------------------------------
   if (!is.character(extent)){
-    weights_raster <- raster::crop(weights_raster, extent)
+    secondary_raster <- raster::crop(secondary_raster, extent)
   }
 
 
   # Create ERA raster from input raster
-  clim_raster <- raster::raster(data_source) # only reads the first band
+  clim_raster <- raster::raster(grid) # only reads the first band
 
   ## Raster alignment: make sure clim_raster is -180 to 180 longitude
   ## -----------------------------------------------
@@ -71,23 +71,22 @@ calc_raster_weights <- function(weights_raster, data_source, extent = "full"){
   if (!is.character(extent)){
     clim_raster <- raster::crop(clim_raster, extent)
   } else {
-    clim_raster <- raster::crop(clim_raster, raster::extent(weights_raster))
+    clim_raster <- raster::crop(clim_raster, raster::extent(secondary_raster))
   }
 
-  ## Match raster crs
-  ## -----------------------------------------------
-  # weights_raster <- weights_raster %>%
-  #   st_transform(crs = st_crs(clim_raster))
-  # this doesn't work and as far as I can tell this isn't super necessary
 
   ## Make the values of the clim_raster resampled weights
   ## -----------------------------------------------
-  resampled_raster = raster::resample(weights_raster, clim_raster, method="bilinear")
+  message(crayon::green("Resampling secondary_raster"))
+
+  resampled_raster = raster::resample(secondary_raster, clim_raster, method="bilinear")
 
 
 
   ## Make a data.table of the values of the resampled raster with lat/lon
   ## -----------------------------------------------
+  message(crayon::green("Creating a table of weights"))
+
   weight_table <- raster::as.data.frame(resampled_raster, xy=TRUE)
   colnames(weight_table) <- c("x", "y", "weight")
   weight_table <- data.table::as.data.table(weight_table)
