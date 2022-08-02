@@ -6,11 +6,13 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The R Package `stagg` aims to harmonize the preparation of spatiotemporal
-data obtained from the [ERA5 project](https://www.ecmwf.int/en/forecasts/datasets/reanalysis-datasets/era5) for use in statistical analyses. This allows for more efficient use
-of researchers’ time, and avoids common missteps. The end goal is a
-greater quantity of quality research into the study of coupled
-human-geophysical systems.
+The R Package `stagg` aims to harmonize the preparation of
+spatiotemporal data obtained from the [ERA5
+project](https://www.ecmwf.int/en/forecasts/datasets/reanalysis-datasets/era5)
+for use in statistical analyses. This allows for more efficient useof
+researchers’ time, and avoids common missteps. The end goal is a greater
+quantity of quality research into the study of coupled human-geophysical
+systems.
 
 ## Installation
 
@@ -22,29 +24,34 @@ version of `stagg` from [GitHub](https://github.com/) with:
 devtools::install_github("tcarleton/stagg")
 ```
 
-## Abstract (Work in Progress)
+## Abstract
 
-Spatiotemporal climate data must be properly transformed and aggregated
-before it can be utilized in statistical research. In particular, most
-statistical analyses of coupled human-geophysical systems require a
-careful aligning of gridded, high-resolution climate information with
-irregular and often temporally coarse administrative or survey data. For
-researchers familiar with popular climate datasets and the steps
-required to use them, the preparation process is tedious; to the
-uninitiated, it can act as a barrier to entry into the study of
-interactions between human and natural systems. Here, we present the `R`
-package `stagg`, which aims to reduce the time and expertise required to
-use climate data for statistical analysis by automating the following
-key facets: (1) resampling, reprojection, and aggregation of raster data
-to resolve any spatial and temporal scale mismatches; (2) nonlinear
-transformations of data at grid scale for use in nonlinear regression
-causal analysis; (3) aggregation of climate data over administrative
-regions, with the capability to weight gridded climate values based on
-non-climate datasets, such as population and cropland.
-
-In automating these critical components, the `stagg` package enables
+Spatiotemporal climate data is critical to interdisciplinary research on
+interactions between human and climate systems. However, it must be
+properly transformed and aggregated before it can be utilized in
+statistical research. In particular, most statistical analyses of
+coupled human-geophysical systems require careful alignment of gridded,
+high-resolution climate information with irregular and often temporally
+coarse administrative or survey data. While tools exist to aid in
+certain aspects of climate data manipulation, there is no standardized
+methodology or tools to support the full range of processing necessary
+for statistical analysis. Many researchers invest time and resources
+into creating individual solutions which may be closed-source,
+inconsistent, or employ inadequate methods for handling nonlinearities
+in spatial and temporal aggregations, while others forgo using the data
+altogether. Here, we present the R package stagg, which aims to
+standardize a pipeline for integrating climate and non-climate data for
+statistical analysis by automating the following key facets: (1)
+resampling, reprojection, and aggregation of raster data to resolve any
+spatial and temporal scale mismatches between climate and non-climate
+data; (2) transformations of data at grid scale for use in nonlinear
+regression causal analysis; (3) aggregation of climate data over
+administrative regions, with the capability to weight gridded climate
+values based on non-climate datasets, such as population and cropland.
+In automating these critical components, the stagg package enables
 computationally efficient, simple, and generalizable preparation of
-ERA5 climate data for downstream use in statistical analyses.
+climate data for downstream use in statistical analyses, with the goal
+of facilitating a greater quantity of rigorous climate research.
 
 ## Workflow
 
@@ -59,11 +66,15 @@ library(stagg)
 ### Step 1 (Optional): Resample a secondary data input and generate secondary weights for Step 2
 
 It is common when studying interactions between human and natural
-systems to spatially aggregate climate data using weights derived from another raster dataset of interest,
-such as population or cropland. This allows the user to retrieve the
-average climate experienced by humans or crops within a given administrative region. To account for this, `stagg` allows for the
+systems to spatially aggregate climate data using weights derived from
+another raster dataset of interest, such as population or cropland. This
+allows the user to retrieve the climate experienced by humans or crops
+average climate experienced by humans or crops within a given
+administrative region. To account for this, `stagg` allows for the
 conversion of a raster into a data.table of weights via the
-`secondary_weights()` function. These weights can then be used to compute a weighted average of climate data over each administrative region.
+`secondary_weights()` function. These weights can then be used to
+compute a weighted average of climate data over each administrative
+region.
 
 The following example shows how one would go about generating cropland
 weights for the state of Kansas.
@@ -134,9 +145,10 @@ cropland_weights <- dplyr::filter(cropland_world_2003_era5,
 
 A core part of `stagg`’s functionality is to aggregate gridded data to
 the level of administrative regions. In order to do this, it first
-calculates the portion of each region that is covered by a particular cell.
-These weights may also be scaled by the secondary weights calculated in
-Step 1. This is accomplished using the `overlay_weights()` function.
+calculates the portion of each region that is covered by a particular
+cell. These weights may also be scaled by the secondary weights
+calculated in Step 1. This is accomplished using the `overlay_weights()`
+function.
 
 ``` r
  # Using polygons outlining counties of Kansas as administrative regions
@@ -209,7 +221,7 @@ to the x and y coordinates. If you included secondary_weights from Step
 `w_area`. This is what will be used in the aggregation of values. If you
 wish only to use `w_area` in aggregating by polygon, you need not run
 `secondary_weights()` and can omit the argument `secondary_weights` from
-your call to `overlay_weights()`. 
+your call to `overlay_weights()`.
 
 Given all of this information, we can interpret the top row in the
 output as follows: About 11% of the area in the Kansas county
@@ -313,8 +325,9 @@ and that the function is linear before the first knot and after the last
 one. A more detailed explanation, as well as the formula used to
 transform the data, can be found
 [here](https://support.sas.com/resources/papers/proceedings16/5621-2016.pdf).
-`staggregate_spline()` executes this formula to create K-2 new variables, where K is the number of knots, in addition to preserving the original
-untransformed value of the variable.
+`staggregate_spline()` executes this formula to create K-2 new
+variables, where K is the number of knots, in addition to preserving the
+original untransformed value of the variable.
 
 ``` r
 spline_output <- staggregate_spline(
