@@ -271,6 +271,8 @@ polynomial_output <- staggregate_polynomial(
 
     #> Executing polynomial transformation
 
+    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_date()
+
     #> Aggregating by polygon and month
 
 ``` r
@@ -319,32 +321,36 @@ untransformed values.
 ``` r
 spline_output <- staggregate_spline(
   
-  prcp_kansas_dec2011_era5, # A raster brick of our primary data, typically but 
-                            # not necessarily climate data. For now, data must 
-                            # start at midnight and be hourly.
+  prcp_kansas_dec2011_era5,    # A raster brick of our primary data, typically 
+                               # but not necessarily climate data. For now, data 
+                               # must start at midnight and be hourly.
   
-  county_weights,           # Output from Step 2, determined here by 
-                            # area-normalized cropland weights for grid cells 
-                            # within each county in Kansas
+  county_weights,              # Output from Step 2, determined here by 
+                               # area-normalized cropland weights for grid cells 
+                               # within each county in Kansas
   
-  daily_agg = "sum",        # How to aggregate hourly values to the daily level,
-                            # "sum" and "average" are the only options. Here we 
-                            # want total daily precipitation. 
+  daily_agg = "sum",           # How to aggregate hourly values to the daily 
+                               # level, "sum" and "average" are the only 
+                               # options. Here we want total daily 
+                               # precipitation. 
   
-  time_agg = "month",       # The temporal level to aggregate daily transformed 
-                            # values to. Current options are "day", "month", and
-                            # "year" 
+  time_agg = "month",          # The temporal level to aggregate daily 
+                               # transformed values to. Current options are 
+                               # "day", "month", and "year" 
   
-  knot_locs = c(1, 2, 3, 4) # Where to place the knots. Most likely, you'd want 
-                            # to calculate different quantiles in your daily 
-                            # gridded values and choose knot_locs based on 
-                            # those.
+  knot_locs = c(-1.665335e-16, # Where to place the knots. Most likely, you'd 
+                -1.665335e-16, # want to calculate different quantiles in your
+                1.129775e-06,  # daily grided values and choose knot_locs based
+                3.852533e-04,  # on those
+                1.594356e-02)
 )
 ```
 
     #> Summing hourly values to daily values
 
     #> Executing spline transformation
+
+    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_date()
 
     #> Aggregating by polygon and month
 
@@ -353,18 +359,18 @@ spline_output <- staggregate_spline(
 spline_output
 ```
 
-    #>      year month poly_id      value term_1 term_2
-    #>   1: 2011    12     129 0.05643332      0      0
-    #>   2: 2011    12     187 0.05680940      0      0
-    #>   3: 2011    12     075 0.05149176      0      0
-    #>   4: 2011    12     071 0.04700092      0      0
-    #>   5: 2011    12     199 0.04279329      0      0
-    #>  ---                                            
-    #> 101: 2011    12     011 0.07018325      0      0
-    #> 102: 2011    12     107 0.07532783      0      0
-    #> 103: 2011    12     121 0.07734484      0      0
-    #> 104: 2011    12     091 0.07875736      0      0
-    #> 105: 2011    12     209 0.08044296      0      0
+    #>      year month poly_id      value       term_1       term_2       term_3
+    #>   1: 2011    12     129 0.05643332 5.850616e-07 5.850616e-07 5.832739e-07
+    #>   2: 2011    12     187 0.05680940 5.719172e-07 5.719172e-07 5.701675e-07
+    #>   3: 2011    12     075 0.05149176 5.096724e-07 5.096724e-07 5.081121e-07
+    #>   4: 2011    12     071 0.04700092 4.325319e-07 4.325319e-07 4.312036e-07
+    #>   5: 2011    12     199 0.04279329 3.539178e-07 3.539178e-07 3.528255e-07
+    #>  ---                                                                     
+    #> 101: 2011    12     011 0.07018325 7.220965e-07 7.220965e-07 7.198900e-07
+    #> 102: 2011    12     107 0.07532783 7.952239e-07 7.952239e-07 7.927962e-07
+    #> 103: 2011    12     121 0.07734484 8.280333e-07 8.280333e-07 8.255066e-07
+    #> 104: 2011    12     091 0.07875736 8.647942e-07 8.647942e-07 8.621580e-07
+    #> 105: 2011    12     209 0.08044296 9.065387e-07 9.065387e-07 9.037778e-07
 
 You can see that your output looks very similar to the table from the
 polynomial transformation. The only difference here is that 4 - 2
@@ -422,6 +428,8 @@ bin_output <- staggregate_bin(
     #> Non-edge bins extend beyond min value
 
     #> Executing binning transformation
+
+    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_date()
 
     #> Aggregating by polygon and month
 

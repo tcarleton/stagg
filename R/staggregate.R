@@ -39,9 +39,15 @@ daily_aggregation <- function(data, daily_agg, overlay_weights){
   # Immediately crop to weights extent
   clim_raster <- raster::crop(raster::stack(data), weights_ext)
 
+
+  if(!(raster::nlayers(clim_raster)%%24 == 0)){
+    stop(crayon::red("Data does not contain a number of layers that is a multiple of 24. Please use hourly data representing a whole number of days."))
+  }
+
   # Get layer names (dates)
   all_layers <- names(clim_raster)
   layer_names <- all_layers[seq(1, length(all_layers), 24)] # Keep every 24th layer name (1 per day)
+
 
   ## Aggregate to grid-day level
   ## -----------------------------------------------
@@ -88,6 +94,9 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
   keycols = c("x", "y")
   data.table::setkeyv(clim_dt, keycols)
 
+
+  # Convert layer names to dates
+  message(crayon::yellow("Assuming layer name format which after removal of the first character is compatible with lubridate::as_date()"))
   clim_dt[, date := stringr::str_sub(date, 2, -1)]
   clim_dt[, date := lubridate::as_date(date)]
 
@@ -264,14 +273,14 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 
 #' spline_output <- staggregate_spline(
 #'
-#'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+#' data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
 #'
-#'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
+#' overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 #'
-#'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+#' daily_agg = "sum", # Sum hourly values to produce daily values before transformation
 #'
-#'   knot_locs = c(1, 2, 3, 4, 5) # Where to place knots
-#'   )
+#' knot_locs = c(-1.665335e-16,  1.129775e-06,  1.594356e-02) # Where to place knots
+#' )
 #'
 #'
 #' head(spline_output)
@@ -365,7 +374,6 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
     clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
     i <- i + 1
   }
-
 
 
   # Aggregate by polygon
