@@ -42,7 +42,6 @@ daily_aggregation <- function(data, daily_agg, overlay_weights){
   # Get layer names (dates)
   all_layers <- names(clim_raster)
   layer_names <- all_layers[seq(1, length(all_layers), 24)] # Keep every 24th layer name (1 per day)
-  layer_names <- paste0('year_', substring(layer_names, 2,5), 'month_', substring(layer_names, 7,8), '_day_', substring(layer_names, 10,11)) # Extract month/day for each layer
 
   ## Aggregate to grid-day level
   ## -----------------------------------------------
@@ -89,6 +88,9 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
   keycols = c("x", "y")
   data.table::setkeyv(clim_dt, keycols)
 
+  clim_dt[, date := stringr::str_remove(date, 'X')]
+  clim_dt[, date := lubridate::as_date(date)]
+
   # Keyed merge on the x/y column
   merged_dt <- clim_dt[weights_dt, allow.cartesian = TRUE] #cols: x, y, date, value cols 1:k, poly_id, w_area, weight (if weights = T)
 
@@ -104,9 +106,9 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
   }
 
   # Separate year, month, and day columns
-  merged_dt[, ':=' (year = substring(date, first = 1, last = 9),
-                    month = substring(date, first=10, last=17),
-                    day = substring(date, first=19))]
+  merged_dt[, ':=' (year = lubridate::year(date),
+                    month = lubridate::month(date),
+                    day = lubridate::day(date))]
 
   # Temporal Aggregation
   if(time_agg == "year"){
@@ -527,13 +529,13 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
   # Create names for new columns
   list_names <- sapply(0:(num_bins + 1), FUN=function(x){
     if(x == 0){
-      paste("neg_inf", "to", min, sep = "_")
+      paste("bin", "ninf", "to", sub("-", "n", min), sep = "_")
     }
     else if(x == num_bins + 1){
-      paste(max, "to", "inf", sep = "_")
+      paste("bin", sub("-", "n", max), "to", "inf", sep = "_")
     }
     else{
-      paste(bins_table[x, left], "to", bins_table[x, right], sep = "_")
+      paste("bin", sub("-", "n", bins_table[x, left]), "to", sub("-", "n", bins_table[x, right]), sep = "_")
       }
     })
 
