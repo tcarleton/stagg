@@ -20,6 +20,15 @@ knitr::opts_chunk$set(
 
 The R Package `stagg` aims to harmonize the preparation spatiotemporal data for use in statistical analyses. This allows for more efficient use of researchers' time, and avoids common missteps. The end goal is a greater quantity of quality research into the study of coupled human-geophysical systems. 
 
+## Installation
+
+Although `stagg` is not yet on CRAN, you can install the development version of `stagg` from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("tcarleton/stagg")
+```
+
 ## Abstract (Work in Progress)
 Spatiotemporal climate data must be properly transformed and aggregated before it can be utilized in statistical research. In particular, most statistical analyses of coupled human-geophysical systems require a careful aligning of gridded, high-resolution climate information with irregular and often temporally coarse administrative or survey data.  For researchers familiar with  popular climate datasets and the steps required to use them, the preparation process is tedious; to the uninitiated, it can act as a barrier to entry into the study of interactions between human and natural systems. Here, we present the R package stagg, which aims to reduce the time and expertise required to use climate data for statistical analysis by automating the following key facets: (1) resampling, reprojection, and aggregation of raster data to resolve any spatial and temporal scale mismatches; (2) nonlinear transformations of data at grid scale for use in nonlinear regression causal analysis; (3) aggregation of climate data over administrative regions, with the capability to weight gridded climate values based on non-climate datasets, such as population and cropland.
 
@@ -236,11 +245,3 @@ Like before, the output table features one row for every county for every time p
 
 Because there are many ways to specify bins, `staggregate_bin()` has many optional arguments which can influence the placement, extent, and width of the bins. First, the non-edge bins are all of equal width. This is taken from the `binwidth` argument if it is supplied, or otherwise from the `num_bins` argument by dividing the range (`max` minus `min`) by the number of bins. The max and min, if not supplied are taken directly from the maximum and minimum values in the data. Once the width has been established, a bin is drawn using one of the placement arguments: `start_on`, `center_on`, or `end_on`, which draw the bin's left edge, center, or right edge on that value, respectively. If this value falls outside the range, it is moved over by a bin-width at a time until it is within the range. If no placement value is specified, `min` is passed to `start_on`. Bins are then constructed around that bin until the full range is covered. Note that if you specify `num_bins` but choose a placement where the max or min value will be overlapped, you will get one more non-edge bin than requested. Lastly, edge bins, from negative infinity to the start of the leftmost bin and from the end of the rightmost bin to infinity, are constructed to capture any other data. 
 
-## Installation
-
-Although `stagg` is not yet on CRAN, you can install the development version of `stagg` from [GitHub](https://github.com/) with:
-
-``` r
-# install.packages("devtools")
-devtools::install_github("tcarleton/stagg")
-```

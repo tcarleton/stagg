@@ -12,6 +12,16 @@ of researchers’ time, and avoids common missteps. The end goal is a
 greater quantity of quality research into the study of coupled
 human-geophysical systems.
 
+## Installation
+
+Although `stagg` is not yet on CRAN, you can install the development
+version of `stagg` from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("tcarleton/stagg")
+```
+
 ## Abstract (Work in Progress)
 
 Spatiotemporal climate data must be properly transformed and aggregated
@@ -268,18 +278,18 @@ polynomial_output <- staggregate_polynomial(
 polynomial_output
 ```
 
-    #>           year    month poly_id    order_1      order_2      order_3
-    #>   1: year_2011 month_12     129 0.05643332 0.0007791418 1.265471e-05
-    #>   2: year_2011 month_12     187 0.05680940 0.0007600893 1.232165e-05
-    #>   3: year_2011 month_12     075 0.05149176 0.0006556775 9.875916e-06
-    #>   4: year_2011 month_12     071 0.04700092 0.0005236172 6.729562e-06
-    #>   5: year_2011 month_12     199 0.04279329 0.0004099400 4.543805e-06
-    #>  ---                                                                
-    #> 101: year_2011 month_12     011 0.07018325 0.0009848000 1.687835e-05
-    #> 102: year_2011 month_12     107 0.07532783 0.0010772387 1.819141e-05
-    #> 103: year_2011 month_12     121 0.07734484 0.0011458564 2.009548e-05
-    #> 104: year_2011 month_12     091 0.07875736 0.0012305217 2.269488e-05
-    #> 105: year_2011 month_12     209 0.08044296 0.0013109832 2.494272e-05
+    #>      year month poly_id    order_1      order_2      order_3
+    #>   1: 2011    12     129 0.05643332 0.0007791418 1.265471e-05
+    #>   2: 2011    12     187 0.05680940 0.0007600893 1.232165e-05
+    #>   3: 2011    12     075 0.05149176 0.0006556775 9.875916e-06
+    #>   4: 2011    12     071 0.04700092 0.0005236172 6.729562e-06
+    #>   5: 2011    12     199 0.04279329 0.0004099400 4.543805e-06
+    #>  ---                                                        
+    #> 101: 2011    12     011 0.07018325 0.0009848000 1.687835e-05
+    #> 102: 2011    12     107 0.07532783 0.0010772387 1.819141e-05
+    #> 103: 2011    12     121 0.07734484 0.0011458564 2.009548e-05
+    #> 104: 2011    12     091 0.07875736 0.0012305217 2.269488e-05
+    #> 105: 2011    12     209 0.08044296 0.0013109832 2.494272e-05
 
 You can see that 3 variables are created. `order_1` represents the
 original values, linearly aggregated to the county, monthly level.
@@ -343,18 +353,18 @@ spline_output <- staggregate_spline(
 spline_output
 ```
 
-    #>           year    month poly_id untransformed_value term_1 term_2
-    #>   1: year_2011 month_12     129          0.05643332      0      0
-    #>   2: year_2011 month_12     187          0.05680940      0      0
-    #>   3: year_2011 month_12     075          0.05149176      0      0
-    #>   4: year_2011 month_12     071          0.04700092      0      0
-    #>   5: year_2011 month_12     199          0.04279329      0      0
-    #>  ---                                                             
-    #> 101: year_2011 month_12     011          0.07018325      0      0
-    #> 102: year_2011 month_12     107          0.07532783      0      0
-    #> 103: year_2011 month_12     121          0.07734484      0      0
-    #> 104: year_2011 month_12     091          0.07875736      0      0
-    #> 105: year_2011 month_12     209          0.08044296      0      0
+    #>      year month poly_id      value term_1 term_2
+    #>   1: 2011    12     129 0.05643332      0      0
+    #>   2: 2011    12     187 0.05680940      0      0
+    #>   3: 2011    12     075 0.05149176      0      0
+    #>   4: 2011    12     071 0.04700092      0      0
+    #>   5: 2011    12     199 0.04279329      0      0
+    #>  ---                                            
+    #> 101: 2011    12     011 0.07018325      0      0
+    #> 102: 2011    12     107 0.07532783      0      0
+    #> 103: 2011    12     121 0.07734484      0      0
+    #> 104: 2011    12     091 0.07875736      0      0
+    #> 105: 2011    12     209 0.08044296      0      0
 
 You can see that your output looks very similar to the table from the
 polynomial transformation. The only difference here is that 4 - 2
@@ -420,30 +430,30 @@ bin_output <- staggregate_bin(
 bin_output
 ```
 
-    #>           year    month poly_id neg_inf_to_-1 -1_to_1 1_to_3 3_to_5 5_to_7
-    #>   1: year_2011 month_12     129             0      30      0      0      0
-    #>   2: year_2011 month_12     187             0      30      0      0      0
-    #>   3: year_2011 month_12     075             0      30      0      0      0
-    #>   4: year_2011 month_12     071             0      30      0      0      0
-    #>   5: year_2011 month_12     199             0      30      0      0      0
-    #>  ---                                                                      
-    #> 101: year_2011 month_12     011             0      30      0      0      0
-    #> 102: year_2011 month_12     107             0      30      0      0      0
-    #> 103: year_2011 month_12     121             0      30      0      0      0
-    #> 104: year_2011 month_12     091             0      30      0      0      0
-    #> 105: year_2011 month_12     209             0      30      0      0      0
-    #>      7_to_inf
-    #>   1:        0
-    #>   2:        0
-    #>   3:        0
-    #>   4:        0
-    #>   5:        0
-    #>  ---         
-    #> 101:        0
-    #> 102:        0
-    #> 103:        0
-    #> 104:        0
-    #> 105:        0
+    #>      year month poly_id bin_ninf_to_n1 bin_n1_to_1 bin_1_to_3 bin_3_to_5
+    #>   1: 2011    12     129              0          30          0          0
+    #>   2: 2011    12     187              0          30          0          0
+    #>   3: 2011    12     075              0          30          0          0
+    #>   4: 2011    12     071              0          30          0          0
+    #>   5: 2011    12     199              0          30          0          0
+    #>  ---                                                                    
+    #> 101: 2011    12     011              0          30          0          0
+    #> 102: 2011    12     107              0          30          0          0
+    #> 103: 2011    12     121              0          30          0          0
+    #> 104: 2011    12     091              0          30          0          0
+    #> 105: 2011    12     209              0          30          0          0
+    #>      bin_5_to_7 bin_7_to_inf
+    #>   1:          0            0
+    #>   2:          0            0
+    #>   3:          0            0
+    #>   4:          0            0
+    #>   5:          0            0
+    #>  ---                        
+    #> 101:          0            0
+    #> 102:          0            0
+    #> 103:          0            0
+    #> 104:          0            0
+    #> 105:          0            0
 
 Like before, the output table features one row for every county for
 every time period specified by the `time_agg` argument. What has changed
@@ -473,13 +483,3 @@ will get one more non-edge bin than requested. Lastly, edge bins, from
 negative infinity to the start of the leftmost bin and from the end of
 the rightmost bin to infinity, are constructed to capture any other
 data.
-
-## Installation
-
-Although `stagg` is not yet on CRAN, you can install the development
-version of `stagg` from [GitHub](https://github.com/) with:
-
-``` r
-# install.packages("devtools")
-devtools::install_github("tcarleton/stagg")
-```

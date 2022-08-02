@@ -18,9 +18,11 @@ Imports:
     data.table,
     dplyr,
     exactextractr,
+    lubridate,
     magrittr,
     methods,
     raster,
-    sf
+    sf,
+    stringr
 Suggests: 
     tigris

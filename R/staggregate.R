@@ -316,7 +316,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
                  (clim_daily_table - knot_locs[num_knots])^3 *
                    ((knot_locs[num_knots - 1] - knot_locs[x]) / (knot_locs[num_knots] - knot_locs[num_knots - 1])), 0))
 
-      clim_daily_table <- term1 - term2 + term3
+      clim_daily_table <- part1 - part2 + part3
 
       clim_daily_new <- clim_daily
       raster::values(clim_daily_new) <- clim_daily_table
