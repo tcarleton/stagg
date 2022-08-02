@@ -88,7 +88,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
   keycols = c("x", "y")
   data.table::setkeyv(clim_dt, keycols)
 
-  clim_dt[, date := stringr::str_remove(date, 'X')]
+  clim_dt[, date := stringr::str_sub(date, 2, -1)]
   clim_dt[, date := lubridate::as_date(date)]
 
   # Keyed merge on the x/y column
