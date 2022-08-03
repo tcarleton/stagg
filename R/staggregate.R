@@ -450,7 +450,7 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 
   # If value not supplied to binwidth, calculate from num_bins
   if(is.null(binwidth)){
-    if(!is.integer(num_bins) | num_bins < 1){
+    if(num_bins %% 1 != 0 | num_bins < 1){
       stop(crayon::red("Number of bins must be a natural number"))
     }
 
