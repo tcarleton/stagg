@@ -62,7 +62,7 @@ cropland_weights <- secondary_weights(
                                            # data and the grid will be taken 
                                            # from its first layer
   
-  extent = kansas_extent # The extent to crop the  
+  extent = kansas_extent                   # The extent to crop the  
                                            # secondary_raster to, use whenever  
                                            # possible to save time (default is 
                                            # "full")
@@ -134,24 +134,27 @@ One common transformation is to create new variables by raising a value to an ex
 ```{r}
 polynomial_output <- staggregate_polynomial(
   
-  prcp_kansas_dec2011_era5, # A raster brick of our primary data, typically but 
-                            # not necessarily climate data. For now, data must 
-                            # start at midnight and be hourly.
+  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+                                    # typically but not necessarily climate 
+                                    # data. For now, data must start at midnight
+                                    # and be hourly.
   
-  county_weights,           # Output from Step 2, determined here by 
-                            # area-normalized cropland weights for grid cells 
-                            # within each county in Kansas
+  overlay_weights = county_weights, # Output from Step 2, determined here by 
+                                    # area-normalized cropland weights for grid 
+                                    # cells within each county in Kansas
   
-  daily_agg = "sum",        # How to aggregate hourly values to the daily level,
-                            # "sum" and "average" are the only options. Here we 
-                            # want total daily precipitation. 
+  daily_agg = "sum",                # How to aggregate hourly values to the 
+                                    # daily level, "sum" and "average" are the 
+                                    # only options. Here we want total daily 
+                                    # precipitation. 
   
-  time_agg = "month",       # The temporal level to aggregate daily transformed 
-                            # values to. Current options are "day", "month", and
-                            # "year" 
+  time_agg = "month",               # The temporal level to aggregate daily 
+                                    # transformed values to. Current options are 
+                                    # "day", "month", and "year" 
   
-  degree = 3                # The highest order of the polynomial. Here this 
-                            # will create variable 3 columns: x, x^2, and x^3
+  degree = 3                        # The highest order of the polynomial. Here 
+                                    # this will create variable 3 columns: 
+                                    # order_1, order_2, and order_3
   )
 
 # Display results
@@ -168,27 +171,28 @@ Another type of transformation `stagg` supports is a restricted cubic spline. Th
 ```{r}
 spline_output <- staggregate_spline(
   
-  prcp_kansas_dec2011_era5,    # A raster brick of our primary data, typically 
-                               # but not necessarily climate data. For now, data 
-                               # must start at midnight and be hourly.
+  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+                                    # typically but not necessarily climate 
+                                    # data. For now, data must start at midnight
+                                    # and be hourly.
   
-  county_weights,              # Output from Step 2, determined here by 
-                               # area-normalized cropland weights for grid cells 
-                               # within each county in Kansas
+  overlay_weights = county_weights, # Output from Step 2, determined here by 
+                                    # area-normalized cropland weights for grid
+                                    # cells within each county in Kansas
   
-  daily_agg = "sum",           # How to aggregate hourly values to the daily 
-                               # level, "sum" and "average" are the only 
-                               # options. Here we want total daily 
-                               # precipitation. 
+  daily_agg = "sum",                # How to aggregate hourly values to the 
+                                    # daily level, "sum" and "average" are the 
+                                    # only options. Here we want total daily 
+                                    # precipitation. 
   
-  time_agg = "month",          # The temporal level to aggregate daily 
-                               # transformed values to. Current options are 
-                               # "day", "month", and "year" 
+  time_agg = "month",               # The temporal level to aggregate daily 
+                                    # transformed values to. Current options are 
+                                    # "day", "month", and "year" 
   
-  knot_locs = c(-1.665335e-16, # Where to place the knots. Most likely, you'd 
-                -1.665335e-16, # want to calculate different quantiles in your
-                1.129775e-06,  # daily grided values and choose knot_locs based
-                3.852533e-04,  # on those
+  knot_locs = c(-1.665335e-16,      # Where to place the knots. Most likely,  
+                -1.665335e-16,      # you'd want to calculate different 
+                1.129775e-06,       # quantiles in your daily gridded values and 
+                3.852533e-04,       # choose knot locations based on those
                 1.594356e-02)
 )
 
@@ -205,35 +209,40 @@ The last tranformation `stagg` offers is to divide the daily values into differe
 ```{r}
 bin_output <- staggregate_bin(
   
-  prcp_kansas_dec2011_era5, # A raster brick of our primary data, typically but 
-                            # not necessarily climate data. For now, data must 
-                            # start at midnight and be hourly.
+  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+                                    # typically but not necessarily climate 
+                                    # data. For now, data must start at midnight
+                                    # and be hourly.
   
-  county_weights,           # Output from Step 2, determined here by 
-                            # area-normalized cropland weights for grid cells 
-                            # within each county in Kansas
+  overlay_weights = county_weights, # Output from Step 2, determined here by 
+                                    # area-normalized cropland weights for grid 
+                                    # cells within each county in Kansas
   
   
-  daily_agg = "sum",        # How to aggregate hourly values to the daily level,
-                            # "sum" and "average" are the only options. Here we 
-                            # want total daily precipitation. 
+  daily_agg = "sum",                # How to aggregate hourly values to the 
+                                    # daily level, "sum" and "average" are the  
+                                    # only options. Here we want total daily 
+                                    # precipitation. 
   
-  time_agg = "month",       # The temporal level to aggregate daily transformed 
-                            # values to. Current options are "day", "month", and
-                            # "year" 
+  time_agg = "month",               # The temporal level to aggregate daily  
+                                    # transformed values to. Current options are
+                                    # "day", "month", and "year" 
   
-  binwidth = 2,             # The width of the bins to draw (overrides any 
-                            # num_bin argument)
+  binwidth = 2,                     # The width of the bins to draw (overrides 
+                                    # any num_bin argument)
   
-  min = 0,                  # The smallest value that non-edge bins must cover,
-                            # use this if you are chunking your data
+  min = 0,                          # The smallest value that non-edge bins must
+                                    # cover, use this if you are chunking your 
+                                    # data
   
-  max = 6,                  # The largest value that non-edge bins must cover,
-                            # use this if you are chunking your data
+  max = 6,                          # The largest value that non-edge bins must
+                                    # cover, use this if you are chunking your 
+                                    # data
   
-  center_on = 4,            # Where to center the first bin drawn on. Bins of 
-                            # equal width will be drawn around this one until 
-                            # both min and max are contained by non-edge bins
+  center_on = 4,                    # Where to center the first bin drawn on. 
+                                    # Bins of equal width will be drawn around 
+                                    # this one until both min and max are 
+                                    # contained by non-edge bins
 )
 
 # Display output
