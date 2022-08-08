@@ -65,9 +65,12 @@ cropland_weights <- secondary_weights(
   extent = kansas_extent                   # The extent to crop the  
                                            # secondary_raster to, use whenever  
                                            # possible to save time (default is 
-                                           # "full")
+                                           # "full"). Format is a vector of 4 
+                                           # numeric values defining boundaries
+                                           # in the following order:minimum 
+                                           # longitude, maximum longitude, 
+                                           # minimum latitude, maximum latitude.
 )
-
 #Display resulting table
 cropland_weights
 ```
