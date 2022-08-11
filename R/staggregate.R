@@ -503,7 +503,7 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 
   # Create table of bins
   center <- c(center_on)
-  while(max(center) + (binwidth / 2) <= max){
+  while(max(center) + (binwidth / 2) < max){
     center <- c(center, (max(center) + binwidth))
   }
   while(min(center) - (binwidth / 2) > min){
