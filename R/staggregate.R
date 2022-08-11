@@ -163,6 +163,30 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 
 
 
+#' Calculate Quantiles in Daily Climate Data
+#'
+#' @param data The raster brick with the data to be transformed and aggregated
+#' @param overlay_weights A table of weights which can be generated using the
+#'   function calc_geoweights()
+#' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
+#'   supported)
+#' @param quantiles A vector of quantiles (0 to 1) to be calculated from the
+#'   data
+#' @export
+daily_quants <- function(data, overlay_weights, daily_agg, quantiles){
+
+  # Do daily aggregation
+  setup_list <- daily_aggregation(data, daily_agg, overlay_weights)
+
+  clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
+
+  calculations <- quantile(raster::values(clim_daily), quantiles)
+
+  return(calculations)
+}
+
+
+
 
 #=====================================================================================================================================================
 
