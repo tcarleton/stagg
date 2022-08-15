@@ -18,7 +18,7 @@ as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE
 }
 
 # Function to convert raster to data.table and aggregate to daily values before transformation
-daily_aggregation <- function(data, daily_agg, overlay_weights){
+daily_aggregation <- function(data, overlay_weights, daily_agg){
 
 
   # Data.table of weights
@@ -161,7 +161,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 
 
 
-
+#======================================================================================
 
 #' Calculate Quantiles in Daily Climate Data
 #'
@@ -170,19 +170,19 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #'   function calc_geoweights()
 #' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
 #'   supported)
-#' @param quantiles A vector of quantiles (0 to 1) to be calculated from the
+#' @param probs A vector of probabilities (0 to 1) to be calculated as quantiles from the
 #'   data
 #' @export
-daily_quants <- function(data, overlay_weights, daily_agg, quantiles){
+daily_quants <- function(data, overlay_weights, daily_agg, probs){
 
   # Do daily aggregation
-  setup_list <- daily_aggregation(data, daily_agg, overlay_weights)
+  setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
 
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
 
-  calculations <- quantile(raster::values(clim_daily), quantiles)
+  quantiles <- quantile(raster::values(clim_daily), probs)
 
-  return(calculations)
+  return(quantiles)
 }
 
 
@@ -220,7 +220,7 @@ daily_quants <- function(data, overlay_weights, daily_agg, quantiles){
 staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = "month", degree){
 
   # Get climate data as a data.table and aggregate to daily values
-  setup_list <- daily_aggregation(data, daily_agg, overlay_weights)
+  setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
 
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
@@ -313,7 +313,7 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "month", knot_locs){
 
   # Get climate data as a data.table and aggregate to daily values
-  setup_list <- daily_aggregation(data, daily_agg, overlay_weights)
+  setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
 
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
@@ -448,8 +448,9 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'
 #' @export
 staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month", num_bins = 10, binwidth = NULL, min = NULL, max = NULL, start_on = NULL, center_on = NULL, end_on = NULL){
+
   # Get climate data as a data.table and aggregate to daily values
-  setup_list <- daily_aggregation(data, daily_agg, overlay_weights)
+  setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
 
