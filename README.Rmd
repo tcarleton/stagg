@@ -85,7 +85,7 @@ cropland_weights <- dplyr::filter(cropland_world_2003_era5,
 ```
 
 
-### Step 2: Overlay administrative regions onto the your data's grid
+### Step 2: Overlay administrative regions onto the data's grid
 A core part of `stagg`'s functionality is to aggregate gridded data to the level of administrative regions. In order to do this, it first calculates the portion of each region that is covered by a particular cell.
 These weights may also be scaled by the secondary weights calculated in Step 1. This is accomplished using the `overlay_weights()` function. 
 
