@@ -21,3 +21,16 @@ data}
 \description{
 Calculate Quantiles in Daily Climate Data
 }
+\examples{
+quantiles <- daily_quants(
+
+  data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+
+  overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
+
+  daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+
+  probs = c(.1, .5, .9)
+  )
+
+}

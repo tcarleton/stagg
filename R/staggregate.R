@@ -449,18 +449,14 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'
 #'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
 #'
-#'   binwidth = 2, # Draw bins of width 2
-#'
-#'   min = 0, # The minimum value that non-edge bins must capture
-#'
-#'   max = 10 # The maximum value that non-edge bins must capture
+#'   bin_breaks = c(0, 2, 4, 6, 8, 10) # Draw 5 bins from 0 to 10, a bin from -inf to 0, and one from 10 to inf
 #'   )
 #'
 #'
 #' head(bin_output)
 #'
 #' @export
-staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month", num_bins = 10, binwidth = NULL, min = NULL, max = NULL, start_on = NULL, center_on = NULL, end_on = NULL){
+staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month", bin_breaks){
 
   # Get climate data as a data.table and aggregate to daily values
   setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
@@ -470,120 +466,21 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 
   clim_daily_table <- raster::values(clim_daily)
 
-  if(is.null(max)){
-    max <- ceiling(max(clim_daily_table))
-  }
-  if(is.null(min)){
-    min <- floor(min(clim_daily_table))
-  }
-
-  # Write message that binwidth overrides num_bins
-  if(!is.null(binwidth)){
-    if(binwidth <= 0){
-      stop(crayon::red("Binwidth must be greater than zero"))
-    }
-    message(crayon::yellow("Binwidth argument supplied will override num_bins"))
-    num_bins <- ceiling((max - min) / binwidth)
-  }
-
-  # If value not supplied to binwidth, calculate from num_bins
-  if(is.null(binwidth)){
-    if(num_bins %% 1 != 0 | num_bins < 1){
-      stop(crayon::red("Number of bins must be a natural number"))
-    }
-
-    binwidth <- (max - min) / num_bins
-  }
-
-  # Stop with message that only one of center_on, start_on, and end_on can be chosen if otherwise
-  if((!is.null(center_on) & !is.null(start_on)) |
-     (!is.null(center_on) & !is.null(end_on)) |
-     (!is.null(start_on) & !is.null(end_on))){
-    stop(crayon::red("Too many bin placement arguments specified. Please specify a value for only one argument out of center_on, start_on, or end_on"))
-  }
-
-  if(is.null(center_on) & is.null(start_on) & is.null(end_on)){
-    message(crayon::yellow(paste0("No bin placement argument specified. Drawing bins from min value of ", min, " with width of ", binwidth)))
-    start_on <- min
-  }
-
-  # Put start_on and end_on in terms of center_on
-  if(!is.null(start_on)){
-    center_on <- start_on + (binwidth / 2)
-  }
-
-  if(!is.null(end_on)){
-    center_on <- end_on - (binwidth / 2)
-  }
-
-
-
-  # Check to see that center_on falls within the range of data, move it if not
-  if(max - min < binwidth){
-    stop(crayon::red("The binwidth is larger than the range of data. Please specify a different binwidth and rerun"))
-  }
-
-  if(center_on > max){
-    message(crayon::yellow("Bin center is greater than maximum value in data. Adjusting it by a multiple of the binwidth so that the bin center falls within the range of data"))
-
-    while(center_on > max){
-      center_on <- center_on - binwidth
-    }
-  }
-  if(center_on < min){
-    message(crayon::yellow("Bin center is less than minimum value in data. Adjusting it by a multiple of the binwidth so that the bin center falls within the range of data"))
-
-    while(center_on < min){
-      center_on <- center_on + binwidth
-    }
-  }
-
-
-  # Create table of bins
-  center <- c(center_on)
-  while(max(center) + (binwidth / 2) < max){
-    center <- c(center, (max(center) + binwidth))
-  }
-  while(min(center) - (binwidth / 2) > min){
-    center <- c(center, (min(center)) - binwidth)
-  }
-
-  center <- sort(center)
-
-
-
-  bins_table <- data.table::data.table(center)
-  bins_table[, ':=' (left = center - (binwidth / 2), right = center + (binwidth / 2))]
-
-  # Readjust max if bin boundaries don't line up properly
-  if(max(bins_table) > max){
-    max <- max(bins_table$right)
-
-    message(crayon::yellow("Non-edge bins extend beyond max value"))
-  }
-  if(min(bins_table) < min){
-    min <- min(bins_table$left)
-    message(crayon::yellow("Non-edge bins extend beyond min value"))
-  }
-
-  # Readjust number of bins in case the bin boundary's failure to line up cause the creation of an extra bin
-  num_bins <- nrow(bins_table)
-
-  # The bins_table created lists center, left, and right of all bins in order
+  bin_breaks <- sort(bin_breaks)
 
 
   # Create names for new columns
-  list_names <- sapply(0:(num_bins + 1), FUN=function(x){
+  list_names <- sapply(0:(length(bin_breaks)), FUN=function(x){
     if(x == 0){
-      paste("bin", "ninf", "to", sub("-", "n", min), sep = "_")
+      paste("bin", "ninf", "to", sub("-", "n", min(bin_breaks)), sep = "_")
     }
-    else if(x == num_bins + 1){
-      paste("bin", sub("-", "n", max), "to", "inf", sep = "_")
+    else if(x == length(bin_breaks)){
+      paste("bin", sub("-", "n", max(bin_breaks)), "to", "inf", sep = "_")
     }
     else{
-      paste("bin", sub("-", "n", bins_table[x, left]), "to", sub("-", "n", bins_table[x, right]), sep = "_")
-      }
-    })
+      paste("bin", sub("-", "n", bin_breaks[x]), "to", sub("-", "n", bin_breaks[x+1]), sep = "_")
+    }
+  })
 
 
   # Function check_bins to determine which bins data points fall into
@@ -591,14 +488,14 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
     clim_daily_table <- raster::values(clim_daily)
 
     if(x == 0){
-      clim_daily_table <- ifelse(min > clim_daily_table, 1, 0)
+      clim_daily_table <- ifelse(min(bin_breaks) > clim_daily_table, 1, 0)
     }
-    else if(x == num_bins + 1){
-      clim_daily_table <- ifelse(max < clim_daily_table, 1, 0)
+    else if(x == length(bin_breaks)){
+      clim_daily_table <- ifelse(max(bin_breaks) < clim_daily_table, 1, 0)
     }
     else{
-      clim_daily_table <- ifelse(bins_table[x, left] <= clim_daily_table &
-                                   bins_table[x, right] > clim_daily_table, 1, 0)
+      clim_daily_table <- ifelse(bin_breaks[x] <= clim_daily_table &
+                                   bin_breaks[x + 1] > clim_daily_table, 1, 0)
     }
 
 
@@ -611,7 +508,7 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
   message(crayon::green("Executing binning transformation"))
 
   # For each bin, create new brick of binary values, including edge bins which go from -inf to min, max to inf
-  r <- lapply(0:(num_bins + 1), FUN = check_bins)
+  r <- lapply(0:(length(bin_breaks)), FUN = check_bins)
 
 
   create_dt <- function(x){
@@ -632,11 +529,11 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
   }
 
   # Make each raster layer a data.table
-  list_dt <- lapply(1:(num_bins + 2), create_dt)
+  list_dt <- lapply(1:(length(bin_breaks) + 1), create_dt)
 
   # Merge all data.tables together
   clim_dt <- list_dt[[1]]
-  for(i in 2:(num_bins + 2)){
+  for(i in 2:(length(bin_breaks) + 1)){
     dt_m <- list_dt[[i]]
     clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
   }

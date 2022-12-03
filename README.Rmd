@@ -249,28 +249,11 @@ bin_output <- staggregate_bin(
                                     # transformed values to. Current options are
                                     # "day", "month", and "year" 
   
-  binwidth = 2,                     # The width of the bins to draw (overrides 
-                                    # any num_bin argument)
-  
-  min = 0,                          # The smallest value that non-edge bins must
-                                    # cover, use this if you are chunking your 
-                                    # data
-  
-  max = 6,                          # The largest value that non-edge bins must
-                                    # cover, use this if you are chunking your 
-                                    # data
-  
-  center_on = 4,                    # Where to center the first bin drawn on. 
-                                    # Bins of equal width will be drawn around 
-                                    # this one until both min and max are 
-                                    # contained by non-edge bins
+  bin_breaks = c(0, 2, 4, 6)        # The values to split the data by
 )
 
 # Display output
 bin_output
 ```
 
-Like before, the output table features one row for every county for every time period specified by the `time_agg` argument. What has changed is that there is a new column for each bin created, representing the number of days a polygon had a value that fell within that bin during the timespan specified by the `time_agg` argument. These outputs are not necessarily integers since the polygon is made up of pixels that are sorted into bins and then weighted by the `overlay_weights` provided and aggregated, here, to the county level. 
-
-Because there are many ways to specify bins, `staggregate_bin()` has many optional arguments which can influence the placement, extent, and width of the bins. First, the non-edge bins are all of equal width. This is taken from the `binwidth` argument if it is supplied, or otherwise from the `num_bins` argument by dividing the range (`max` minus `min`) by the number of bins. The max and min, if not supplied are taken directly from the maximum and minimum values in the data. Once the width has been established, a bin is drawn using one of the placement arguments: `start_on`, `center_on`, or `end_on`, which draw the bin's left edge, center, or right edge on that value, respectively. If this value falls outside the range, it is moved over by a bin-width at a time until it is within the range. If no placement value is specified, `min` is passed to `start_on`. Bins are then constructed around that bin until the full range is covered. Note that if you specify `num_bins` but choose a placement where the max or min value will be overlapped, you will get one more non-edge bin than requested. Lastly, edge bins, from negative infinity to the start of the leftmost bin and from the end of the rightmost bin to infinity, are constructed to capture any other data. 
-
+Like before, the output table features one row for every county for every time period specified by the `time_agg` argument. What has changed is that there is a new column for each bin created, representing the number of days a polygon had a value that fell within that bin during the timespan specified by the `time_agg` argument. These outputs are not necessarily integers since the polygon is made up of pixels that are sorted into bins and then weighted by the `overlay_weights` provided and aggregated, here, to the county level. Here we specify bins from negative infinity to 0, 0 to 2, 2 to 4, 4 to 6, and 6 to infinity by passing c(0,2,4,6) to bin_break. `staggregate_bin` draws a bin between each break, and adds edge bins that encompass all values below the minimum break and above the maximum break. 

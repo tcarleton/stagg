@@ -9,13 +9,7 @@ staggregate_bin(
   overlay_weights,
   daily_agg,
   time_agg = "month",
-  num_bins = 10,
-  binwidth = NULL,
-  min = NULL,
-  max = NULL,
-  start_on = NULL,
-  center_on = NULL,
-  end_on = NULL
+  bin_breaks
 )
 }
 \arguments{
@@ -58,11 +52,7 @@ bin_output <- staggregate_bin(
 
   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
 
-  binwidth = 2, # Draw bins of width 2
-
-  min = 0, # The minimum value that non-edge bins must capture
-
-  max = 10 # The maximum value that non-edge bins must capture
+  bin_breaks = c(0, 2, 4, 6, 8, 10) # Draw 5 bins from 0 to 10, a bin from -inf to 0, and one from 10 to inf
   )
 
 

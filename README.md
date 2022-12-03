@@ -145,7 +145,7 @@ cropland_weights <- dplyr::filter(cropland_world_2003_era5,
                                   x >= -103, x <= -94, y >= 37, y <= 41)
 ```
 
-### Step 2: Overlay administrative regions onto the your data’s grid
+### Step 2: Overlay administrative regions onto the data’s grid
 
 A core part of `stagg`’s functionality is to aggregate gridded data to
 the level of administrative regions. In order to do this, it first
@@ -434,31 +434,11 @@ bin_output <- staggregate_bin(
                                     # transformed values to. Current options are
                                     # "day", "month", and "year" 
   
-  binwidth = 2,                     # The width of the bins to draw (overrides 
-                                    # any num_bin argument)
-  
-  min = 0,                          # The smallest value that non-edge bins must
-                                    # cover, use this if you are chunking your 
-                                    # data
-  
-  max = 6,                          # The largest value that non-edge bins must
-                                    # cover, use this if you are chunking your 
-                                    # data
-  
-  center_on = 4,                    # Where to center the first bin drawn on. 
-                                    # Bins of equal width will be drawn around 
-                                    # this one until both min and max are 
-                                    # contained by non-edge bins
+  bin_breaks = c(0, 2, 4, 6)        # The values to split the data by
 )
 ```
 
     #> Summing hourly values to daily values
-
-    #> Binwidth argument supplied will override num_bins
-
-    #> Non-edge bins extend beyond max value
-
-    #> Non-edge bins extend beyond min value
 
     #> Executing binning transformation
 
@@ -471,30 +451,30 @@ bin_output <- staggregate_bin(
 bin_output
 ```
 
-    #>      year month poly_id bin_ninf_to_n1 bin_n1_to_1 bin_1_to_3 bin_3_to_5
-    #>   1: 2011    12     129              0          30          0          0
-    #>   2: 2011    12     187              0          30          0          0
-    #>   3: 2011    12     075              0          30          0          0
-    #>   4: 2011    12     071              0          30          0          0
-    #>   5: 2011    12     199              0          30          0          0
-    #>  ---                                                                    
-    #> 101: 2011    12     011              0          30          0          0
-    #> 102: 2011    12     107              0          30          0          0
-    #> 103: 2011    12     121              0          30          0          0
-    #> 104: 2011    12     091              0          30          0          0
-    #> 105: 2011    12     209              0          30          0          0
-    #>      bin_5_to_7 bin_7_to_inf
-    #>   1:          0            0
-    #>   2:          0            0
-    #>   3:          0            0
-    #>   4:          0            0
-    #>   5:          0            0
-    #>  ---                        
-    #> 101:          0            0
-    #> 102:          0            0
-    #> 103:          0            0
-    #> 104:          0            0
-    #> 105:          0            0
+    #>      year month poly_id bin_ninf_to_0 bin_0_to_2 bin_2_to_4 bin_4_to_6
+    #>   1: 2011    12     129      16.57524   13.42476          0          0
+    #>   2: 2011    12     187      17.62299   12.37701          0          0
+    #>   3: 2011    12     075      17.50892   12.49108          0          0
+    #>   4: 2011    12     071      17.81776   12.18224          0          0
+    #>   5: 2011    12     199      18.79249   11.20751          0          0
+    #>  ---                                                                  
+    #> 101: 2011    12     011      13.98931   16.01069          0          0
+    #> 102: 2011    12     107      13.95431   16.04569          0          0
+    #> 103: 2011    12     121      13.44070   16.55930          0          0
+    #> 104: 2011    12     091      14.71583   15.28417          0          0
+    #> 105: 2011    12     209      14.48745   15.51255          0          0
+    #>      bin_6_to_inf
+    #>   1:            0
+    #>   2:            0
+    #>   3:            0
+    #>   4:            0
+    #>   5:            0
+    #>  ---             
+    #> 101:            0
+    #> 102:            0
+    #> 103:            0
+    #> 104:            0
+    #> 105:            0
 
 Like before, the output table features one row for every county for
 every time period specified by the `time_agg` argument. What has changed
@@ -503,24 +483,8 @@ number of days a polygon had a value that fell within that bin during
 the timespan specified by the `time_agg` argument. These outputs are not
 necessarily integers since the polygon is made up of pixels that are
 sorted into bins and then weighted by the `overlay_weights` provided and
-aggregated, here, to the county level.
-
-Because there are many ways to specify bins, `staggregate_bin()` has
-many optional arguments which can influence the placement, extent, and
-width of the bins. First, the non-edge bins are all of equal width. This
-is taken from the `binwidth` argument if it is supplied, or otherwise
-from the `num_bins` argument by dividing the range (`max` minus `min`)
-by the number of bins. The max and min, if not supplied are taken
-directly from the maximum and minimum values in the data. Once the width
-has been established, a bin is drawn using one of the placement
-arguments: `start_on`, `center_on`, or `end_on`, which draw the bin’s
-left edge, center, or right edge on that value, respectively. If this
-value falls outside the range, it is moved over by a bin-width at a time
-until it is within the range. If no placement value is specified, `min`
-is passed to `start_on`. Bins are then constructed around that bin until
-the full range is covered. Note that if you specify `num_bins` but
-choose a placement where the max or min value will be overlapped, you
-will get one more non-edge bin than requested. Lastly, edge bins, from
-negative infinity to the start of the leftmost bin and from the end of
-the rightmost bin to infinity, are constructed to capture any other
-data.
+aggregated, here, to the county level. Here we specify bins from
+negative infinity to 0, 0 to 2, 2 to 4, 4 to 6, and 6 to infinity by
+passing c(0,2,4,6) to bin_break. `staggregate_bin` draws a bin between
+each break, and adds edge bins that encompass all values below the
+minimum break and above the maximum break.
