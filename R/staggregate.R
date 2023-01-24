@@ -20,6 +20,11 @@ as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE
 # Function to convert raster to data.table and aggregate to daily values before transformation
 daily_aggregation <- function(data, overlay_weights, daily_agg){
 
+  if(!daily_agg %in% c('average', 'sum', 'none')){
+
+    stop(crayon::red("daily_agg must be 'average', 'sum', or 'none'"))
+  }
+
 
   # Data.table of weights
   weights_dt <- data.table::as.data.table(overlay_weights)
@@ -39,6 +44,15 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
   # Immediately crop to weights extent
   clim_raster <- raster::crop(raster::stack(data), weights_ext)
 
+  # Pass all layers through if not aggregating to daily level
+  if(daily_agg == "none"){
+    message(crayon::yellow("Skipping pre-transformation aggregation to daily level"))
+    all_names <- names(clim_raster)
+    clim_hourly <- clim_raster
+
+    return(list(clim_hourly, all_names))
+  }
+
 
   if(!(raster::nlayers(clim_raster)%%24 == 0)){
     stop(crayon::red("Data does not contain a number of layers that is a multiple of 24. Please use hourly data representing a whole number of days."))
@@ -52,11 +66,6 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
   ## Aggregate to grid-day level
   ## -----------------------------------------------
 
-  if(!daily_agg %in% c('average', 'sum')){
-
-    stop(crayon::red("Daily aggregation must be 'average' or 'sum'"))
-  }
-
   ## Average
   if(daily_agg == 'average'){
 
@@ -64,7 +73,7 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
 
     # Average over each set of 24 layers
     indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
-    clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=mean) #Stack of 365/366 layers
+    clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=mean)
   }
 
   ## Sum
@@ -74,7 +83,7 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
 
     # Sum over each set of 24 layers
     indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
-    clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=sum) #Stack of 365/366 layers
+    clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=sum)
   }
 
 
@@ -96,9 +105,9 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 
 
   # Convert layer names to dates
-  message(crayon::yellow("Assuming layer name format which after removal of the first character is compatible with lubridate::as_date()"))
+  message(crayon::yellow("Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()"))
   clim_dt[, date := stringr::str_sub(date, 2, -1)]
-  clim_dt[, date := lubridate::as_date(date)]
+  clim_dt[, date := lubridate::as_datetime(date)]
 
   # Keyed merge on the x/y column
   merged_dt <- clim_dt[weights_dt, allow.cartesian = TRUE] #cols: x, y, date, value cols 1:k, poly_id, w_area, weight (if weights = T)
@@ -114,10 +123,11 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
     merged_dt[, (list_names) := lapply(list_names, function(x) {get(x) * w_area})]
   }
 
-  # Separate year, month, and day columns
+  # Separate year, month, day, and time columns
   merged_dt[, ':=' (year = lubridate::year(date),
                     month = lubridate::month(date),
-                    day = lubridate::day(date))]
+                    day = lubridate::day(date),
+                    hour = lubridate::hour(date))]
 
   # Temporal Aggregation
   if(time_agg == "year"){
@@ -148,6 +158,17 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 
     ## Order columns
     data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'day', 'poly_id', list_names))
+  }
+
+
+
+  if(time_agg == "hour"){
+    message(crayon::green("Aggregating by polygon"))
+    sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month, day, hour),
+                             .SDcols = list_names]
+
+    ## Order columns
+    data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'day', 'hour', 'poly_id', list_names))
   }
 
 
@@ -192,6 +213,17 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' @export
 staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = "month", degree){
 
+
+  # Stop if they've requested hourly output and but not daily_agg = none
+  if(time_agg == "hour" & daily_agg != "none"){
+    if(daily_agg == "sum"){
+      stop(crayon::red("Cannot output hourly data after aggregating to daily totals. Please specify 'daily_agg = \"none\"' to get hourly output."))
+    }
+    if(daily_agg == "average"){
+      stop(crayon::red("Cannot output hourly data after aggregating to daily averages. Please specify 'daily_agg = \"none\"' to get hourly output."))
+    }
+  }
+
   # Get climate data as a data.table and aggregate to daily values
   setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
 
@@ -230,11 +262,13 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
   # Make each raster layer a data.table
   list_dt <- lapply(1:list_length, create_dt)
 
-  # Merge all data.tables together
+  # Merge all data.tables together if there are multiple
   clim_dt <- list_dt[[1]]
-  for(i in 2:list_length){
-    dt_m <- list_dt[[i]]
-    clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
+  if(list_length > 1 ){
+    for(i in 2:list_length){
+      dt_m <- list_dt[[i]]
+      clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
+    }
   }
 
   # Aggregate by polygon
@@ -284,6 +318,16 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #'
 #' @export
 staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "month", knot_locs){
+
+  # Stop if they've requested hourly output and but not daily_agg = none
+  if(time_agg == "hour" & daily_agg != "none"){
+    if(daily_agg == "sum"){
+      stop(crayon::red("Cannot output hourly data after aggregating to daily totals. Please specify 'daily_agg = \"none\"' to get hourly output."))
+    }
+    if(daily_agg == "average"){
+      stop(crayon::red("Cannot output hourly data after aggregating to daily averages. Please specify 'daily_agg = \"none\"' to get hourly output."))
+    }
+  }
 
   # Get climate data as a data.table and aggregate to daily values
   setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
@@ -364,12 +408,9 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 
   # Merge all data.tables together
   clim_dt <- list_dt[[1]]
-
-  i <- 2
-  while(i <= list_length + 1){
+  for(i in 2:(length(bin_breaks) + 1)){
     dt_m <- list_dt[[i]]
     clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
-    i <- i + 1
   }
 
 
@@ -417,6 +458,16 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'
 #' @export
 staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month", bin_breaks){
+
+  # Stop if they've requested hourly output and but not daily_agg = none
+  if(time_agg == "hour" & daily_agg != "none"){
+    if(daily_agg == "sum"){
+      stop(crayon::red("Cannot output hourly data after aggregating to daily totals. Please specify 'daily_agg = \"none\"' to get hourly output."))
+    }
+    if(daily_agg == "average"){
+      stop(crayon::red("Cannot output hourly data after aggregating to daily averages. Please specify 'daily_agg = \"none\"' to get hourly output."))
+    }
+  }
 
   # Get climate data as a data.table and aggregate to daily values
   setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
