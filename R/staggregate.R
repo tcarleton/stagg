@@ -408,7 +408,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 
   # Merge all data.tables together
   clim_dt <- list_dt[[1]]
-  for(i in 2:(length(bin_breaks) + 1)){
+  for(i in 2:(length(thresholds))){
     dt_m <- list_dt[[i]]
     clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
   }
@@ -555,4 +555,92 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
   sum_by_poly <- polygon_aggregation(clim_dt, overlay_weights, list_names, time_agg)
 
   return(sum_by_poly)
+}
+
+
+
+
+#================================================================================================================================================
+#' @export
+staggregate_degree_days <- function(data, overlay_weights, time_agg = "day", thresholds){
+
+   # Get climate data as a data.table and aggregate to daily values
+  setup_list <- daily_aggregation(data, overlay_weights, daily_agg = "none")
+  clim_rast <- setup_list[[1]] # Pulls the daily aggregated raster brick
+  layer_names <- setup_list[[2]] # Pulls the saved layer names
+
+
+  thresholds <- sort(thresholds)
+
+  # Create names for new columns
+  list_names <- sapply(1:(length(thresholds)), FUN=function(x){
+    if(x == length(thresholds)){
+      paste("bin", sub("-", "n", max(thresholds)), "to", "inf", sep = "_")
+    }
+    else{
+      paste("bin", sub("-", "n", thresholds[x]), "to", sub("-", "n", thresholds[x+1]), sep = "_")
+    }
+  })
+
+
+  # Create function to calculate degree days
+  calc_deg_days <- function(x){
+    clim_table <- raster::values(clim_rast)
+    if(x == length(thresholds)){
+      clim_table <- ifelse(clim_table < thresholds[x], 0, clim_table - thresholds[x])
+    }
+    else{
+      clim_table <- ifelse(clim_table < thresholds[x], 0,
+                           ifelse(clim_table > thresholds[x + 1], thresholds[x + 1] - thresholds[x],
+                                  clim_table - thresholds[x]))
+    }
+
+    clim_rast_new <- clim_rast
+    raster::values(clim_rast_new) <- clim_table
+
+    return(clim_rast_new)
+  }
+
+  message(crayon::green("Executing degree days transformation"))
+
+  # For each bin, create new brick of binary values, including edge bins which go from -inf to min, max to inf
+  r <- lapply(1:(length(thresholds)), FUN = calc_deg_days)
+
+
+  create_dt <- function(x){
+
+    # Should output raster cells x/y with 365 days as column names
+    dt <- as.data.table.raster(r[[x]], xy=TRUE)
+
+    # Set column names with months
+    new_names <- c('x', 'y', layer_names)
+    data.table::setnames(dt, new_names)
+
+    # Change from wide to long format
+    dt = data.table::melt(dt, id.vars = c("x", "y"))
+
+    # Update variable names
+    var_names <- c('date', list_names[x])
+    data.table::setnames(dt, old=c('variable', 'value'), new=var_names)
+  }
+
+  # Make each raster layer a data.table
+  list_dt <- lapply(1:(length(thresholds)), create_dt)
+
+  # Merge all data.tables together if there are multiple
+  clim_dt <- list_dt[[1]]
+  if(length(thresholds) > 1 ){
+    for(i in 2:length(thresholds)){
+      dt_m <- list_dt[[i]]
+      clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
+    }
+  }
+
+
+
+  # Aggregate by polygon
+  sum_by_poly <- polygon_aggregation(clim_dt, overlay_weights, list_names, time_agg)
+
+  return(sum_by_poly)
+
 }
