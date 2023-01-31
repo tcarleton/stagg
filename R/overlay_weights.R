@@ -42,7 +42,7 @@
 overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondary_weights = NULL){
 
   # Create raster
-  clim_raster <- raster::raster(grid) # only reads the first band
+  clim_raster <- suppressWarnings(raster::raster(grid)) # only reads the first band
 
   ## Raster cell area
   ## -----------------------------------------------
