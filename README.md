@@ -324,32 +324,6 @@ variables, where K is the number of knots, in addition to preserving the
 original untransformed value of the variable.
 
 ``` r
-quantiles <- daily_quants(          # Use daily_quants() to calculate quantiles 
-                                    # in daily values to help determine knot 
-                                    # locations
-  
-  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, to 
-                                    # aggregate to daily level and calculate 
-                                    # quantiles from
-  
-  overlay_weights = county_weights, # Output from Step 2, determined here by 
-                                    # area-normalized cropland weights for grid
-                                    # cells within each county in Kansas
-  
-  daily_agg = "sum",                # How to aggregate hourly values to the 
-                                    # daily level, "sum" and "average" are the 
-                                    # only options. Here we want total daily
-                                    # precipitation
-  
-  probs = c(.05, .35, .65, .95)     # Probabilities from 0 to 1 to calculate 
-                                    # quantiles in the daily data from
-  
-)
-```
-
-    #> Summing hourly values to daily values
-
-``` r
 spline_output <- staggregate_spline(
   
   data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
@@ -370,7 +344,7 @@ spline_output <- staggregate_spline(
                                     # transformed values to. Current options are 
                                     # "day", "month", and "year" 
   
-  knot_locs = as.vector(quantiles)  # Where to place the knots
+  knot_locs = c(0.1, 0.3, 0.5)  # Where to place the knots
 )
 ```
 
@@ -387,18 +361,18 @@ spline_output <- staggregate_spline(
 spline_output
 ```
 
-    #>      year month poly_id      value       term_1       term_2
-    #>   1: 2011    12     129 0.05643332 1.668146e-07 1.668146e-07
-    #>   2: 2011    12     187 0.05680940 1.632206e-07 1.632206e-07
-    #>   3: 2011    12     075 0.05149176 1.455279e-07 1.455279e-07
-    #>   4: 2011    12     071 0.04700092 1.237896e-07 1.237896e-07
-    #>   5: 2011    12     199 0.04279329 1.016673e-07 1.016673e-07
-    #>  ---                                                        
-    #> 101: 2011    12     011 0.07018325 2.058852e-07 2.058852e-07
-    #> 102: 2011    12     107 0.07532783 2.265836e-07 2.265836e-07
-    #> 103: 2011    12     121 0.07734484 2.358506e-07 2.358506e-07
-    #> 104: 2011    12     091 0.07875736 2.461432e-07 2.461432e-07
-    #> 105: 2011    12     209 0.08044296 2.578355e-07 2.578355e-07
+    #>      year month poly_id      value term_1
+    #>   1: 2011    12     129 0.05643332      0
+    #>   2: 2011    12     187 0.05680940      0
+    #>   3: 2011    12     075 0.05149176      0
+    #>   4: 2011    12     071 0.04700092      0
+    #>   5: 2011    12     199 0.04279329      0
+    #>  ---                                     
+    #> 101: 2011    12     011 0.07018325      0
+    #> 102: 2011    12     107 0.07532783      0
+    #> 103: 2011    12     121 0.07734484      0
+    #> 104: 2011    12     091 0.07875736      0
+    #> 105: 2011    12     209 0.08044296      0
 
 You can see that your output looks very similar to the table from the
 polynomial transformation. The only difference here is that 4 - 2
@@ -434,7 +408,7 @@ bin_output <- staggregate_bin(
                                     # transformed values to. Current options are
                                     # "day", "month", and "year" 
   
-  bin_breaks = c(0, 2, 4, 6)        # The values to split the data by
+  bin_breaks = c(0, 2, 4, 6)        # The values to split the data                                             between
 )
 ```
 

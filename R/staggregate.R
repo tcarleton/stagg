@@ -388,7 +388,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'   supported) 'polynomial', this is an integer indicating the degree.
 #' @param time_agg The temporal scale to aggregate data to ('day', 'month', and
 #'   'year' currently supported)
-#' @param bin_breaks A vector of bin edges to split the data by
+#' @param bin_breaks A vector of bin boundaries to split the data by
 #'
 #' @examples
 #' bin_output <- staggregate_bin(
@@ -399,7 +399,8 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'
 #'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
 #'
-#'   bin_breaks = c(0, 2, 4, 6, 8, 10) # Draw 5 bins from 0 to 10, a bin from -inf to 0, and one from 10 to inf
+#'   bin_breaks = c(0, 2, 4, 6, 8, 10) # Draw 5 bins from 0 to 10, a bin from
+#'   # -inf to 0, and one from 10 to inf
 #'   )
 #'
 #'
