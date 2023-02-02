@@ -188,7 +188,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #'
 #' @param data The raster brick with the data to be transformed and aggregated
 #' @param overlay_weights A table of weights which can be generated using
-#'   the function calc_geoweights()
+#'   the function overlay_weights()
 #' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
 #'   supported)
 #' @param time_agg the temporal scale to aggregate data to ('day', 'month', and
@@ -292,7 +292,7 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #'
 #' @param data The raster brick with the data to be transformed and aggregated
 #' @param overlay_weights A table of weights which can be generated using
-#'   the function calc_geoweights()
+#'   the function overlay_weights()
 #' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
 #'   supported)
 #' @param time_agg the temporal scale to aggregate data to ('day', 'month', and
@@ -426,7 +426,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'
 #' @param data The raster brick with the data to be transformed and aggregated
 #' @param overlay_weights A table of weights which can be generated using the
-#'   function calc_geoweights()
+#'   function overlay_weights()
 #' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
 #'   supported) 'polynomial', this is an integer indicating the degree.
 #' @param time_agg the temporal scale to aggregate data to ('day', 'month', and
@@ -561,6 +561,28 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 
 
 #================================================================================================================================================
+#' Degree Days Transformation and Aggregation of Climate Data
+#'
+#' @param data The raster brick with the data to be transformed and aggregated
+#' @param overlay_weights A table of weights which can be generated using the
+#'   function overlay_weights()
+#' @param time_agg The temporal scale to aggregate data to ('hour', 'day', 'month', and
+#'   'year' currently supported)
+#' @param thresholds A vector of temperature thresholds critical to a crop
+#'
+#' @examples
+#' degree_days_output <- staggregate_degree_days(
+#'
+#'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+#'
+#'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
+#'
+#'   thresholds = c(10, 30) # Calculate degree days above 10 and above 30 degrees C
+#'   )
+#'
+#'
+#' head(degree_days_output)
+#'
 #' @export
 staggregate_degree_days <- function(data, overlay_weights, time_agg = "day", thresholds){
 

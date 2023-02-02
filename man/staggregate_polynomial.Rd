@@ -16,7 +16,7 @@ staggregate_polynomial(
 \item{data}{The raster brick with the data to be transformed and aggregated}
 
 \item{overlay_weights}{A table of weights which can be generated using
-the function calc_geoweights()}
+the function overlay_weights()}
 
 \item{daily_agg}{How to aggregate daily values ('sum' and 'average' currently
 supported)}
