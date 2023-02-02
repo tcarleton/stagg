@@ -386,17 +386,9 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'   function calc_geoweights()
 #' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
 #'   supported) 'polynomial', this is an integer indicating the degree.
-#' @param time_agg the temporal scale to aggregate data to ('day', 'month', and
+#' @param time_agg The temporal scale to aggregate data to ('day', 'month', and
 #'   'year' currently supported)
-#' @param num_bins number of bins to group the data into
-#' @param binwidth width of bins, overrides num_bins
-#' @param min the smallest value that must be captured by a non-edge bin,
-#'   default is the data minimum, set manually if you are breaking up your data
-#' @param max the largest value that must be captured by a non-edge bin, default
-#'   is the data maximum, set manually if you are breaking up your data
-#' @param start_on where to place the left edge of one of the bins
-#' @param center_on where to place the center of one of the bins
-#' @param end_on where to place the right edge of one of the bins
+#' @param bin_breaks A vector of bin edges to split the data by
 #'
 #' @examples
 #' bin_output <- staggregate_bin(

@@ -21,24 +21,10 @@ function calc_geoweights()}
 \item{daily_agg}{How to aggregate daily values ('sum' and 'average' currently
 supported) 'polynomial', this is an integer indicating the degree.}
 
-\item{time_agg}{the temporal scale to aggregate data to ('day', 'month', and
+\item{time_agg}{The temporal scale to aggregate data to ('day', 'month', and
 'year' currently supported)}
 
-\item{num_bins}{number of bins to group the data into}
-
-\item{binwidth}{width of bins, overrides num_bins}
-
-\item{min}{the smallest value that must be captured by a non-edge bin,
-default is the data minimum, set manually if you are breaking up your data}
-
-\item{max}{the largest value that must be captured by a non-edge bin, default
-is the data maximum, set manually if you are breaking up your data}
-
-\item{start_on}{where to place the left edge of one of the bins}
-
-\item{center_on}{where to place the center of one of the bins}
-
-\item{end_on}{where to place the right edge of one of the bins}
+\item{bin_breaks}{A vector of bin edges to split the data by}
 }
 \description{
 Bin Transformation and Aggregation of Climate Data
