@@ -13,7 +13,7 @@ cropland coverage or population}
 \item{grid}{a raster layer with the same spatial resolution as the data}
 
 \item{extent}{an optional extent to crop the secondary_raster to for faster
-processing}
+processing. Takes vector in the form c(min_lon, max_lon, min_lat, max_lat)}
 }
 \value{
 a data.table of secondary weights

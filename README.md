@@ -80,7 +80,7 @@ The following example shows how one would go about generating cropland
 weights for the state of Kansas.
 
 ``` r
-kansas_extent <- c(-95.75, -95.25, 37.25, 37.75)
+small_extent <- c(-95.75, -95.25, 37.25, 37.75)
 
 cropland_weights <- secondary_weights(
   
@@ -95,10 +95,14 @@ cropland_weights <- secondary_weights(
                                            # data and the grid will be taken 
                                            # from its first layer
   
-  extent = kansas_extent # The extent to crop the  
+  extent = small_extent                   # The extent to crop the  
                                            # secondary_raster to, use whenever  
                                            # possible to save time (default is 
-                                           # "full")
+                                           # "full"). Format is a vector of 4 
+                                           # numeric values defining boundaries
+                                           # in the following order:minimum 
+                                           # longitude, maximum longitude, 
+                                           # minimum latitude, maximum latitude.
 )
 ```
 
@@ -141,7 +145,7 @@ cropland_weights <- dplyr::filter(cropland_world_2003_era5,
                                   x >= -103, x <= -94, y >= 37, y <= 41)
 ```
 
-### Step 2: Overlay administrative regions onto the your data’s grid
+### Step 2: Overlay administrative regions onto the data’s grid
 
 A core part of `stagg`’s functionality is to aggregate gridded data to
 the level of administrative regions. In order to do this, it first
@@ -182,13 +186,13 @@ county_weights <- overlay_weights(
 
     #> Checking for raster/polygon alignment
 
-    #> Adjusting polygon longitude from -102 - -95 to 0 - 360
+    #> Adjusting raster longitude from 0 - 360 to -180 to 180
 
     #> Extracting raster polygon overlap
 
     #>   |                                                                              |                                                                      |   0%  |                                                                              |=                                                                     |   1%  |                                                                              |=                                                                     |   2%  |                                                                              |==                                                                    |   3%  |                                                                              |===                                                                   |   4%  |                                                                              |===                                                                   |   5%  |                                                                              |====                                                                  |   6%  |                                                                              |=====                                                                 |   7%  |                                                                              |=====                                                                 |   8%  |                                                                              |======                                                                |   9%  |                                                                              |=======                                                               |  10%  |                                                                              |========                                                              |  11%  |                                                                              |=========                                                             |  12%  |                                                                              |=========                                                             |  13%  |                                                                              |==========                                                            |  14%  |                                                                              |===========                                                           |  15%  |                                                                              |===========                                                           |  16%  |                                                                              |============                                                          |  17%  |                                                                              |=============                                                         |  18%  |                                                                              |=============                                                         |  19%  |                                                                              |==============                                                        |  20%  |                                                                              |===============                                                       |  21%  |                                                                              |===============                                                       |  22%  |                                                                              |================                                                      |  23%  |                                                                              |=================                                                     |  24%  |                                                                              |=================                                                     |  25%  |                                                                              |==================                                                    |  26%  |                                                                              |===================                                                   |  27%  |                                                                              |===================                                                   |  28%  |                                                                              |====================                                                  |  29%  |                                                                              |=====================                                                 |  30%  |                                                                              |======================                                                |  31%  |                                                                              |=======================                                               |  32%  |                                                                              |=======================                                               |  33%  |                                                                              |========================                                              |  34%  |                                                                              |=========================                                             |  35%  |                                                                              |=========================                                             |  36%  |                                                                              |==========================                                            |  37%  |                                                                              |===========================                                           |  38%  |                                                                              |===========================                                           |  39%  |                                                                              |============================                                          |  40%  |                                                                              |=============================                                         |  41%  |                                                                              |=============================                                         |  42%  |                                                                              |==============================                                        |  43%  |                                                                              |===============================                                       |  44%  |                                                                              |===============================                                       |  45%  |                                                                              |================================                                      |  46%  |                                                                              |=================================                                     |  47%  |                                                                              |=================================                                     |  48%  |                                                                              |==================================                                    |  49%  |                                                                              |===================================                                   |  50%  |                                                                              |====================================                                  |  51%  |                                                                              |=====================================                                 |  52%  |                                                                              |=====================================                                 |  53%  |                                                                              |======================================                                |  54%  |                                                                              |=======================================                               |  55%  |                                                                              |=======================================                               |  56%  |                                                                              |========================================                              |  57%  |                                                                              |=========================================                             |  58%  |                                                                              |=========================================                             |  59%  |                                                                              |==========================================                            |  60%  |                                                                              |===========================================                           |  61%  |                                                                              |===========================================                           |  62%  |                                                                              |============================================                          |  63%  |                                                                              |=============================================                         |  64%  |                                                                              |=============================================                         |  65%  |                                                                              |==============================================                        |  66%  |                                                                              |===============================================                       |  67%  |                                                                              |===============================================                       |  68%  |                                                                              |================================================                      |  69%  |                                                                              |=================================================                     |  70%  |                                                                              |==================================================                    |  71%  |                                                                              |===================================================                   |  72%  |                                                                              |===================================================                   |  73%  |                                                                              |====================================================                  |  74%  |                                                                              |=====================================================                 |  75%  |                                                                              |=====================================================                 |  76%  |                                                                              |======================================================                |  77%  |                                                                              |=======================================================               |  78%  |                                                                              |=======================================================               |  79%  |                                                                              |========================================================              |  80%  |                                                                              |=========================================================             |  81%  |                                                                              |=========================================================             |  82%  |                                                                              |==========================================================            |  83%  |                                                                              |===========================================================           |  84%  |                                                                              |===========================================================           |  85%  |                                                                              |============================================================          |  86%  |                                                                              |=============================================================         |  87%  |                                                                              |=============================================================         |  88%  |                                                                              |==============================================================        |  89%  |                                                                              |===============================================================       |  90%  |                                                                              |================================================================      |  91%  |                                                                              |=================================================================     |  92%  |                                                                              |=================================================================     |  93%  |                                                                              |==================================================================    |  94%  |                                                                              |===================================================================   |  95%  |                                                                              |===================================================================   |  96%  |                                                                              |====================================================================  |  97%  |                                                                              |===================================================================== |  98%  |                                                                              |===================================================================== |  99%  |                                                                              |======================================================================| 100%
 
-    #> Adjusting secondary weights longitude from -103 - -94 to 0 - 360
+    #> Adjusting secondary weights longitude from -103 - -94 to -180 - 180
 
     #> Checking sum of weights within polygons
 
@@ -198,19 +202,6 @@ county_weights <- overlay_weights(
 # Display results
 county_weights
 ```
-
-    #>          x     y poly_id     w_area      weight
-    #>   1: 258.0 37.00     129 0.11483006 0.102767664
-    #>   2: 258.0 37.25     129 0.21733466 0.197589254
-    #>   3: 258.0 37.50     187 0.21911435 0.186872708
-    #>   4: 258.0 37.50     129 0.01223492 0.013395133
-    #>   5: 258.0 37.75     075 0.08685436 0.081127788
-    #>  ---                                           
-    #> 854: 265.5 38.75     091 0.01778473 0.017353580
-    #> 855: 265.5 38.75     121 0.01046101 0.008027165
-    #> 856: 265.5 39.00     091 0.02229991 0.012353309
-    #> 857: 265.5 39.00     209 0.03417110 0.020933949
-    #> 858: 265.5 39.25     209 0.02636328 0.022149179
 
 You can see that the function outputs multiple rows for each polygon,
 one for every grid cell it overlaps. The column `w_area` represents the
@@ -257,24 +248,27 @@ aggregating to the polygon and monthly/yearly level through with
 ``` r
 polynomial_output <- staggregate_polynomial(
   
-  prcp_kansas_dec2011_era5, # A raster brick of our primary data, typically but 
-                            # not necessarily climate data. For now, data must 
-                            # start at midnight and be hourly.
+  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+                                    # typically but not necessarily climate 
+                                    # data. For now, data must start at midnight
+                                    # and be hourly.
   
-  county_weights,           # Output from Step 2, determined here by 
-                            # area-normalized cropland weights for grid cells 
-                            # within each county in Kansas
+  overlay_weights = county_weights, # Output from Step 2, determined here by 
+                                    # area-normalized cropland weights for grid 
+                                    # cells within each county in Kansas
   
-  daily_agg = "sum",        # How to aggregate hourly values to the daily level,
-                            # "sum" and "average" are the only options. Here we 
-                            # want total daily precipitation. 
+  daily_agg = "sum",                # How to aggregate hourly values to the 
+                                    # daily level, "sum" and "average" are the 
+                                    # only options. Here we want total daily 
+                                    # precipitation. 
   
-  time_agg = "month",       # The temporal level to aggregate daily transformed 
-                            # values to. Current options are "day", "month", and
-                            # "year" 
+  time_agg = "month",               # The temporal level to aggregate daily 
+                                    # transformed values to. Current options are 
+                                    # "day", "month", and "year" 
   
-  degree = 3                # The highest order of the polynomial. Here this 
-                            # will create variable 3 columns: x, x^2, and x^3
+  degree = 3                        # The highest order of the polynomial. Here 
+                                    # this will create variable 3 columns: 
+                                    # order_1, order_2, and order_3
   )
 ```
 
@@ -332,28 +326,25 @@ original untransformed value of the variable.
 ``` r
 spline_output <- staggregate_spline(
   
-  prcp_kansas_dec2011_era5,    # A raster brick of our primary data, typically 
-                               # but not necessarily climate data. For now, data 
-                               # must start at midnight and be hourly.
+  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+                                    # typically but not necessarily climate 
+                                    # data. For now, data must start at midnight
+                                    # and be hourly.
   
-  county_weights,              # Output from Step 2, determined here by 
-                               # area-normalized cropland weights for grid cells 
-                               # within each county in Kansas
+  overlay_weights = county_weights, # Output from Step 2, determined here by 
+                                    # area-normalized cropland weights for grid
+                                    # cells within each county in Kansas
   
-  daily_agg = "sum",           # How to aggregate hourly values to the daily 
-                               # level, "sum" and "average" are the only 
-                               # options. Here we want total daily 
-                               # precipitation. 
+  daily_agg = "sum",                # How to aggregate hourly values to the 
+                                    # daily level, "sum" and "average" are the 
+                                    # only options. Here we want total daily 
+                                    # precipitation
   
-  time_agg = "month",          # The temporal level to aggregate daily 
-                               # transformed values to. Current options are 
-                               # "day", "month", and "year" 
+  time_agg = "month",               # The temporal level to aggregate daily 
+                                    # transformed values to. Current options are 
+                                    # "day", "month", and "year" 
   
-  knot_locs = c(-1.665335e-16, # Where to place the knots. Most likely, you'd 
-                -1.665335e-16, # want to calculate different quantiles in your
-                1.129775e-06,  # daily grided values and choose knot_locs based
-                3.852533e-04,  # on those
-                1.594356e-02)
+  knot_locs = c(0.1, 0.3, 0.5)  # Where to place the knots
 )
 ```
 
@@ -370,18 +361,18 @@ spline_output <- staggregate_spline(
 spline_output
 ```
 
-    #>      year month poly_id      value       term_1       term_2       term_3
-    #>   1: 2011    12     129 0.05643332 5.850616e-07 5.850616e-07 5.832739e-07
-    #>   2: 2011    12     187 0.05680940 5.719172e-07 5.719172e-07 5.701675e-07
-    #>   3: 2011    12     075 0.05149176 5.096724e-07 5.096724e-07 5.081121e-07
-    #>   4: 2011    12     071 0.04700092 4.325319e-07 4.325319e-07 4.312036e-07
-    #>   5: 2011    12     199 0.04279329 3.539178e-07 3.539178e-07 3.528255e-07
-    #>  ---                                                                     
-    #> 101: 2011    12     011 0.07018325 7.220965e-07 7.220965e-07 7.198900e-07
-    #> 102: 2011    12     107 0.07532783 7.952239e-07 7.952239e-07 7.927962e-07
-    #> 103: 2011    12     121 0.07734484 8.280333e-07 8.280333e-07 8.255066e-07
-    #> 104: 2011    12     091 0.07875736 8.647942e-07 8.647942e-07 8.621580e-07
-    #> 105: 2011    12     209 0.08044296 9.065387e-07 9.065387e-07 9.037778e-07
+    #>      year month poly_id      value term_1
+    #>   1: 2011    12     129 0.05643332      0
+    #>   2: 2011    12     187 0.05680940      0
+    #>   3: 2011    12     075 0.05149176      0
+    #>   4: 2011    12     071 0.04700092      0
+    #>   5: 2011    12     199 0.04279329      0
+    #>  ---                                     
+    #> 101: 2011    12     011 0.07018325      0
+    #> 102: 2011    12     107 0.07532783      0
+    #> 103: 2011    12     121 0.07734484      0
+    #> 104: 2011    12     091 0.07875736      0
+    #> 105: 2011    12     209 0.08044296      0
 
 You can see that your output looks very similar to the table from the
 polynomial transformation. The only difference here is that 4 - 2
@@ -398,45 +389,30 @@ outliers and nonlinearities within the data, and accomplished by calling
 ``` r
 bin_output <- staggregate_bin(
   
-  prcp_kansas_dec2011_era5, # A raster brick of our primary data, typically but 
-                            # not necessarily climate data. For now, data must 
-                            # start at midnight and be hourly.
+  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+                                    # typically but not necessarily climate 
+                                    # data. For now, data must start at midnight
+                                    # and be hourly.
   
-  county_weights,           # Output from Step 2, determined here by 
-                            # area-normalized cropland weights for grid cells 
-                            # within each county in Kansas
+  overlay_weights = county_weights, # Output from Step 2, determined here by 
+                                    # area-normalized cropland weights for grid 
+                                    # cells within each county in Kansas
   
   
-  daily_agg = "sum",        # How to aggregate hourly values to the daily level,
-                            # "sum" and "average" are the only options. Here we 
-                            # want total daily precipitation. 
+  daily_agg = "sum",                # How to aggregate hourly values to the 
+                                    # daily level, "sum" and "average" are the  
+                                    # only options. Here we want total daily 
+                                    # precipitation. 
   
-  time_agg = "month",       # The temporal level to aggregate daily transformed 
-                            # values to. Current options are "day", "month", and
-                            # "year" 
+  time_agg = "month",               # The temporal level to aggregate daily  
+                                    # transformed values to. Current options are
+                                    # "day", "month", and "year" 
   
-  binwidth = 2,             # The width of the bins to draw (overrides any 
-                            # num_bin argument)
-  
-  min = 0,                  # The smallest value that non-edge bins must cover,
-                            # use this if you are chunking your data
-  
-  max = 6,                  # The largest value that non-edge bins must cover,
-                            # use this if you are chunking your data
-  
-  center_on = 4,            # Where to center the first bin drawn on. Bins of 
-                            # equal width will be drawn around this one until 
-                            # both min and max are contained by non-edge bins
+  bin_breaks = c(0, 2, 4, 6)        # The values to split the data                                             between
 )
 ```
 
     #> Summing hourly values to daily values
-
-    #> Binwidth argument supplied will override num_bins
-
-    #> Non-edge bins extend beyond max value
-
-    #> Non-edge bins extend beyond min value
 
     #> Executing binning transformation
 
@@ -449,30 +425,30 @@ bin_output <- staggregate_bin(
 bin_output
 ```
 
-    #>      year month poly_id bin_ninf_to_n1 bin_n1_to_1 bin_1_to_3 bin_3_to_5
-    #>   1: 2011    12     129              0          30          0          0
-    #>   2: 2011    12     187              0          30          0          0
-    #>   3: 2011    12     075              0          30          0          0
-    #>   4: 2011    12     071              0          30          0          0
-    #>   5: 2011    12     199              0          30          0          0
-    #>  ---                                                                    
-    #> 101: 2011    12     011              0          30          0          0
-    #> 102: 2011    12     107              0          30          0          0
-    #> 103: 2011    12     121              0          30          0          0
-    #> 104: 2011    12     091              0          30          0          0
-    #> 105: 2011    12     209              0          30          0          0
-    #>      bin_5_to_7 bin_7_to_inf
-    #>   1:          0            0
-    #>   2:          0            0
-    #>   3:          0            0
-    #>   4:          0            0
-    #>   5:          0            0
-    #>  ---                        
-    #> 101:          0            0
-    #> 102:          0            0
-    #> 103:          0            0
-    #> 104:          0            0
-    #> 105:          0            0
+    #>      year month poly_id bin_ninf_to_0 bin_0_to_2 bin_2_to_4 bin_4_to_6
+    #>   1: 2011    12     129      16.57524   13.42476          0          0
+    #>   2: 2011    12     187      17.62299   12.37701          0          0
+    #>   3: 2011    12     075      17.50892   12.49108          0          0
+    #>   4: 2011    12     071      17.81776   12.18224          0          0
+    #>   5: 2011    12     199      18.79249   11.20751          0          0
+    #>  ---                                                                  
+    #> 101: 2011    12     011      13.98931   16.01069          0          0
+    #> 102: 2011    12     107      13.95431   16.04569          0          0
+    #> 103: 2011    12     121      13.44070   16.55930          0          0
+    #> 104: 2011    12     091      14.71583   15.28417          0          0
+    #> 105: 2011    12     209      14.48745   15.51255          0          0
+    #>      bin_6_to_inf
+    #>   1:            0
+    #>   2:            0
+    #>   3:            0
+    #>   4:            0
+    #>   5:            0
+    #>  ---             
+    #> 101:            0
+    #> 102:            0
+    #> 103:            0
+    #> 104:            0
+    #> 105:            0
 
 Like before, the output table features one row for every county for
 every time period specified by the `time_agg` argument. What has changed
@@ -481,24 +457,8 @@ number of days a polygon had a value that fell within that bin during
 the timespan specified by the `time_agg` argument. These outputs are not
 necessarily integers since the polygon is made up of pixels that are
 sorted into bins and then weighted by the `overlay_weights` provided and
-aggregated, here, to the county level.
-
-Because there are many ways to specify bins, `staggregate_bin()` has
-many optional arguments which can influence the placement, extent, and
-width of the bins. First, the non-edge bins are all of equal width. This
-is taken from the `binwidth` argument if it is supplied, or otherwise
-from the `num_bins` argument by dividing the range (`max` minus `min`)
-by the number of bins. The max and min, if not supplied are taken
-directly from the maximum and minimum values in the data. Once the width
-has been established, a bin is drawn using one of the placement
-arguments: `start_on`, `center_on`, or `end_on`, which draw the bin’s
-left edge, center, or right edge on that value, respectively. If this
-value falls outside the range, it is moved over by a bin-width at a time
-until it is within the range. If no placement value is specified, `min`
-is passed to `start_on`. Bins are then constructed around that bin until
-the full range is covered. Note that if you specify `num_bins` but
-choose a placement where the max or min value will be overlapped, you
-will get one more non-edge bin than requested. Lastly, edge bins, from
-negative infinity to the start of the leftmost bin and from the end of
-the rightmost bin to infinity, are constructed to capture any other
-data.
+aggregated, here, to the county level. Here we specify bins from
+negative infinity to 0, 0 to 2, 2 to 4, 4 to 6, and 6 to infinity by
+passing c(0,2,4,6) to bin_break. `staggregate_bin` draws a bin between
+each break, and adds edge bins that encompass all values below the
+minimum break and above the maximum break.

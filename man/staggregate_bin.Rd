@@ -9,13 +9,7 @@ staggregate_bin(
   overlay_weights,
   daily_agg,
   time_agg = "month",
-  num_bins = 10,
-  binwidth = NULL,
-  min = NULL,
-  max = NULL,
-  start_on = NULL,
-  center_on = NULL,
-  end_on = NULL
+  bin_breaks
 )
 }
 \arguments{
@@ -27,24 +21,10 @@ function calc_geoweights()}
 \item{daily_agg}{How to aggregate daily values ('sum' and 'average' currently
 supported) 'polynomial', this is an integer indicating the degree.}
 
-\item{time_agg}{the temporal scale to aggregate data to ('day', 'month', and
+\item{time_agg}{The temporal scale to aggregate data to ('day', 'month', and
 'year' currently supported)}
 
-\item{num_bins}{number of bins to group the data into}
-
-\item{binwidth}{width of bins, overrides num_bins}
-
-\item{min}{the smallest value that must be captured by a non-edge bin,
-default is the data minimum, set manually if you are breaking up your data}
-
-\item{max}{the largest value that must be captured by a non-edge bin, default
-is the data maximum, set manually if you are breaking up your data}
-
-\item{start_on}{where to place the left edge of one of the bins}
-
-\item{center_on}{where to place the center of one of the bins}
-
-\item{end_on}{where to place the right edge of one of the bins}
+\item{bin_breaks}{A vector of bin boundaries to split the data by}
 }
 \description{
 Bin Transformation and Aggregation of Climate Data
@@ -58,11 +38,8 @@ bin_output <- staggregate_bin(
 
   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
 
-  binwidth = 2, # Draw bins of width 2
-
-  min = 0, # The minimum value that non-edge bins must capture
-
-  max = 10 # The maximum value that non-edge bins must capture
+  bin_breaks = c(0, 2, 4, 6, 8, 10) # Draw 5 bins from 0 to 10, a bin from
+  # -inf to 0, and one from 10 to inf
   )
 
 

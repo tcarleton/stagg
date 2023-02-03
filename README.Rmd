@@ -47,7 +47,7 @@ It is common when studying interactions between human and natural systems to spa
 The following example shows how one would go about generating cropland weights for the state of Kansas. 
 
 ```{r, include = TRUE}
-kansas_extent <- c(-95.75, -95.25, 37.25, 37.75)
+small_extent <- c(-95.75, -95.25, 37.25, 37.75)
 
 cropland_weights <- secondary_weights(
   
@@ -62,12 +62,15 @@ cropland_weights <- secondary_weights(
                                            # data and the grid will be taken 
                                            # from its first layer
   
-  extent = kansas_extent # The extent to crop the  
+  extent = small_extent                   # The extent to crop the  
                                            # secondary_raster to, use whenever  
                                            # possible to save time (default is 
-                                           # "full")
+                                           # "full"). Format is a vector of 4 
+                                           # numeric values defining boundaries
+                                           # in the following order:minimum 
+                                           # longitude, maximum longitude, 
+                                           # minimum latitude, maximum latitude.
 )
-
 #Display resulting table
 cropland_weights
 ```
@@ -82,7 +85,7 @@ cropland_weights <- dplyr::filter(cropland_world_2003_era5,
 ```
 
 
-### Step 2: Overlay administrative regions onto the your data's grid
+### Step 2: Overlay administrative regions onto the data's grid
 A core part of `stagg`'s functionality is to aggregate gridded data to the level of administrative regions. In order to do this, it first calculates the portion of each region that is covered by a particular cell.
 These weights may also be scaled by the secondary weights calculated in Step 1. This is accomplished using the `overlay_weights()` function. 
 
@@ -134,24 +137,27 @@ One common transformation is to create new variables by raising a value to an ex
 ```{r}
 polynomial_output <- staggregate_polynomial(
   
-  prcp_kansas_dec2011_era5, # A raster brick of our primary data, typically but 
-                            # not necessarily climate data. For now, data must 
-                            # start at midnight and be hourly.
+  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+                                    # typically but not necessarily climate 
+                                    # data. For now, data must start at midnight
+                                    # and be hourly.
   
-  county_weights,           # Output from Step 2, determined here by 
-                            # area-normalized cropland weights for grid cells 
-                            # within each county in Kansas
+  overlay_weights = county_weights, # Output from Step 2, determined here by 
+                                    # area-normalized cropland weights for grid 
+                                    # cells within each county in Kansas
   
-  daily_agg = "sum",        # How to aggregate hourly values to the daily level,
-                            # "sum" and "average" are the only options. Here we 
-                            # want total daily precipitation. 
+  daily_agg = "sum",                # How to aggregate hourly values to the 
+                                    # daily level, "sum" and "average" are the 
+                                    # only options. Here we want total daily 
+                                    # precipitation. 
   
-  time_agg = "month",       # The temporal level to aggregate daily transformed 
-                            # values to. Current options are "day", "month", and
-                            # "year" 
+  time_agg = "month",               # The temporal level to aggregate daily 
+                                    # transformed values to. Current options are 
+                                    # "day", "month", and "year" 
   
-  degree = 3                # The highest order of the polynomial. Here this 
-                            # will create variable 3 columns: x, x^2, and x^3
+  degree = 3                        # The highest order of the polynomial. Here 
+                                    # this will create variable 3 columns: 
+                                    # order_1, order_2, and order_3
   )
 
 # Display results
@@ -168,28 +174,25 @@ Another type of transformation `stagg` supports is a restricted cubic spline. Th
 ```{r}
 spline_output <- staggregate_spline(
   
-  prcp_kansas_dec2011_era5,    # A raster brick of our primary data, typically 
-                               # but not necessarily climate data. For now, data 
-                               # must start at midnight and be hourly.
+  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+                                    # typically but not necessarily climate 
+                                    # data. For now, data must start at midnight
+                                    # and be hourly.
   
-  county_weights,              # Output from Step 2, determined here by 
-                               # area-normalized cropland weights for grid cells 
-                               # within each county in Kansas
+  overlay_weights = county_weights, # Output from Step 2, determined here by 
+                                    # area-normalized cropland weights for grid
+                                    # cells within each county in Kansas
   
-  daily_agg = "sum",           # How to aggregate hourly values to the daily 
-                               # level, "sum" and "average" are the only 
-                               # options. Here we want total daily 
-                               # precipitation. 
+  daily_agg = "sum",                # How to aggregate hourly values to the 
+                                    # daily level, "sum" and "average" are the 
+                                    # only options. Here we want total daily 
+                                    # precipitation
   
-  time_agg = "month",          # The temporal level to aggregate daily 
-                               # transformed values to. Current options are 
-                               # "day", "month", and "year" 
+  time_agg = "month",               # The temporal level to aggregate daily 
+                                    # transformed values to. Current options are 
+                                    # "day", "month", and "year" 
   
-  knot_locs = c(-1.665335e-16, # Where to place the knots. Most likely, you'd 
-                -1.665335e-16, # want to calculate different quantiles in your
-                1.129775e-06,  # daily grided values and choose knot_locs based
-                3.852533e-04,  # on those
-                1.594356e-02)
+  knot_locs = c(0.1, 0.3, 0.5)  # Where to place the knots
 )
 
 # Display output
@@ -205,42 +208,30 @@ The last tranformation `stagg` offers is to divide the daily values into differe
 ```{r}
 bin_output <- staggregate_bin(
   
-  prcp_kansas_dec2011_era5, # A raster brick of our primary data, typically but 
-                            # not necessarily climate data. For now, data must 
-                            # start at midnight and be hourly.
+  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+                                    # typically but not necessarily climate 
+                                    # data. For now, data must start at midnight
+                                    # and be hourly.
   
-  county_weights,           # Output from Step 2, determined here by 
-                            # area-normalized cropland weights for grid cells 
-                            # within each county in Kansas
+  overlay_weights = county_weights, # Output from Step 2, determined here by 
+                                    # area-normalized cropland weights for grid 
+                                    # cells within each county in Kansas
   
   
-  daily_agg = "sum",        # How to aggregate hourly values to the daily level,
-                            # "sum" and "average" are the only options. Here we 
-                            # want total daily precipitation. 
+  daily_agg = "sum",                # How to aggregate hourly values to the 
+                                    # daily level, "sum" and "average" are the  
+                                    # only options. Here we want total daily 
+                                    # precipitation. 
   
-  time_agg = "month",       # The temporal level to aggregate daily transformed 
-                            # values to. Current options are "day", "month", and
-                            # "year" 
+  time_agg = "month",               # The temporal level to aggregate daily  
+                                    # transformed values to. Current options are
+                                    # "day", "month", and "year" 
   
-  binwidth = 2,             # The width of the bins to draw (overrides any 
-                            # num_bin argument)
-  
-  min = 0,                  # The smallest value that non-edge bins must cover,
-                            # use this if you are chunking your data
-  
-  max = 6,                  # The largest value that non-edge bins must cover,
-                            # use this if you are chunking your data
-  
-  center_on = 4,            # Where to center the first bin drawn on. Bins of 
-                            # equal width will be drawn around this one until 
-                            # both min and max are contained by non-edge bins
+  bin_breaks = c(0, 2, 4, 6)        # The values to split the data                                             between
 )
 
 # Display output
 bin_output
 ```
 
-Like before, the output table features one row for every county for every time period specified by the `time_agg` argument. What has changed is that there is a new column for each bin created, representing the number of days a polygon had a value that fell within that bin during the timespan specified by the `time_agg` argument. These outputs are not necessarily integers since the polygon is made up of pixels that are sorted into bins and then weighted by the `overlay_weights` provided and aggregated, here, to the county level. 
-
-Because there are many ways to specify bins, `staggregate_bin()` has many optional arguments which can influence the placement, extent, and width of the bins. First, the non-edge bins are all of equal width. This is taken from the `binwidth` argument if it is supplied, or otherwise from the `num_bins` argument by dividing the range (`max` minus `min`) by the number of bins. The max and min, if not supplied are taken directly from the maximum and minimum values in the data. Once the width has been established, a bin is drawn using one of the placement arguments: `start_on`, `center_on`, or `end_on`, which draw the bin's left edge, center, or right edge on that value, respectively. If this value falls outside the range, it is moved over by a bin-width at a time until it is within the range. If no placement value is specified, `min` is passed to `start_on`. Bins are then constructed around that bin until the full range is covered. Note that if you specify `num_bins` but choose a placement where the max or min value will be overlapped, you will get one more non-edge bin than requested. Lastly, edge bins, from negative infinity to the start of the leftmost bin and from the end of the rightmost bin to infinity, are constructed to capture any other data. 
-
+Like before, the output table features one row for every county for every time period specified by the `time_agg` argument. What has changed is that there is a new column for each bin created, representing the number of days a polygon had a value that fell within that bin during the timespan specified by the `time_agg` argument. These outputs are not necessarily integers since the polygon is made up of pixels that are sorted into bins and then weighted by the `overlay_weights` provided and aggregated, here, to the county level. Here we specify bins from negative infinity to 0, 0 to 2, 2 to 4, 4 to 6, and 6 to infinity by passing c(0,2,4,6) to bin_break. `staggregate_bin` draws a bin between each break, and adds edge bins that encompass all values below the minimum break and above the maximum break. 
