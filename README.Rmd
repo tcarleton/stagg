@@ -51,7 +51,7 @@ small_extent <- c(-95.75, -95.25, 37.25, 37.75)
 
 cropland_weights <- secondary_weights(
   
-  secondary_raster = cropland_kansas_2011, # A raster layer of the social 
+  secondary_raster = cropland_kansas_2011, # A raster layer of the secondary 
                                            # variable to generate weights from
   
   grid = era5_grid,                        # A raster layer with the same 
@@ -137,7 +137,7 @@ One common transformation is to create new variables by raising a value to an ex
 ```{r}
 polynomial_output <- staggregate_polynomial(
   
-  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+  data = temp_kansas_jan_2020_era5, # A raster brick of our primary data, 
                                     # typically but not necessarily climate 
                                     # data. For now, data must start at midnight
                                     # and be hourly.
@@ -146,14 +146,16 @@ polynomial_output <- staggregate_polynomial(
                                     # area-normalized cropland weights for grid 
                                     # cells within each county in Kansas
   
-  daily_agg = "sum",                # How to aggregate hourly values to the 
-                                    # daily level, "sum" and "average" are the 
-                                    # only options. Here we want total daily 
-                                    # precipitation. 
+  daily_agg = "average",            # How to aggregate hourly values to the 
+                                    # daily level (options are "sum", "average",
+                                    # and "none"). Here we want average daily 
+                                    # temperature 
   
   time_agg = "month",               # The temporal level to aggregate daily 
                                     # transformed values to. Current options are 
-                                    # "day", "month", and "year" 
+                                    # "hour", day", "month", and "year". Note 
+                                    # that "hour" is only availabel if daily_agg
+                                    # is set to "none"
   
   degree = 3                        # The highest order of the polynomial. Here 
                                     # this will create variable 3 columns: 
@@ -172,31 +174,9 @@ You can see that 3 variables are created. `order_1` represents the original valu
 Another type of transformation `stagg` supports is a restricted cubic spline. This, essentially, is a piecewise function where 3rd degree polynomials intersect at knots such that the function's first and second derivatives are continuous from negative infinity to positive infinity, and that the function is linear before the first knot and after the last one. A more detailed explanation, as well as the formula used to transform the data, can be found [here](https://support.sas.com/resources/papers/proceedings16/5621-2016.pdf). `staggregate_spline()` executes this formula to create K-2 new variables, where K is the number of knots, in addition to preserving the original untransformed value of the variable. 
 
 ```{r}
-quantiles <- daily_quants(          # Use daily_quants() to calculate quantiles 
-                                    # in daily values to help determine knot 
-                                    # locations
-  
-  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, to 
-                                    # aggregate to daily level and calculate 
-                                    # quantiles from
-  
-  overlay_weights = county_weights, # Output from Step 2, determined here by 
-                                    # area-normalized cropland weights for grid
-                                    # cells within each county in Kansas
-  
-  daily_agg = "sum",                # How to aggregate hourly values to the 
-                                    # daily level, "sum" and "average" are the 
-                                    # only options. Here we want total daily
-                                    # precipitation
-  
-  probs = c(.05, .35, .65, .95)     # Probabilities from 0 to 1 to calculate 
-                                    # quantiles in the daily data from
-  
-)
-
 spline_output <- staggregate_spline(
   
-  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+  data = temp_kansas_jan_2015_era5, # A raster brick of our primary data, 
                                     # typically but not necessarily climate 
                                     # data. For now, data must start at midnight
                                     # and be hourly.
@@ -205,16 +185,16 @@ spline_output <- staggregate_spline(
                                     # area-normalized cropland weights for grid
                                     # cells within each county in Kansas
   
-  daily_agg = "sum",                # How to aggregate hourly values to the 
+  daily_agg = "average",            # How to aggregate hourly values to the 
                                     # daily level, "sum" and "average" are the 
-                                    # only options. Here we want total daily 
-                                    # precipitation
+                                    # only options. Here we want average daily 
+                                    # temperature
   
   time_agg = "month",               # The temporal level to aggregate daily 
                                     # transformed values to. Current options are 
                                     # "day", "month", and "year" 
   
-  knot_locs = as.vector(quantiles)  # Where to place the knots
+  knot_locs = c(0, 3, 7, 10)  # Where to place the knots
 )
 
 # Display output
@@ -230,7 +210,7 @@ You can see that your output looks very similar to the table from the polynomial
 ```{r}
 bin_output <- staggregate_bin(
   
-  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+  data = temp_kansas_jan_2015_era5, # A raster brick of our primary data, 
                                     # typically but not necessarily climate 
                                     # data. For now, data must start at midnight
                                     # and be hourly.
@@ -240,23 +220,23 @@ bin_output <- staggregate_bin(
                                     # cells within each county in Kansas
   
   
-  daily_agg = "sum",                # How to aggregate hourly values to the 
+  daily_agg = "average",            # How to aggregate hourly values to the 
                                     # daily level, "sum" and "average" are the  
-                                    # only options. Here we want total daily 
-                                    # precipitation. 
+                                    # only options. Here we want average daily 
+                                    # temperature. 
   
   time_agg = "month",               # The temporal level to aggregate daily  
                                     # transformed values to. Current options are
                                     # "day", "month", and "year" 
   
-  bin_breaks = c(0, 2, 4, 6)        # The values to split the data by
+  bin_breaks = c(0, 2.5, 5, 7.5, 10)        # The values to split the data by
 )
 
 # Display output
 bin_output
 ```
 
-Like before, the output table features one row for every county for every time period specified by the `time_agg` argument. What has changed is that there is a new column for each bin created, representing the number of days a polygon had a value that fell within that bin during the timespan specified by the `time_agg` argument. These outputs are not necessarily integers since the polygon is made up of pixels that are sorted into bins and then weighted by the `overlay_weights` provided and aggregated, here, to the county level. Here we specify bins from negative infinity to 0, 0 to 2, 2 to 4, 4 to 6, and 6 to infinity by passing c(0,2,4,6) to bin_break. `staggregate_bin` draws a bin between each break, and adds edge bins that encompass all values below the minimum break and above the maximum break. 
+Like before, the output table features one row for every county for every time period specified by the `time_agg` argument. What has changed is that there is a new column for each bin created, representing the number of days a polygon had a value that fell within that bin during the timespan specified by the `time_agg` argument. These outputs are not necessarily integers since the polygon is made up of pixels that are sorted into bins and then weighted by the `overlay_weights` provided and aggregated, here, to the county level. Here we specify bins, in degrees Celsius, from negative infinity to 0, 0 to 2.5, 2.5 to 5, 5 to 7.5, 7.5 to 10, and 10 to infinity by passing c(0, 2.5, 5, 7.5, 10) to bin_break. `staggregate_bin` draws a bin between each pair of breaks, and adds edge bins that encompass all values below the minimum break and above the maximum break. 
 
 
 #### Degree Days Transformation

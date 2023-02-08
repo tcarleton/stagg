@@ -595,12 +595,15 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "day", thr
   thresholds <- sort(thresholds)
 
   # Create names for new columns
-  list_names <- sapply(1:(length(thresholds)), FUN=function(x){
+  list_names <- sapply(0:(length(thresholds)), FUN=function(x){
+    if(x == 0){
+      paste("threshold", "ninf", "to", sub("-", "n", min(thresholds)), sep = "_")
+    }
     if(x == length(thresholds)){
-      paste("bin", sub("-", "n", max(thresholds)), "to", "inf", sep = "_")
+      paste("threshold", sub("-", "n", max(thresholds)), "to", "inf", sep = "_")
     }
     else{
-      paste("bin", sub("-", "n", thresholds[x]), "to", sub("-", "n", thresholds[x+1]), sep = "_")
+      paste("threshold", sub("-", "n", thresholds[x]), "to", sub("-", "n", thresholds[x+1]), sep = "_")
     }
   })
 
@@ -608,10 +611,21 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "day", thr
   # Create function to calculate degree days
   calc_deg_days <- function(x){
     clim_table <- raster::values(clim_rast)
-    if(x == length(thresholds)){
+    if(x == 0){ # For the lowest threshold, create a variable equal to 0 if the
+                # value is greater than the threshold, and equal to the
+                # threshold minus value otherwise
+      clim_table <- ifelse(clim_table > thresholds[x], 0, thresholds - clim_table)
+    }
+    else if(x == length(thresholds)){ # For the highest threshold, create a
+                                      # variable equal to 0 if value is less
+                                      # than threshold and equal to the value
+                                      # minus the threshold if otherwise
       clim_table <- ifelse(clim_table < thresholds[x], 0, clim_table - thresholds[x])
     }
-    else{
+    else{ # For all other thresholds, create variable equal to 0 if value is
+          # less than threshold, equal to next threshold minus current threshold
+          # if the value is greater than the next threshold, and equal to value
+          # minus curent threshold otherwise
       clim_table <- ifelse(clim_table < thresholds[x], 0,
                            ifelse(clim_table > thresholds[x + 1], thresholds[x + 1] - thresholds[x],
                                   clim_table - thresholds[x]))
@@ -626,7 +640,7 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "day", thr
   message(crayon::green("Executing degree days transformation"))
 
   # For each bin, create new brick of binary values, including edge bins which go from -inf to min, max to inf
-  r <- lapply(1:(length(thresholds)), FUN = calc_deg_days)
+  r <- lapply(0:(length(thresholds)), FUN = calc_deg_days)
 
 
   create_dt <- function(x){
@@ -647,12 +661,12 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "day", thr
   }
 
   # Make each raster layer a data.table
-  list_dt <- lapply(1:(length(thresholds)), create_dt)
+  list_dt <- lapply(1:(length(thresholds) + 1), create_dt)
 
   # Merge all data.tables together if there are multiple
   clim_dt <- list_dt[[1]]
   if(length(thresholds) > 1 ){
-    for(i in 2:length(thresholds)){
+    for(i in 2:length(thresholds) + 1){
       dt_m <- list_dt[[i]]
       clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
     }
