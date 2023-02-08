@@ -23,11 +23,11 @@ Degree Days Transformation and Aggregation of Climate Data
 \examples{
 degree_days_output <- staggregate_degree_days(
 
-  data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+  data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
 
   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 
-  thresholds = c(10, 30) # Calculate degree days above 10 and above 30 degrees C
+  thresholds = c(0, 10, 20) # Calculate degree days above these 0, 10, and 20 degrees C
   )
 
 

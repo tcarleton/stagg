@@ -198,7 +198,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' @examples
 #' polynomial_output <- staggregate_polynomial(
 #'
-#'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+#'   data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
 #'
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 #'
@@ -304,13 +304,13 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 
 #' spline_output <- staggregate_spline(
 #'
-#' data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+#' data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
 #'
 #' overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 #'
 #' daily_agg = "sum", # Sum hourly values to produce daily values before transformation
 #'
-#' knot_locs = c(-1.665335e-16,  1.129775e-06,  1.594356e-02) # Where to place knots
+#' knot_locs = c(0, 3, 7, 10) # Where to place knots
 #' )
 #'
 #'
@@ -408,7 +408,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 
   # Merge all data.tables together
   clim_dt <- list_dt[[1]]
-  for(i in 2:(length(thresholds))){
+  for(i in 2:(list_length + 1)){
     dt_m <- list_dt[[i]]
     clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
   }
@@ -429,28 +429,21 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'   function overlay_weights()
 #' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
 #'   supported) 'polynomial', this is an integer indicating the degree.
-#' @param time_agg the temporal scale to aggregate data to ('day', 'month', and
+#' @param time_agg The temporal scale to aggregate data to ('day', 'month', and
 #'   'year' currently supported)
-#' @param num_bins number of bins to group the data into
-#' @param binwidth width of bins, overrides num_bins
-#' @param min the smallest value that must be captured by a non-edge bin,
-#'   default is the data minimum, set manually if you are breaking up your data
-#' @param max the largest value that must be captured by a non-edge bin, default
-#'   is the data maximum, set manually if you are breaking up your data
-#' @param start_on where to place the left edge of one of the bins
-#' @param center_on where to place the center of one of the bins
-#' @param end_on where to place the right edge of one of the bins
+#' @param bin_breaks Where to divide the data
 #'
 #' @examples
 #' bin_output <- staggregate_bin(
 #'
-#'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+#'   data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
 #'
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 #'
 #'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
 #'
-#'   bin_breaks = c(0, 2, 4, 6, 8, 10) # Draw 5 bins from 0 to 10, a bin from -inf to 0, and one from 10 to inf
+#'   bin_breaks = c(0, 2.5, 5, 7.5, 10) # Draw 6 bins from ninf to 0, 0 to 2.5,
+#'                                      # 2.5 to 5, 5 to 7.5, 7.5 to 10, 10 to inf
 #'   )
 #'
 #'
@@ -573,11 +566,11 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 #' @examples
 #' degree_days_output <- staggregate_degree_days(
 #'
-#'   data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+#'   data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
 #'
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 #'
-#'   thresholds = c(10, 30) # Calculate degree days above 10 and above 30 degrees C
+#'   thresholds = c(0, 10, 20) # Calculate degree days above these 0, 10, and 20 degrees C
 #'   )
 #'
 #'
@@ -666,7 +659,7 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "day", thr
   # Merge all data.tables together if there are multiple
   clim_dt <- list_dt[[1]]
   if(length(thresholds) > 1 ){
-    for(i in 2:length(thresholds) + 1){
+    for(i in 2:(length(thresholds) + 1)){
       dt_m <- list_dt[[i]]
       clim_dt <- merge(clim_dt, dt_m, by=c('x', 'y', 'date'))
     }

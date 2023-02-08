@@ -21,24 +21,10 @@ function overlay_weights()}
 \item{daily_agg}{How to aggregate daily values ('sum' and 'average' currently
 supported) 'polynomial', this is an integer indicating the degree.}
 
-\item{time_agg}{the temporal scale to aggregate data to ('day', 'month', and
+\item{time_agg}{The temporal scale to aggregate data to ('day', 'month', and
 'year' currently supported)}
 
-\item{num_bins}{number of bins to group the data into}
-
-\item{binwidth}{width of bins, overrides num_bins}
-
-\item{min}{the smallest value that must be captured by a non-edge bin,
-default is the data minimum, set manually if you are breaking up your data}
-
-\item{max}{the largest value that must be captured by a non-edge bin, default
-is the data maximum, set manually if you are breaking up your data}
-
-\item{start_on}{where to place the left edge of one of the bins}
-
-\item{center_on}{where to place the center of one of the bins}
-
-\item{end_on}{where to place the right edge of one of the bins}
+\item{bin_breaks}{Where to divide the data}
 }
 \description{
 Bin Transformation and Aggregation of Climate Data
@@ -46,13 +32,14 @@ Bin Transformation and Aggregation of Climate Data
 \examples{
 bin_output <- staggregate_bin(
 
-  data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+  data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
 
   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 
   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
 
-  bin_breaks = c(0, 2, 4, 6, 8, 10) # Draw 5 bins from 0 to 10, a bin from -inf to 0, and one from 10 to inf
+  bin_breaks = c(0, 2.5, 5, 7.5, 10) # Draw 6 bins from ninf to 0, 0 to 2.5,
+                                     # 2.5 to 5, 5 to 7.5, 7.5 to 10, 10 to inf
   )
 
 

@@ -32,7 +32,7 @@ Polynomial Transformation and Aggregation of Climate Data
 \examples{
 polynomial_output <- staggregate_polynomial(
 
-  data = prcp_kansas_dec2011_era5, # Climate data to transform and aggregate
+  data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
 
   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 

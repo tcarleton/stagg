@@ -84,7 +84,7 @@ small_extent <- c(-95.75, -95.25, 37.25, 37.75)
 
 cropland_weights <- secondary_weights(
   
-  secondary_raster = cropland_kansas_2011, # A raster layer of the social 
+  secondary_raster = cropland_kansas_2011, # A raster layer of the secondary 
                                            # variable to generate weights from
   
   grid = era5_grid,                        # A raster layer with the same 
@@ -141,7 +141,7 @@ as global population weights are available as part of the package and
 can be used for analysis in any part of the globe.
 
 ``` r
-cropland_weights <- dplyr::filter(cropland_world_2003_era5, 
+cropland_weights <- dplyr::filter(cropland_world_2015_era5, 
                                   x >= -103, x <= -94, y >= 37, y <= 41)
 ```
 
@@ -181,8 +181,8 @@ county_weights <- overlay_weights(
 )
 ```
 
-    #> Warning in .couldBeLonLat(x, warnings = warnings): raster has a longitude/
-    #> latitude crs, but coordinates do not match that
+    #> Warning in .couldBeLonLat(x, warnings = warnings): raster has a
+    #> longitude/latitude crs, but coordinates do not match that
 
     #> Checking for raster/polygon alignment
 
@@ -248,7 +248,7 @@ aggregating to the polygon and monthly/yearly level through with
 ``` r
 polynomial_output <- staggregate_polynomial(
   
-  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+  data = temp_kansas_jan_2020_era5, # A raster brick of our primary data, 
                                     # typically but not necessarily climate 
                                     # data. For now, data must start at midnight
                                     # and be hourly.
@@ -257,14 +257,16 @@ polynomial_output <- staggregate_polynomial(
                                     # area-normalized cropland weights for grid 
                                     # cells within each county in Kansas
   
-  daily_agg = "sum",                # How to aggregate hourly values to the 
-                                    # daily level, "sum" and "average" are the 
-                                    # only options. Here we want total daily 
-                                    # precipitation. 
+  daily_agg = "average",            # How to aggregate hourly values to the 
+                                    # daily level (options are "sum", "average",
+                                    # and "none"). Here we want average daily 
+                                    # temperature 
   
   time_agg = "month",               # The temporal level to aggregate daily 
                                     # transformed values to. Current options are 
-                                    # "day", "month", and "year" 
+                                    # "hour", day", "month", and "year". Note 
+                                    # that "hour" is only availabel if daily_agg
+                                    # is set to "none"
   
   degree = 3                        # The highest order of the polynomial. Here 
                                     # this will create variable 3 columns: 
@@ -272,11 +274,13 @@ polynomial_output <- staggregate_polynomial(
   )
 ```
 
-    #> Summing hourly values to daily values
+    #> Averaging hourly values to get daily values
 
     #> Executing polynomial transformation
 
-    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_date()
+    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()
+
+    #> Warning: All formats failed to parse. No formats found.
 
     #> Aggregating by polygon and month
 
@@ -285,18 +289,18 @@ polynomial_output <- staggregate_polynomial(
 polynomial_output
 ```
 
-    #>      year month poly_id    order_1      order_2      order_3
-    #>   1: 2011    12     129 0.05643332 0.0007791418 1.265471e-05
-    #>   2: 2011    12     187 0.05680940 0.0007600893 1.232165e-05
-    #>   3: 2011    12     075 0.05149176 0.0006556775 9.875916e-06
-    #>   4: 2011    12     071 0.04700092 0.0005236172 6.729562e-06
-    #>   5: 2011    12     199 0.04279329 0.0004099400 4.543805e-06
-    #>  ---                                                        
-    #> 101: 2011    12     011 0.07018325 0.0009848000 1.687835e-05
-    #> 102: 2011    12     107 0.07532783 0.0010772387 1.819141e-05
-    #> 103: 2011    12     121 0.07734484 0.0011458564 2.009548e-05
-    #> 104: 2011    12     091 0.07875736 0.0012305217 2.269488e-05
-    #> 105: 2011    12     209 0.08044296 0.0013109832 2.494272e-05
+    #>      year month poly_id   order_1  order_2   order_3
+    #>   1:   NA    NA     129 112.92002 640.0153 3412.8025
+    #>   2:   NA    NA     187 102.00318 590.2717 3012.2352
+    #>   3:   NA    NA     075  80.82003 474.7735 1970.4388
+    #>   4:   NA    NA     071  69.47838 418.2560 1316.2572
+    #>   5:   NA    NA     199  66.90692 413.5508 1190.2729
+    #>  ---                                                
+    #> 101:   NA    NA     011  79.68634 947.9243 7415.2695
+    #> 102:   NA    NA     107  63.81250 878.3050 5521.9911
+    #> 103:   NA    NA     121  43.60497 800.5253 3118.5685
+    #> 104:   NA    NA     091  29.09490 764.9933 1514.0289
+    #> 105:   NA    NA     209  15.17167 756.0888  207.5949
 
 You can see that 3 variables are created. `order_1` represents the
 original values, linearly aggregated to the county, monthly level.
@@ -324,35 +328,9 @@ variables, where K is the number of knots, in addition to preserving the
 original untransformed value of the variable.
 
 ``` r
-quantiles <- daily_quants(          # Use daily_quants() to calculate quantiles 
-                                    # in daily values to help determine knot 
-                                    # locations
-  
-  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, to 
-                                    # aggregate to daily level and calculate 
-                                    # quantiles from
-  
-  overlay_weights = county_weights, # Output from Step 2, determined here by 
-                                    # area-normalized cropland weights for grid
-                                    # cells within each county in Kansas
-  
-  daily_agg = "sum",                # How to aggregate hourly values to the 
-                                    # daily level, "sum" and "average" are the 
-                                    # only options. Here we want total daily
-                                    # precipitation
-  
-  probs = c(.05, .35, .65, .95)     # Probabilities from 0 to 1 to calculate 
-                                    # quantiles in the daily data from
-  
-)
-```
-
-    #> Summing hourly values to daily values
-
-``` r
 spline_output <- staggregate_spline(
   
-  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+  data = temp_kansas_jan_2020_era5, # A raster brick of our primary data, 
                                     # typically but not necessarily climate 
                                     # data. For now, data must start at midnight
                                     # and be hourly.
@@ -361,24 +339,26 @@ spline_output <- staggregate_spline(
                                     # area-normalized cropland weights for grid
                                     # cells within each county in Kansas
   
-  daily_agg = "sum",                # How to aggregate hourly values to the 
+  daily_agg = "average",            # How to aggregate hourly values to the 
                                     # daily level, "sum" and "average" are the 
-                                    # only options. Here we want total daily 
-                                    # precipitation
+                                    # only options. Here we want average daily 
+                                    # temperature
   
   time_agg = "month",               # The temporal level to aggregate daily 
                                     # transformed values to. Current options are 
                                     # "day", "month", and "year" 
   
-  knot_locs = as.vector(quantiles)  # Where to place the knots
+  knot_locs = c(0, 3, 7, 10)        # Where to place the knots
 )
 ```
 
-    #> Summing hourly values to daily values
+    #> Averaging hourly values to get daily values
 
     #> Executing spline transformation
 
-    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_date()
+    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()
+
+    #> Warning: All formats failed to parse. No formats found.
 
     #> Aggregating by polygon and month
 
@@ -387,18 +367,18 @@ spline_output <- staggregate_spline(
 spline_output
 ```
 
-    #>      year month poly_id      value       term_1       term_2
-    #>   1: 2011    12     129 0.05643332 1.668146e-07 1.668146e-07
-    #>   2: 2011    12     187 0.05680940 1.632206e-07 1.632206e-07
-    #>   3: 2011    12     075 0.05149176 1.455279e-07 1.455279e-07
-    #>   4: 2011    12     071 0.04700092 1.237896e-07 1.237896e-07
-    #>   5: 2011    12     199 0.04279329 1.016673e-07 1.016673e-07
-    #>  ---                                                        
-    #> 101: 2011    12     011 0.07018325 2.058852e-07 2.058852e-07
-    #> 102: 2011    12     107 0.07532783 2.265836e-07 2.265836e-07
-    #> 103: 2011    12     121 0.07734484 2.358506e-07 2.358506e-07
-    #> 104: 2011    12     091 0.07875736 2.461432e-07 2.461432e-07
-    #> 105: 2011    12     209 0.08044296 2.578355e-07 2.578355e-07
+    #>      year month poly_id     value   term_1    term_2
+    #>   1:   NA    NA     129 112.92002 3500.962  487.3764
+    #>   2:   NA    NA     187 102.00318 3147.837  449.8750
+    #>   3:   NA    NA     075  80.82003 2233.356  275.5847
+    #>   4:   NA    NA     071  69.47838 1700.092  156.9369
+    #>   5:   NA    NA     199  66.90692 1631.409  140.8871
+    #>  ---                                                
+    #> 101:   NA    NA     011  79.68634 6450.763 1858.7749
+    #> 102:   NA    NA     107  63.81250 5474.158 1535.6248
+    #> 103:   NA    NA     121  43.60497 4170.820 1090.3874
+    #> 104:   NA    NA     091  29.09490 3281.988  795.4140
+    #> 105:   NA    NA     209  15.17167 2699.209  637.0012
 
 You can see that your output looks very similar to the table from the
 polynomial transformation. The only difference here is that 4 - 2
@@ -407,15 +387,15 @@ is now ready for use in a regression.
 
 #### Binning Transformation
 
-The last tranformation `stagg` offers is to divide the daily values into
-different bins specified by the user. This can be useful in identifying
-outliers and nonlinearities within the data, and accomplished by calling
+`stagg` can also divide the daily values into different bins specified
+by the user. This can be useful in identifying outliers and
+nonlinearities within the data, and accomplished by calling
 `staggregate_bin()`.
 
 ``` r
 bin_output <- staggregate_bin(
   
-  data = prcp_kansas_dec2011_era5,  # A raster brick of our primary data, 
+  data = temp_kansas_jan_2020_era5, # A raster brick of our primary data, 
                                     # typically but not necessarily climate 
                                     # data. For now, data must start at midnight
                                     # and be hourly.
@@ -425,24 +405,26 @@ bin_output <- staggregate_bin(
                                     # cells within each county in Kansas
   
   
-  daily_agg = "sum",                # How to aggregate hourly values to the 
+  daily_agg = "average",            # How to aggregate hourly values to the 
                                     # daily level, "sum" and "average" are the  
-                                    # only options. Here we want total daily 
-                                    # precipitation. 
+                                    # only options. Here we want average daily 
+                                    # temperature. 
   
   time_agg = "month",               # The temporal level to aggregate daily  
                                     # transformed values to. Current options are
                                     # "day", "month", and "year" 
   
-  bin_breaks = c(0, 2, 4, 6)        # The values to split the data by
+  bin_breaks = c(0, 2.5, 5, 7.5, 10)        # The values to split the data by
 )
 ```
 
-    #> Summing hourly values to daily values
+    #> Averaging hourly values to get daily values
 
     #> Executing binning transformation
 
-    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_date()
+    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()
+
+    #> Warning: All formats failed to parse. No formats found.
 
     #> Aggregating by polygon and month
 
@@ -451,30 +433,30 @@ bin_output <- staggregate_bin(
 bin_output
 ```
 
-    #>      year month poly_id bin_ninf_to_0 bin_0_to_2 bin_2_to_4 bin_4_to_6
-    #>   1: 2011    12     129      16.57524   13.42476          0          0
-    #>   2: 2011    12     187      17.62299   12.37701          0          0
-    #>   3: 2011    12     075      17.50892   12.49108          0          0
-    #>   4: 2011    12     071      17.81776   12.18224          0          0
-    #>   5: 2011    12     199      18.79249   11.20751          0          0
-    #>  ---                                                                  
-    #> 101: 2011    12     011      13.98931   16.01069          0          0
-    #> 102: 2011    12     107      13.95431   16.04569          0          0
-    #> 103: 2011    12     121      13.44070   16.55930          0          0
-    #> 104: 2011    12     091      14.71583   15.28417          0          0
-    #> 105: 2011    12     209      14.48745   15.51255          0          0
-    #>      bin_6_to_inf
-    #>   1:            0
-    #>   2:            0
-    #>   3:            0
-    #>   4:            0
-    #>   5:            0
-    #>  ---             
-    #> 101:            0
-    #> 102:            0
-    #> 103:            0
-    #> 104:            0
-    #> 105:            0
+    #>      year month poly_id bin_ninf_to_0 bin_0_to_2.5 bin_2.5_to_5 bin_5_to_7.5
+    #>   1:   NA    NA     129      2.549250     5.636038    13.299869     7.514844
+    #>   2:   NA    NA     187      3.113396     6.702054    12.197221     7.079204
+    #>   3:   NA    NA     075      4.497534     8.875200    11.645565     5.107956
+    #>   4:   NA    NA     071      5.102531    10.185469    10.569460     5.142540
+    #>   5:   NA    NA     199      5.000000    10.673271    10.326729     5.000000
+    #>  ---                                                                        
+    #> 101:   NA    NA     011      7.437066     8.605006     6.957929     3.000000
+    #> 102:   NA    NA     107      8.069160    10.482130     4.537403     2.964308
+    #> 103:   NA    NA     121      9.421720    11.553613     4.032575     2.100239
+    #> 104:   NA    NA     091      9.281905    11.718095     4.018300     4.075213
+    #> 105:   NA    NA     209     10.279019    10.720981     4.566454     4.414998
+    #>      bin_7.5_to_10 bin_10_to_inf
+    #>   1:    2.00000000      0.000000
+    #>   2:    1.90812541      0.000000
+    #>   3:    0.87374504      0.000000
+    #>   4:    0.00000000      0.000000
+    #>   5:    0.00000000      0.000000
+    #>  ---                            
+    #> 101:    2.00000000      3.000000
+    #> 102:    2.74871671      2.198282
+    #> 103:    2.48594898      1.405904
+    #> 104:    0.90648694      1.000000
+    #> 105:    0.01854763      1.000000
 
 Like before, the output table features one row for every county for
 every time period specified by the `time_agg` argument. What has changed
@@ -483,8 +465,90 @@ number of days a polygon had a value that fell within that bin during
 the timespan specified by the `time_agg` argument. These outputs are not
 necessarily integers since the polygon is made up of pixels that are
 sorted into bins and then weighted by the `overlay_weights` provided and
-aggregated, here, to the county level. Here we specify bins from
-negative infinity to 0, 0 to 2, 2 to 4, 4 to 6, and 6 to infinity by
-passing c(0,2,4,6) to bin_break. `staggregate_bin` draws a bin between
-each break, and adds edge bins that encompass all values below the
-minimum break and above the maximum break.
+aggregated, here, to the county level. Here we specify bins, in degrees
+Celsius, from negative infinity to 0, 0 to 2.5, 2.5 to 5, 5 to 7.5, 7.5
+to 10, and 10 to infinity by passing c(0, 2.5, 5, 7.5, 10) to bin_break.
+`staggregate_bin` draws a bin between each pair of breaks, and adds edge
+bins that encompass all values below the minimum break and above the
+maximum break.
+
+#### Degree Days Transformation
+
+The final transformation offered is degree days, which measures the
+degrees over a certain temperature threshold experienced (often) by
+crops. This is used to generate estimates for piecewise functions.
+
+``` r
+staggregate_degree_days(
+  data = temp_kansas_jan_2020_era5, # A raster brick of our primary data, 
+                                    # typically but not necessarily climate 
+                                    # data. For now, data must start at midnight
+                                    # and be hourly.
+  
+  overlay_weights = county_weights, # Output from Step 2, determined here by 
+                                    # area-normalized cropland weights for grid 
+                                    # cells within each county in Kansas
+  
+  # Note degree_days() does not take a daily_agg as it uses hourly values
+  
+  time_agg = "month",               # The temporal level to aggregate daily  
+                                    # transformed values to. Current options are
+                                    # "day", "month", and "year" 
+  
+  thresholds = c(0, 10, 20)        # Temperature thresholds between which 
+                                   # separate regression coefficients can be 
+                                   # estimated
+)
+```
+
+    #> Skipping pre-transformation aggregation to daily level
+
+    #> Executing degree days transformation
+
+    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()
+
+    #> Warning: All formats failed to parse. No formats found.
+
+    #> Aggregating by polygon and month
+
+    #>      year month poly_id threshold__to_0 threshold_0_to_10 threshold_10_to_20
+    #>   1:   NA    NA     129              NA          2994.173          255.85814
+    #>   2:   NA    NA     187              NA          2871.995          232.61921
+    #>   3:   NA    NA     075              NA          2598.197          161.99939
+    #>   4:   NA    NA     071              NA          2422.126          120.05884
+    #>   5:   NA    NA     199              NA          2370.442          126.00658
+    #>  ---                                                                        
+    #> 101:   NA    NA     011              NA          2437.138          268.49831
+    #> 102:   NA    NA     107              NA          2250.300          206.82323
+    #> 103:   NA    NA     121              NA          2017.507          129.40779
+    #> 104:   NA    NA     091              NA          1841.484           95.79451
+    #> 105:   NA    NA     209              NA          1672.952           80.04994
+    #>      threshold_20_to_inf
+    #>   1:                   0
+    #>   2:                   0
+    #>   3:                   0
+    #>   4:                   0
+    #>   5:                   0
+    #>  ---                    
+    #> 101:                   0
+    #> 102:                   0
+    #> 103:                   0
+    #> 104:                   0
+    #> 105:                   0
+
+`staggregate_degree_days()` operates directly on the hourly values.
+Passing a vector of length n to `thresholds` creates n + 1 columns,
+similar to how `staggregate_bin()` opperates. For each value in the
+climate raster brick (or stack), the function determines which
+thresholds the value falls between. For example, a value of 15 falls
+between 10 and 20. All the variables corresponding to threshold pairs
+below these receive the difference between the two thresholds
+(threshold_0\_to_10 gets 10) and all variables above
+(threshold_20_to_inf) get 0. The variable in which the value falls gets
+the difference between the lower threshold and the value
+(threshold_10_to20 gets 5). The low edge variable (threshold_ninf_to_0)
+is unique in that it measures how far below the smallest threshold a
+value falls. A value of -3 would get 3 for this variable, while any
+value above 0 would receive 0 here. Once all values are transformed in
+this way the hourly values are then aggregated to the polygon level and
+temporal scale desired as with all other `staggregate_*` functions.

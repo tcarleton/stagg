@@ -176,7 +176,7 @@ Another type of transformation `stagg` supports is a restricted cubic spline. Th
 ```{r}
 spline_output <- staggregate_spline(
   
-  data = temp_kansas_jan_2015_era5, # A raster brick of our primary data, 
+  data = temp_kansas_jan_2020_era5, # A raster brick of our primary data, 
                                     # typically but not necessarily climate 
                                     # data. For now, data must start at midnight
                                     # and be hourly.
@@ -194,7 +194,7 @@ spline_output <- staggregate_spline(
                                     # transformed values to. Current options are 
                                     # "day", "month", and "year" 
   
-  knot_locs = c(0, 3, 7, 10)  # Where to place the knots
+  knot_locs = c(0, 3, 7, 10)        # Where to place the knots
 )
 
 # Display output
@@ -210,26 +210,26 @@ You can see that your output looks very similar to the table from the polynomial
 ```{r}
 bin_output <- staggregate_bin(
   
-  data = temp_kansas_jan_2015_era5, # A raster brick of our primary data, 
-                                    # typically but not necessarily climate 
-                                    # data. For now, data must start at midnight
-                                    # and be hourly.
+  data = temp_kansas_jan_2020_era5,  # A raster brick of our primary data, 
+                                     # typically but not necessarily climate 
+                                     # data. For now, data must start at midnight
+                                     # and be hourly.
   
-  overlay_weights = county_weights, # Output from Step 2, determined here by 
-                                    # area-normalized cropland weights for grid 
-                                    # cells within each county in Kansas
+  overlay_weights = county_weights,  # Output from Step 2, determined here by 
+                                     # area-normalized cropland weights for grid 
+                                     # cells within each county in Kansas
   
   
-  daily_agg = "average",            # How to aggregate hourly values to the 
-                                    # daily level, "sum" and "average" are the  
-                                    # only options. Here we want average daily 
-                                    # temperature. 
+  daily_agg = "average",             # How to aggregate hourly values to the 
+                                     # daily level, "sum" and "average" are the  
+                                     # only options. Here we want average daily 
+                                     # temperature. 
   
-  time_agg = "month",               # The temporal level to aggregate daily  
-                                    # transformed values to. Current options are
-                                    # "day", "month", and "year" 
+  time_agg = "month",                # The temporal level to aggregate daily  
+                                     # transformed values to. Current options are
+                                     # "day", "month", and "year" 
   
-  bin_breaks = c(0, 2.5, 5, 7.5, 10)        # The values to split the data by
+  bin_breaks = c(0, 2.5, 5, 7.5, 10) # The values to split the data by
 )
 
 # Display output
@@ -240,4 +240,29 @@ Like before, the output table features one row for every county for every time p
 
 
 #### Degree Days Transformation
+The final transformation offered is degree days, which measures the degrees over a certain temperature threshold experienced (often) by crops. This is used to generate estimates for piecewise functions.
 
+```{r}
+staggregate_degree_days(
+  data = temp_kansas_jan_2020_era5, # A raster brick of our primary data, 
+                                    # typically but not necessarily climate 
+                                    # data. For now, data must start at midnight
+                                    # and be hourly.
+  
+  overlay_weights = county_weights, # Output from Step 2, determined here by 
+                                    # area-normalized cropland weights for grid 
+                                    # cells within each county in Kansas
+  
+  # Note degree_days() does not take a daily_agg as it uses hourly values
+  
+  time_agg = "month",               # The temporal level to aggregate daily  
+                                    # transformed values to. Current options are
+                                    # "day", "month", and "year" 
+  
+  thresholds = c(0, 10, 20)        # Temperature thresholds between which 
+                                   # separate regression coefficients can be 
+                                   # estimated
+)
+```
+
+`staggregate_degree_days()` operates directly on the hourly values. Passing a vector of length n to `thresholds` creates n + 1 columns, similar to how `staggregate_bin()` opperates. For each value in the climate raster brick (or stack), the function determines which thresholds the value falls between. For example, a value of 15 falls between 10 and 20. All the variables corresponding to threshold pairs below these receive the difference between the two thresholds (threshold_0_to_10 gets 10) and all variables above (threshold_20_to_inf) get 0. The variable in which the value falls gets the difference between the lower threshold and the value (threshold_10_to20 gets 5). The low edge variable (threshold_ninf_to_0) is unique in that it measures how far below the smallest threshold a value falls. A value of -3 would get 3 for this variable, while any value above 0 would receive 0 here. Once all values are transformed in this way the hourly values are then aggregated to the polygon level and temporal scale desired as with all other `staggregate_*` functions. 

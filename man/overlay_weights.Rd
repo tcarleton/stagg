@@ -41,7 +41,7 @@ overlay_output_with_secondary_weights <- overlay_weights(
 
   era5_grid, # The empty grid to resample to and align with
 
-  cropland_world_2003_era5 # Output from secondary_weights
+  cropland_world_2015_era5 # Output from secondary_weights
   )
 
 
