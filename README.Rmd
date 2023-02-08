@@ -80,7 +80,7 @@ As you can see from the output, `secondary_weights()` checks for alignment, and 
 Due to size constraints, cropland_kansas_2011 is very small. Here we'll replace the output from this example with pre-loaded, global cropland weights but keep the same name to demonstrate how the package normally would flow. Note that the pre-processed global cropland weights as well as global population weights are available as part of the package and can be used for analysis in any part of the globe. 
 
 ```{r}
-cropland_weights <- dplyr::filter(cropland_world_2003_era5, 
+cropland_weights <- dplyr::filter(cropland_world_2015_era5, 
                                   x >= -103, x <= -94, y >= 37, y <= 41)
 ```
 
@@ -225,7 +225,7 @@ You can see that your output looks very similar to the table from the polynomial
 
 
 #### Binning Transformation
-The last tranformation `stagg` offers is to divide the daily values into different bins specified by the user. This can be useful in identifying outliers and nonlinearities within the data, and accomplished by calling `staggregate_bin()`. 
+`stagg` can also divide the daily values into different bins specified by the user. This can be useful in identifying outliers and nonlinearities within the data, and accomplished by calling `staggregate_bin()`. 
 
 ```{r}
 bin_output <- staggregate_bin(
@@ -257,3 +257,7 @@ bin_output
 ```
 
 Like before, the output table features one row for every county for every time period specified by the `time_agg` argument. What has changed is that there is a new column for each bin created, representing the number of days a polygon had a value that fell within that bin during the timespan specified by the `time_agg` argument. These outputs are not necessarily integers since the polygon is made up of pixels that are sorted into bins and then weighted by the `overlay_weights` provided and aggregated, here, to the county level. Here we specify bins from negative infinity to 0, 0 to 2, 2 to 4, 4 to 6, and 6 to infinity by passing c(0,2,4,6) to bin_break. `staggregate_bin` draws a bin between each break, and adds edge bins that encompass all values below the minimum break and above the maximum break. 
+
+
+#### Degree Days Transformation
+
