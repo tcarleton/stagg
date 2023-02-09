@@ -162,6 +162,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 
 
 
+
   if(time_agg == "hour"){
     message(crayon::green("Aggregating by polygon"))
     sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month, day, hour),
@@ -172,14 +173,12 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
   }
 
 
-
   ## Return the sums by polygon
   return(sum_by_poly)
 
 
 
 }
-
 
 
 #=====================================================================================================================================================
@@ -431,7 +430,8 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'   supported) 'polynomial', this is an integer indicating the degree.
 #' @param time_agg The temporal scale to aggregate data to ('day', 'month', and
 #'   'year' currently supported)
-#' @param bin_breaks Where to divide the data
+
+#' @param bin_breaks A vector of bin boundaries to split the data by
 #'
 #' @examples
 #' bin_output <- staggregate_bin(

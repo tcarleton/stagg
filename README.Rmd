@@ -194,7 +194,8 @@ spline_output <- staggregate_spline(
                                     # transformed values to. Current options are 
                                     # "day", "month", and "year" 
   
-  knot_locs = c(0, 3, 7, 10)        # Where to place the knots
+  knot_locs = c(0, 7.5, 12.5, 20)        # Where to place the knots
+
 )
 
 # Display output
