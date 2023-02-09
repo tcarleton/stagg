@@ -592,7 +592,7 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "day", thr
     if(x == 0){
       paste("threshold", "ninf", "to", sub("-", "n", min(thresholds)), sep = "_")
     }
-    if(x == length(thresholds)){
+    else if(x == length(thresholds)){
       paste("threshold", sub("-", "n", max(thresholds)), "to", "inf", sep = "_")
     }
     else{
@@ -607,13 +607,13 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "day", thr
     if(x == 0){ # For the lowest threshold, create a variable equal to 0 if the
                 # value is greater than the threshold, and equal to the
                 # threshold minus value otherwise
-      clim_table <- ifelse(clim_table > thresholds[x], 0, thresholds - clim_table)
+      clim_table <- ifelse(clim_table > min(thresholds), 0, min(thresholds) - clim_table)
     }
     else if(x == length(thresholds)){ # For the highest threshold, create a
                                       # variable equal to 0 if value is less
                                       # than threshold and equal to the value
                                       # minus the threshold if otherwise
-      clim_table <- ifelse(clim_table < thresholds[x], 0, clim_table - thresholds[x])
+      clim_table <- ifelse(clim_table < max(thresholds), 0, clim_table - max(thresholds))
     }
     else{ # For all other thresholds, create variable equal to 0 if value is
           # less than threshold, equal to next threshold minus current threshold

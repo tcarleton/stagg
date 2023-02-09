@@ -128,7 +128,7 @@ Given all of this information, we can interpret the top row in the output as fol
 
 
 ### Step 3: Transform and aggregate data using the `staggregate_*` family of functions
-After completing Step 2, you are ready to transform and aggregate your data. This is the final step before the data is ready for use in downstream statistical analyses. The `stagg` package provides a family of functions to perform this final step, each offering a different type of non-linear transformation. Regardless of the specific function,`staggregate_*`'s workflow is to aggregate gridded values to the daily level, perform a transformation on the daily values, and aggregate these values to the administrative regions and desired temporal scale based on the `overlay_weights()` output from Step 2.
+After completing Step 2, you are ready to transform and aggregate your data. This is the final step before the data is ready for use in downstream statistical analyses. The `stagg` package provides a family of functions to perform this final step, each offering a different type of non-linear transformation. Regardless of the specific function,`staggregate_*`'s workflow is to aggregate gridded values to the daily level (this step can be skipped by specifying daily_agg = "none", though is recommended for faster computation), perform a transformation on the daily values, and aggregate these values to the administrative regions and desired temporal scale based on the `overlay_weights()` output from Step 2.
 
 
 #### Polynomial Transformation

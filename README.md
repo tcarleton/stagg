@@ -230,9 +230,11 @@ downstream statistical analyses. The `stagg` package provides a family
 of functions to perform this final step, each offering a different type
 of non-linear transformation. Regardless of the specific
 function,`staggregate_*`’s workflow is to aggregate gridded values to
-the daily level, perform a transformation on the daily values, and
-aggregate these values to the administrative regions and desired
-temporal scale based on the `overlay_weights()` output from Step 2.
+the daily level (this step can be skipped by specifying daily_agg =
+“none”, though is recommended for faster computation), perform a
+transformation on the daily values, and aggregate these values to the
+administrative regions and desired temporal scale based on the
+`overlay_weights()` output from Step 2.
 
 #### Polynomial Transformation
 
@@ -280,8 +282,6 @@ polynomial_output <- staggregate_polynomial(
 
     #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()
 
-    #> Warning: All formats failed to parse. No formats found.
-
     #> Aggregating by polygon and month
 
 ``` r
@@ -290,17 +290,17 @@ polynomial_output
 ```
 
     #>      year month poly_id   order_1  order_2   order_3
-    #>   1:   NA    NA     129 112.92002 640.0153 3412.8025
-    #>   2:   NA    NA     187 102.00318 590.2717 3012.2352
-    #>   3:   NA    NA     075  80.82003 474.7735 1970.4388
-    #>   4:   NA    NA     071  69.47838 418.2560 1316.2572
-    #>   5:   NA    NA     199  66.90692 413.5508 1190.2729
+    #>   1: 2020     1     129 112.92002 640.0153 3412.8025
+    #>   2: 2020     1     187 102.00318 590.2717 3012.2352
+    #>   3: 2020     1     075  80.82003 474.7735 1970.4388
+    #>   4: 2020     1     071  69.47838 418.2560 1316.2572
+    #>   5: 2020     1     199  66.90692 413.5508 1190.2729
     #>  ---                                                
-    #> 101:   NA    NA     011  79.68634 947.9243 7415.2695
-    #> 102:   NA    NA     107  63.81250 878.3050 5521.9911
-    #> 103:   NA    NA     121  43.60497 800.5253 3118.5685
-    #> 104:   NA    NA     091  29.09490 764.9933 1514.0289
-    #> 105:   NA    NA     209  15.17167 756.0888  207.5949
+    #> 101: 2020     1     011  79.68634 947.9243 7415.2695
+    #> 102: 2020     1     107  63.81250 878.3050 5521.9911
+    #> 103: 2020     1     121  43.60497 800.5253 3118.5685
+    #> 104: 2020     1     091  29.09490 764.9933 1514.0289
+    #> 105: 2020     1     209  15.17167 756.0888  207.5949
 
 You can see that 3 variables are created. `order_1` represents the
 original values, linearly aggregated to the county, monthly level.
@@ -358,8 +358,6 @@ spline_output <- staggregate_spline(
 
     #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()
 
-    #> Warning: All formats failed to parse. No formats found.
-
     #> Aggregating by polygon and month
 
 ``` r
@@ -368,17 +366,17 @@ spline_output
 ```
 
     #>      year month poly_id     value   term_1    term_2
-    #>   1:   NA    NA     129 112.92002 3500.962  487.3764
-    #>   2:   NA    NA     187 102.00318 3147.837  449.8750
-    #>   3:   NA    NA     075  80.82003 2233.356  275.5847
-    #>   4:   NA    NA     071  69.47838 1700.092  156.9369
-    #>   5:   NA    NA     199  66.90692 1631.409  140.8871
+    #>   1: 2020     1     129 112.92002 3500.962  487.3764
+    #>   2: 2020     1     187 102.00318 3147.837  449.8750
+    #>   3: 2020     1     075  80.82003 2233.356  275.5847
+    #>   4: 2020     1     071  69.47838 1700.092  156.9369
+    #>   5: 2020     1     199  66.90692 1631.409  140.8871
     #>  ---                                                
-    #> 101:   NA    NA     011  79.68634 6450.763 1858.7749
-    #> 102:   NA    NA     107  63.81250 5474.158 1535.6248
-    #> 103:   NA    NA     121  43.60497 4170.820 1090.3874
-    #> 104:   NA    NA     091  29.09490 3281.988  795.4140
-    #> 105:   NA    NA     209  15.17167 2699.209  637.0012
+    #> 101: 2020     1     011  79.68634 6450.763 1858.7749
+    #> 102: 2020     1     107  63.81250 5474.158 1535.6248
+    #> 103: 2020     1     121  43.60497 4170.820 1090.3874
+    #> 104: 2020     1     091  29.09490 3281.988  795.4140
+    #> 105: 2020     1     209  15.17167 2699.209  637.0012
 
 You can see that your output looks very similar to the table from the
 polynomial transformation. The only difference here is that 4 - 2
@@ -395,26 +393,26 @@ nonlinearities within the data, and accomplished by calling
 ``` r
 bin_output <- staggregate_bin(
   
-  data = temp_kansas_jan_2020_era5, # A raster brick of our primary data, 
-                                    # typically but not necessarily climate 
-                                    # data. For now, data must start at midnight
-                                    # and be hourly.
+  data = temp_kansas_jan_2020_era5,  # A raster brick of our primary data, 
+                                     # typically but not necessarily climate 
+                                     # data. For now, data must start at midnight
+                                     # and be hourly.
   
-  overlay_weights = county_weights, # Output from Step 2, determined here by 
-                                    # area-normalized cropland weights for grid 
-                                    # cells within each county in Kansas
+  overlay_weights = county_weights,  # Output from Step 2, determined here by 
+                                     # area-normalized cropland weights for grid 
+                                     # cells within each county in Kansas
   
   
-  daily_agg = "average",            # How to aggregate hourly values to the 
-                                    # daily level, "sum" and "average" are the  
-                                    # only options. Here we want average daily 
-                                    # temperature. 
+  daily_agg = "average",             # How to aggregate hourly values to the 
+                                     # daily level, "sum" and "average" are the  
+                                     # only options. Here we want average daily 
+                                     # temperature. 
   
-  time_agg = "month",               # The temporal level to aggregate daily  
-                                    # transformed values to. Current options are
-                                    # "day", "month", and "year" 
+  time_agg = "month",                # The temporal level to aggregate daily  
+                                     # transformed values to. Current options are
+                                     # "day", "month", and "year" 
   
-  bin_breaks = c(0, 2.5, 5, 7.5, 10)        # The values to split the data by
+  bin_breaks = c(0, 2.5, 5, 7.5, 10) # The values to split the data by
 )
 ```
 
@@ -424,8 +422,6 @@ bin_output <- staggregate_bin(
 
     #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()
 
-    #> Warning: All formats failed to parse. No formats found.
-
     #> Aggregating by polygon and month
 
 ``` r
@@ -434,17 +430,17 @@ bin_output
 ```
 
     #>      year month poly_id bin_ninf_to_0 bin_0_to_2.5 bin_2.5_to_5 bin_5_to_7.5
-    #>   1:   NA    NA     129      2.549250     5.636038    13.299869     7.514844
-    #>   2:   NA    NA     187      3.113396     6.702054    12.197221     7.079204
-    #>   3:   NA    NA     075      4.497534     8.875200    11.645565     5.107956
-    #>   4:   NA    NA     071      5.102531    10.185469    10.569460     5.142540
-    #>   5:   NA    NA     199      5.000000    10.673271    10.326729     5.000000
+    #>   1: 2020     1     129      2.549250     5.636038    13.299869     7.514844
+    #>   2: 2020     1     187      3.113396     6.702054    12.197221     7.079204
+    #>   3: 2020     1     075      4.497534     8.875200    11.645565     5.107956
+    #>   4: 2020     1     071      5.102531    10.185469    10.569460     5.142540
+    #>   5: 2020     1     199      5.000000    10.673271    10.326729     5.000000
     #>  ---                                                                        
-    #> 101:   NA    NA     011      7.437066     8.605006     6.957929     3.000000
-    #> 102:   NA    NA     107      8.069160    10.482130     4.537403     2.964308
-    #> 103:   NA    NA     121      9.421720    11.553613     4.032575     2.100239
-    #> 104:   NA    NA     091      9.281905    11.718095     4.018300     4.075213
-    #> 105:   NA    NA     209     10.279019    10.720981     4.566454     4.414998
+    #> 101: 2020     1     011      7.437066     8.605006     6.957929     3.000000
+    #> 102: 2020     1     107      8.069160    10.482130     4.537403     2.964308
+    #> 103: 2020     1     121      9.421720    11.553613     4.032575     2.100239
+    #> 104: 2020     1     091      9.281905    11.718095     4.018300     4.075213
+    #> 105: 2020     1     209     10.279019    10.720981     4.566454     4.414998
     #>      bin_7.5_to_10 bin_10_to_inf
     #>   1:    2.00000000      0.000000
     #>   2:    1.90812541      0.000000
@@ -507,34 +503,32 @@ staggregate_degree_days(
 
     #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()
 
-    #> Warning: All formats failed to parse. No formats found.
-
     #> Aggregating by polygon and month
 
-    #>      year month poly_id threshold__to_0 threshold_0_to_10 threshold_10_to_20
-    #>   1:   NA    NA     129              NA          2994.173          255.85814
-    #>   2:   NA    NA     187              NA          2871.995          232.61921
-    #>   3:   NA    NA     075              NA          2598.197          161.99939
-    #>   4:   NA    NA     071              NA          2422.126          120.05884
-    #>   5:   NA    NA     199              NA          2370.442          126.00658
-    #>  ---                                                                        
-    #> 101:   NA    NA     011              NA          2437.138          268.49831
-    #> 102:   NA    NA     107              NA          2250.300          206.82323
-    #> 103:   NA    NA     121              NA          2017.507          129.40779
-    #> 104:   NA    NA     091              NA          1841.484           95.79451
-    #> 105:   NA    NA     209              NA          1672.952           80.04994
-    #>      threshold_20_to_inf
-    #>   1:                   0
-    #>   2:                   0
-    #>   3:                   0
-    #>   4:                   0
-    #>   5:                   0
-    #>  ---                    
-    #> 101:                   0
-    #> 102:                   0
-    #> 103:                   0
-    #> 104:                   0
-    #> 105:                   0
+    #>      year month poly_id threshold_ninf_to_0 threshold_0_to_10
+    #>   1: 2020     1     129            539.9509          2994.173
+    #>   2: 2020     1     187            656.5378          2871.995
+    #>   3: 2020     1     075            820.5155          2598.197
+    #>   4: 2020     1     071            874.7042          2422.126
+    #>   5: 2020     1     199            890.6823          2370.442
+    #>  ---                                                         
+    #> 101: 2020     1     011            793.1640          2437.138
+    #> 102: 2020     1     107            925.6238          2250.300
+    #> 103: 2020     1     121           1100.3957          2017.507
+    #> 104: 2020     1     091           1239.0013          1841.484
+    #> 105: 2020     1     209           1388.8817          1672.952
+    #>      threshold_10_to_20 threshold_20_to_inf
+    #>   1:          255.85814                   0
+    #>   2:          232.61921                   0
+    #>   3:          161.99939                   0
+    #>   4:          120.05884                   0
+    #>   5:          126.00658                   0
+    #>  ---                                       
+    #> 101:          268.49831                   0
+    #> 102:          206.82323                   0
+    #> 103:          129.40779                   0
+    #> 104:           95.79451                   0
+    #> 105:           80.04994                   0
 
 `staggregate_degree_days()` operates directly on the hourly values.
 Passing a vector of length n to `thresholds` creates n + 1 columns,
