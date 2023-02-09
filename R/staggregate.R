@@ -202,7 +202,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #'
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 #'
-#'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+#'   daily_agg = "average", # Average hourly values to produce daily values before transformation
 #'
 #'   degree = 4 # Highest order
 #'   )
@@ -308,9 +308,9 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #'
 #' overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 #'
-#' daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+#' daily_agg = "average", # Average hourly values to produce daily values before transformation
 #'
-#' knot_locs = c(0, 3, 7, 10) # Where to place knots
+#' knot_locs = c(0, 7.5, 12.5, 20) # Where to place knots
 #' )
 #'
 #'
@@ -440,7 +440,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 #'
-#'   daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+#'   daily_agg = "average", # Average hourly values to produce daily values before transformation
 #'
 #'   bin_breaks = c(0, 2.5, 5, 7.5, 10) # Draw 6 bins from ninf to 0, 0 to 2.5,
 #'                                      # 2.5 to 5, 5 to 7.5, 7.5 to 10, 10 to inf
