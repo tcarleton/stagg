@@ -347,8 +347,9 @@ spline_output <- staggregate_spline(
   time_agg = "month",               # The temporal level to aggregate daily 
                                     # transformed values to. Current options are 
                                     # "day", "month", and "year" 
+ 
+  knot_locs = c(0, 7.5, 12.5, 20)   # Where to place the knots
   
-  knot_locs = c(0, 3, 7, 10)        # Where to place the knots
 )
 ```
 
@@ -365,18 +366,18 @@ spline_output <- staggregate_spline(
 spline_output
 ```
 
-    #>      year month poly_id     value   term_1    term_2
-    #>   1: 2020     1     129 112.92002 3500.962  487.3764
-    #>   2: 2020     1     187 102.00318 3147.837  449.8750
-    #>   3: 2020     1     075  80.82003 2233.356  275.5847
-    #>   4: 2020     1     071  69.47838 1700.092  156.9369
-    #>   5: 2020     1     199  66.90692 1631.409  140.8871
-    #>  ---                                                
-    #> 101: 2020     1     011  79.68634 6450.763 1858.7749
-    #> 102: 2020     1     107  63.81250 5474.158 1535.6248
-    #> 103: 2020     1     121  43.60497 4170.820 1090.3874
-    #> 104: 2020     1     091  29.09490 3281.988  795.4140
-    #> 105: 2020     1     209  15.17167 2699.209  637.0012
+    #> year month poly_id     value   term_1      term_2
+    #>   1: 2020     1     129 112.86916 3510.695   0.9194369
+    #>   2: 2020     1     187 101.84892 3161.328   1.8694796
+    #>   3: 2020     1     075  80.78173 2236.894   0.3241656
+    #>   4: 2020     1     071  69.47118 1700.457   0.0000000
+    #>   5: 2020     1     199  66.88787 1631.257   0.0000000
+    #>  ---                                                  
+    #> 101: 2020     1     011  79.81634 8122.806 413.2174304
+    #> 102: 2020     1     107  63.92166 6609.667 268.2332054
+    #> 103: 2020     1     121  43.53806 4795.768 148.4238966
+    #> 104: 2020     1     091  28.85431 3780.715 122.6036406
+    #> 105: 2020     1     209  15.57286 3171.073 107.3190563
 
 You can see that your output looks very similar to the table from the
 polynomial transformation. The only difference here is that 4 - 2
@@ -413,7 +414,7 @@ bin_output <- staggregate_bin(
                                      # "day", "month", and "year" 
   
   bin_breaks = c(0, 2.5, 5, 7.5, 10) # The values to split the data by
-)
+
 ```
 
     #> Averaging hourly values to get daily values

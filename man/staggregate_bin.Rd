@@ -24,7 +24,7 @@ supported) 'polynomial', this is an integer indicating the degree.}
 \item{time_agg}{The temporal scale to aggregate data to ('day', 'month', and
 'year' currently supported)}
 
-\item{bin_breaks}{Where to divide the data}
+\item{bin_breaks}{A vector of bin boundaries to split the data by}
 }
 \description{
 Bin Transformation and Aggregation of Climate Data
