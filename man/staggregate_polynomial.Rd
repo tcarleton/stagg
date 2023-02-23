@@ -36,7 +36,7 @@ polynomial_output <- staggregate_polynomial(
 
   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 
-  daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+  daily_agg = "average", # Average hourly values to produce daily values before transformation
 
   degree = 4 # Highest order
   )

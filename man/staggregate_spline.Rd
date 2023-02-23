@@ -37,9 +37,9 @@ data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
 
 overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 
-daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+daily_agg = "average", # Average hourly values to produce daily values before transformation
 
-knot_locs = c(0, 3, 7, 10) # Where to place knots
+knot_locs = c(0, 7.5, 12.5, 20) # Where to place knots
 )
 
 

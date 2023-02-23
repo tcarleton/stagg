@@ -36,7 +36,7 @@ bin_output <- staggregate_bin(
 
   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 
-  daily_agg = "sum", # Sum hourly values to produce daily values before transformation
+  daily_agg = "average", # Average hourly values to produce daily values before transformation
 
   bin_breaks = c(0, 2.5, 5, 7.5, 10) # Draw 6 bins from ninf to 0, 0 to 2.5,
                                      # 2.5 to 5, 5 to 7.5, 7.5 to 10, 10 to inf
