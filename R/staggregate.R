@@ -29,20 +29,61 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
   # Data.table of weights
   weights_dt <- data.table::as.data.table(overlay_weights)
 
-  # Extent of area weights with slight buffer to make sure all cells are included
-  min_x <- min(weights_dt$x) - 0.5
-  max_x <- max(weights_dt$x) + 0.5
-  min_y <- min(weights_dt$y) - 0.5
-  max_y <- max(weights_dt$y) + 0.5
+  # Check if raster overlay_weights span prime meridian
+  is_pm <- FALSE
+  for(i in length(weights_dt$x)){
+    if(weights_dt[i,x] < .5 & weights_dt[i,x] > -.5){
+      is_pm = TRUE # Check each x value
+      break # If near 0 value found exit loop
+    }
+  }
 
-  weights_ext <- raster::extent(min_x, max_x, min_y, max_y)
+  # If not, crop as usual
+  if(is_pm == FALSE){
+    # Extent of area weights with slight buffer to make sure all cells are included
+    min_x <- min(weights_dt$x) - 0.5
+    max_x <- max(weights_dt$x) + 0.5
+    min_y <- min(weights_dt$y) - 0.5
+    max_y <- max(weights_dt$y) + 0.5
+
+    weights_ext <- raster::extent(min_x, max_x, min_y, max_y)
+
+    # Immediately crop to weights extent
+    clim_raster <- raster::crop(raster::stack(data), weights_ext)
+
+    all_layers <- names(clim_raster)
+  }
+  else{ # If yes, make 2 crops and stitch together
+    min_x_left <- min(weights_dt$x[x >= 180]) - 0.5
+    max_x_left <- 360
+
+    min_x_right <- 0
+    max_x_right <- max(weights_dt$x[x < 180]) + 0.5
+
+    min_y <- min(weights_dt$y) - 0.5
+    max_y <- max(weights_dt$y) + 0.5
+
+    weights_ext_left <- raster::extent(min_x_left, max_x_left, min_y, max_y)
+    weights_ext_right <- raster::extent(min_x_right, max_x_right, min_y, max_y)
+
+    clim_raster_left <- raster::crop(raster::stack(data), weights_ext_left)
+    clim_raster_right <- raster::crop(raster::stack(data), weights_ext_right)
+
+
+    clim_raster <- raster::stack(raster::merge(clim_raster_left, clim_raster_right)) # Merge creates raster bricks without proper layer names
+
+    # Get layer names (dates) from clim_raster_left
+    all_layers <- names(clim_raster_left)
+  }
+
+
+
 
   ## Load climate data
   ## -----------------------------------------------
 
 
-  # Immediately crop to weights extent
-  clim_raster <- raster::crop(raster::stack(data), weights_ext)
+
 
   # Pass all layers through if not aggregating to daily level
   if(daily_agg == "none"){
@@ -58,10 +99,7 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
     stop(crayon::red("Data does not contain a number of layers that is a multiple of 24. Please use hourly data representing a whole number of days."))
   }
 
-  # Get layer names (dates)
-  all_layers <- names(clim_raster)
   layer_names <- all_layers[seq(1, length(all_layers), 24)] # Keep every 24th layer name (1 per day)
-
 
   ## Aggregate to grid-day level
   ## -----------------------------------------------
