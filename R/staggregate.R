@@ -213,17 +213,13 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = "month", degree){
 
 
-  # Stop if they've requested hourly output and but not daily_agg = none
+  # Change daily_agg to "none" if time_agg is "hour"
   if(time_agg == "hour" & daily_agg != "none"){
-    if(daily_agg == "sum"){
-      stop(crayon::red("Cannot output hourly data after aggregating to daily totals. Please specify 'daily_agg = \"none\"' to get hourly output."))
-    }
-    if(daily_agg == "average"){
-      stop(crayon::red("Cannot output hourly data after aggregating to daily averages. Please specify 'daily_agg = \"none\"' to get hourly output."))
-    }
+    message(crayon::yellow("Hourly output requested. Automatically setting daily_agg to \'none\'"))
+    daily_agg = "none"
   }
 
-  # Get climate data as a data.table and aggregate to daily values
+  # Aggregate climate data to daily values
   setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
 
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
@@ -318,17 +314,13 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #' @export
 staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "month", knot_locs){
 
-  # Stop if they've requested hourly output and but not daily_agg = none
+  # Change daily_agg to "none" if time_agg is "hour"
   if(time_agg == "hour" & daily_agg != "none"){
-    if(daily_agg == "sum"){
-      stop(crayon::red("Cannot output hourly data after aggregating to daily totals. Please specify 'daily_agg = \"none\"' to get hourly output."))
+    message(crayon::yellow("Hourly output requested. Automatically setting daily_agg to \'none\'"))
+    daily_agg = "none"
     }
-    if(daily_agg == "average"){
-      stop(crayon::red("Cannot output hourly data after aggregating to daily averages. Please specify 'daily_agg = \"none\"' to get hourly output."))
-    }
-  }
 
-  # Get climate data as a data.table and aggregate to daily values
+  # Aggregated climate data to daily values
   setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
 
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
@@ -452,17 +444,13 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #' @export
 staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month", bin_breaks){
 
-  # Stop if they've requested hourly output and but not daily_agg = none
+  # Change daily_agg to "none" if time_agg is "hour"
   if(time_agg == "hour" & daily_agg != "none"){
-    if(daily_agg == "sum"){
-      stop(crayon::red("Cannot output hourly data after aggregating to daily totals. Please specify 'daily_agg = \"none\"' to get hourly output."))
-    }
-    if(daily_agg == "average"){
-      stop(crayon::red("Cannot output hourly data after aggregating to daily averages. Please specify 'daily_agg = \"none\"' to get hourly output."))
-    }
+    message(crayon::yellow("Hourly output requested. Automatically setting daily_agg to \'none\'"))
+    daily_agg = "none"
   }
 
-  # Get climate data as a data.table and aggregate to daily values
+  # Aggregate climate data to daily values
   setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
@@ -579,9 +567,9 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 #' @export
 staggregate_degree_days <- function(data, overlay_weights, time_agg = "day", thresholds){
 
-   # Get climate data as a data.table and aggregate to daily values
+   # Run climate data through daily_aggregation)() (not actually aggregating to daily values)
   setup_list <- daily_aggregation(data, overlay_weights, daily_agg = "none")
-  clim_rast <- setup_list[[1]] # Pulls the daily aggregated raster brick
+  clim_rast <- setup_list[[1]] # Pulls the raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
 
 
