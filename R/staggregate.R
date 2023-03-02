@@ -32,7 +32,7 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
   # Check if raster overlay_weights span prime meridian
   is_pm <- FALSE
   for(i in length(weights_dt$x)){
-    if(weights_dt[i,x] < .5 & weights_dt[i,x] > -.5){
+    if(weights_dt[i,x] < .5 | weights_dt[i,x] > 359.5){
       is_pm = TRUE # Check each x value
       break # If near 0 value found exit loop
     }
@@ -54,11 +54,11 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
     all_layers <- names(clim_raster)
   }
   else{ # If yes, make 2 crops and stitch together
-    min_x_left <- min(weights_dt$x[x >= 180]) - 0.5
+    min_x_left <- min(weights_dt$x[weights_dt$x >= 180]) - 0.5
     max_x_left <- 360
 
     min_x_right <- 0
-    max_x_right <- max(weights_dt$x[x < 180]) + 0.5
+    max_x_right <- max(weights_dt$x[weights_dt$x < 180]) + 0.5
 
     min_y <- min(weights_dt$y) - 0.5
     max_y <- max(weights_dt$y) + 0.5
