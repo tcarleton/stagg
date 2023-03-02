@@ -57,7 +57,7 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
     min_x_left <- min(weights_dt$x[weights_dt$x >= 180]) - 0.5
     max_x_left <- 360
 
-    min_x_right <- 0
+    min_x_right <- -0.1 # This is necessary because cropping is non-inclusive (min_x_right = 0 excludes the cell at 0)
     max_x_right <- max(weights_dt$x[weights_dt$x < 180]) + 0.5
 
     min_y <- min(weights_dt$y) - 0.5
