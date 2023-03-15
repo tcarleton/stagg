@@ -40,11 +40,11 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
 
   # If not, crop as usual
   if(is_pm == FALSE){
-    # Extent of area weights with slight buffer to make sure all cells are included
-    min_x <- min(weights_dt$x) - 0.5
-    max_x <- max(weights_dt$x) + 0.5
-    min_y <- min(weights_dt$y) - 0.5
-    max_y <- max(weights_dt$y) + 0.5
+    # Extent of area weights with 2 cell buffer to make sure all cells are included
+    min_x <- min(weights_dt$x) - 2*raster::xres(data)
+    max_x <- max(weights_dt$x) + 2*raster::xres(data)
+    min_y <- min(weights_dt$y) - 2*raster::yres(data)
+    max_y <- max(weights_dt$y) + 2*raster::yres(data)
 
     weights_ext <- raster::extent(min_x, max_x, min_y, max_y)
 
@@ -54,14 +54,14 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
     all_layers <- names(clim_raster)
   }
   else{ # If yes, make 2 crops and stitch together
-    min_x_left <- min(weights_dt$x[weights_dt$x >= 180]) - 0.5
+    min_x_left <- min(weights_dt$x[weights_dt$x >= 180]) - 2*raster::xres(data)
     max_x_left <- 360
 
     min_x_right <- -0.1 # This is necessary because cropping is non-inclusive (min_x_right = 0 excludes the cell at 0)
-    max_x_right <- max(weights_dt$x[weights_dt$x < 180]) + 0.5
+    max_x_right <- max(weights_dt$x[weights_dt$x < 180]) + 2*raster::xres(data)
 
-    min_y <- min(weights_dt$y) - 0.5
-    max_y <- max(weights_dt$y) + 0.5
+    min_y <- min(weights_dt$y) - 2*raster::yres(data)
+    max_y <- max(weights_dt$y) + 2*raster::yres(data)
 
     weights_ext_left <- raster::extent(min_x_left, max_x_left, min_y, max_y)
     weights_ext_right <- raster::extent(min_x_right, max_x_right, min_y, max_y)
