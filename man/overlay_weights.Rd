@@ -2,7 +2,7 @@
 % Please edit documentation in R/overlay_weights.R
 \name{overlay_weights}
 \alias{overlay_weights}
-\title{Function to find spatial overlap between a raster and a set of polygons}
+\title{Find the spatial overlap between a raster and a set of polygons}
 \usage{
 overlay_weights(
   polygons,
@@ -14,44 +14,45 @@ overlay_weights(
 \arguments{
 \item{polygons}{a simple features polygon or multipolygon object}
 
-\item{polygon_id_col}{the name of a column in the sf object with a unique
-identifier for each polygon}
+\item{polygon_id_col}{the name of a column in the \code{polygons} object with a
+unique identifier for each polygon}
 
 \item{grid}{a raster layer with the same spatial resolution as the data}
 
-\item{secondary_weights}{an optional table of secondary weights, output
-from secondary_weights()}
+\item{secondary_weights}{an optional table of secondary weights, output from
+the \code{secondary_weights()} function}
 }
 \value{
 a data.table of area weights and possibly secondary weights for each
-cell within polygons (area weighted raster/polygon overlap)
+cell within each polygon
 }
 \description{
-Function to find spatial overlap between a raster and a set of polygons
+The \code{overlay_weights()} function generates a table of weights mapping
+each grid cell to its respective polygon(s) for use in the \verb{staggregate_*()}
+family of functions.
 }
 \examples{
 kansas_counties <- tigris::counties("Kansas")
 
-
 overlay_output_with_secondary_weights <- overlay_weights(
-
-  kansas_counties, # Polygons outlining the 105 counties of Kansas
-
-  "COUNTYFP", # The name of the column with the unique county identifiers
-
-  era5_grid, # The empty grid to resample to and align with
-
+  polygons = kansas_counties, # Polygons outlining the 105 counties of Kansas
+  polygon_id_col = "COUNTYFP", # The name of the column with the unique
+                               # county identifiers
+  era5_grid, # The grid to use when extracting area weights (era5_grid is the
+             # default)
   cropland_world_2015_era5 # Output from secondary_weights
+                           # (cropland_world_2015_era5 is available to the
+                           # user)
   )
-
 
 head(overlay_output_with_secondary_weights)
 
 
 
 overlay_output_without_secondary_weights <- overlay_weights(
-  kansas_counties, # Polygons outlining the 105 counties of Kansas
-  "COUNTYFP" # The name of the column with the unique county identifiers
+  polygons = kansas_counties, # Polygons outlining the 105 counties of Kansas
+  polygon_id_col = "COUNTYFP" # The name of the column with the unique county
+                              # identifiers
   )
 
 head(overlay_output_without_secondary_weights)
