@@ -2,32 +2,37 @@
 % Please edit documentation in R/secondary_weights.R
 \name{secondary_weights}
 \alias{secondary_weights}
-\title{Function that resamples a raster of interest}
+\title{Resample a raster of secondary weights}
 \usage{
 secondary_weights(secondary_raster, grid = era5_grid, extent = "full")
 }
 \arguments{
-\item{secondary_raster}{a raster of a continuous variable, for example
+\item{secondary_raster}{a raster of a secondary variable, for example
 cropland coverage or population}
 
-\item{grid}{a raster layer with the same spatial resolution as the data}
+\item{grid}{a raster layer with the same spatial resolution as the climate
+data}
 
 \item{extent}{an optional extent to crop the secondary_raster to for faster
-processing. Takes vector in the form c(min_lon, max_lon, min_lat, max_lat)}
+processing. Takes a vector in the form \code{c(min_lon, max_lon, min_lat, max_lat)}}
 }
 \value{
 a data.table of secondary weights
 }
 \description{
-Function that resamples a raster of interest
+The \code{secondary_weights()} function resamples a raster of interest to the
+desired resolution and outputs a table of weights for use in the function
+\code{overlay_weights()}.
 }
 \examples{
 secondary_weights_output <- secondary_weights(
-
-  cropland_kansas_2011 # A raster of cropland to resample and convert to a
-                       # data.table
+  secondary_raster = cropland_kansas_2011, # A raster of cropland to resample
+                                           # and convert to a data.table
+  grid = era5_grid, # The grid to resample the secondary_raster to (era5_grid
+                    # is the default)
+  extent = "full" # The default which resamples the whole secondary raster
+                  # without cropping ("full" is the default)
   )
-
 
 head(secondary_weights_output)
 
