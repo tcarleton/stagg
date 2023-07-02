@@ -18,10 +18,10 @@
 #' secondary_weights_output <- secondary_weights(
 #'   secondary_raster = cropland_kansas_2011, # A raster of cropland to resample
 #'                                            # and convert to a data.table
-#'   grid = era5_grid, # The grid to resample the secondary_raster to (era5_grid
+#'   grid = era5_grid, # The grid to resample the secondary_raster to (`era5_grid`
 #'                     # is the default)
 #'   extent = "full" # The default which resamples the whole secondary raster
-#'                   # without cropping ("full" is the default)
+#'                   # without cropping (`'full'` is the default)
 #'   )
 #'
 #' head(secondary_weights_output)

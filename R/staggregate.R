@@ -221,29 +221,32 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 
 #=====================================================================================================================================================
 
-#' Polynomial Transformation and Aggregation of Climate Data
+#' Polynomial transformation and aggregation of climate data
+#'
+#' The function `staggregate_polynomial()` aggregates climate data to the daily
+#' level, raises these daily values to the 1 through nth power, and aggregates
+#' the transformed values to the polygon level and desired temporal scale.
 #'
 #' @param data The raster brick with the data to be transformed and aggregated
-#' @param overlay_weights A table of weights which can be generated using
-#'   the function overlay_weights()
-#' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
-#'   supported)
-#' @param time_agg the temporal scale to aggregate data to ('day', 'month', and
-#'   'year' currently supported)
+#' @param overlay_weights A table of weights which can be generated using the
+#'   function `overlay_weights()`
+#' @param daily_agg How to aggregate hourly values to daily values prior to
+#'   transformation. Options are `'sum'`, `'average'`, or `'none'` (`'none'`
+#'   will transform values without first aggregating to the daily level)
+#' @param time_agg the temporal scale to aggregate data to. Options are
+#'   `'hour'`, `'day'`, `'month'`, or `'year'` (`'hour'` cannot be selected
+#'   unless `daily_agg = 'none'`)
 #' @param degree the highest exponent to raise the data to
 #'
 #' @examples
 #' polynomial_output <- staggregate_polynomial(
-#'
 #'   data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
-#'
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
-#'
-#'   daily_agg = "average", # Average hourly values to produce daily values before transformation
-#'
+#'   daily_agg = "average", # Average hourly values to produce daily values
+#'                          # before transformation
+#'   time_agg = "month", # Sum the transformed daily values across months
 #'   degree = 4 # Highest order
 #'   )
-#'
 #'
 #' head(polynomial_output)
 #'
@@ -321,31 +324,33 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 
 #==================================================================================================================================================
 
-#' Restricted Cubic Spline Transformation and Aggregation of Climate Data
+#' Restricted cubic spline transformation and aggregation of climate data
+#'
+#' The function `staggregate_spline()` aggregates climate data to the daily
+#' level, performs a restricted cubic spline transformation on these daily
+#' values, and aggregates the transformed values to the polygon level and
+#' desired temporal scale.
 #'
 #' @param data The raster brick with the data to be transformed and aggregated
-#' @param overlay_weights A table of weights which can be generated using
-#'   the function overlay_weights()
-#' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
-#'   supported)
-#' @param time_agg the temporal scale to aggregate data to ('day', 'month', and
-#'   'year' currently supported)
-#'   'polynomial', this is an integer indicating the degree.
+#' @param overlay_weights A table of weights which can be generated using the
+#'   function `overlay_weights()`
+#' @param daily_agg How to aggregate hourly values to daily values prior to
+#'   transformation. Options are `'sum'`, `'average'`, or `'none'` (`'none'`
+#'   will transform values without first aggregating to the daily level)
+#' @param time_agg the temporal scale to aggregate data to. Options are
+#'   `'hour'`, `'day'`, `'month'`, or `'year'` (`'hour'` cannot be selected
+#'   unless `daily_agg = 'none'`)
 #' @param knot_locs where to place the knots
 #'
 #' @examples
-
 #' spline_output <- staggregate_spline(
-#'
 #' data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
-#'
 #' overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
-#'
-#' daily_agg = "average", # Average hourly values to produce daily values before transformation
-#'
+#' daily_agg = "average", # Average hourly values to produce daily values before
+#'                        # transformation
+#' time_agg = "month", # Sum the transformed daily values across months
 #' knot_locs = c(0, 7.5, 12.5, 20) # Where to place knots
 #' )
-#'
 #'
 #' head(spline_output)
 #'
@@ -451,31 +456,33 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 
 #==================================================================================================================================================
 
-#' Bin Transformation and Aggregation of Climate Data
+#' Bin transformation and aggregation of climate data
+#'
+#' The function `staggregate_bin()` aggregates climate data to the daily level,
+#' splits these daily values into bins, and aggregates the transformed
+#' values to the polygon level and desired temporal scale.
 #'
 #' @param data The raster brick with the data to be transformed and aggregated
 #' @param overlay_weights A table of weights which can be generated using the
-#'   function overlay_weights()
-#' @param daily_agg How to aggregate daily values ('sum' and 'average' currently
-#'   supported) 'polynomial', this is an integer indicating the degree.
-#' @param time_agg The temporal scale to aggregate data to ('day', 'month', and
-#'   'year' currently supported)
-
+#'   function `overlay_weights()`
+#' @param daily_agg How to aggregate hourly values to daily values prior to
+#'   transformation. Options are `'sum'`, `'average'`, or `'none'` (`'none'`
+#'   will transform values without first aggregating to the daily level)
+#' @param time_agg the temporal scale to aggregate data to. Options are
+#'   `'hour'`, `'day'`, `'month'`, or `'year'` (`'hour'` cannot be selected
+#'   unless `daily_agg = 'none'`)
 #' @param bin_breaks A vector of bin boundaries to split the data by
 #'
 #' @examples
 #' bin_output <- staggregate_bin(
-#'
 #'   data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
-#'
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
-#'
-#'   daily_agg = "average", # Average hourly values to produce daily values before transformation
-#'
+#'   daily_agg = "average", # Average hourly values to produce daily values
+#'                          # before transformation
+#'   time_agg = "month", # Sum the transformed daily values across months
 #'   bin_breaks = c(0, 2.5, 5, 7.5, 10) # Draw 6 bins from ninf to 0, 0 to 2.5,
 #'                                      # 2.5 to 5, 5 to 7.5, 7.5 to 10, 10 to inf
 #'   )
-#'
 #'
 #' head(bin_output)
 #'
@@ -580,30 +587,34 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 
 
 #================================================================================================================================================
-#' Degree Days Transformation and Aggregation of Climate Data
+
+#' Degree days transformation and aggregation of climate data
+#'
+#' The function `staggregate_degree_days()` aggregates climate data to the daily
+#' level, performs a degree days transformation on these daily values, and
+#' aggregates the transformed values to the polygon level and desired temporal
+#' scale
 #'
 #' @param data The raster brick with the data to be transformed and aggregated
 #' @param overlay_weights A table of weights which can be generated using the
-#'   function overlay_weights()
-#' @param time_agg The temporal scale to aggregate data to ('hour', 'day', 'month', and
-#'   'year' currently supported)
+#'   function `overlay_weights()`
+#' @param time_agg the temporal scale to aggregate data to. Options are `'day'`,
+#'   `'month'`, or `'year'`
 #' @param thresholds A vector of temperature thresholds critical to a crop
 #'
 #' @examples
 #' degree_days_output <- staggregate_degree_days(
-#'
 #'   data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
-#'
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
-#'
-#'   thresholds = c(0, 10, 20) # Calculate degree days above these 0, 10, and 20 degrees C
+#'   time_agg = "month", # Sum the transformed daily values across months
+#'   thresholds = c(0, 10, 20) # Calculate degree days above 0, 10, and 20
+#'                             # degrees Celsius
 #'   )
-#'
 #'
 #' head(degree_days_output)
 #'
 #' @export
-staggregate_degree_days <- function(data, overlay_weights, time_agg = "day", thresholds){
+staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", thresholds){
 
    # Run climate data through daily_aggregation)() (not actually aggregating to daily values)
   setup_list <- daily_aggregation(data, overlay_weights, daily_agg = "none")

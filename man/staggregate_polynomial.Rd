@@ -2,7 +2,7 @@
 % Please edit documentation in R/staggregate.R
 \name{staggregate_polynomial}
 \alias{staggregate_polynomial}
-\title{Polynomial Transformation and Aggregation of Climate Data}
+\title{Polynomial transformation and aggregation of climate data}
 \usage{
 staggregate_polynomial(
   data,
@@ -15,32 +15,33 @@ staggregate_polynomial(
 \arguments{
 \item{data}{The raster brick with the data to be transformed and aggregated}
 
-\item{overlay_weights}{A table of weights which can be generated using
-the function overlay_weights()}
+\item{overlay_weights}{A table of weights which can be generated using the
+function \code{overlay_weights()}}
 
-\item{daily_agg}{How to aggregate daily values ('sum' and 'average' currently
-supported)}
+\item{daily_agg}{How to aggregate hourly values to daily values prior to
+transformation. Options are \code{'sum'}, \code{'average'}, or \code{'none'} (\code{'none'}
+will transform values without first aggregating to the daily level)}
 
-\item{time_agg}{the temporal scale to aggregate data to ('day', 'month', and
-'year' currently supported)}
+\item{time_agg}{the temporal scale to aggregate data to. Options are
+\code{'hour'}, \code{'day'}, \code{'month'}, or \code{'year'} (\code{'hour'} cannot be selected
+unless \code{daily_agg = 'none'})}
 
 \item{degree}{the highest exponent to raise the data to}
 }
 \description{
-Polynomial Transformation and Aggregation of Climate Data
+The function \code{staggregate_polynomial()} aggregates climate data to the daily
+level, raises these daily values to the 1 through nth power, and aggregates
+the transformed values to the polygon level and desired temporal scale.
 }
 \examples{
 polynomial_output <- staggregate_polynomial(
-
   data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
-
   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
-
-  daily_agg = "average", # Average hourly values to produce daily values before transformation
-
+  daily_agg = "average", # Average hourly values to produce daily values
+                         # before transformation
+  time_agg = "month", # Sum the transformed daily values across months
   degree = 4 # Highest order
   )
-
 
 head(polynomial_output)
 

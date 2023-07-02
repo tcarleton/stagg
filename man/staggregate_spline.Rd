@@ -2,7 +2,7 @@
 % Please edit documentation in R/staggregate.R
 \name{staggregate_spline}
 \alias{staggregate_spline}
-\title{Restricted Cubic Spline Transformation and Aggregation of Climate Data}
+\title{Restricted cubic spline transformation and aggregation of climate data}
 \usage{
 staggregate_spline(
   data,
@@ -15,33 +15,34 @@ staggregate_spline(
 \arguments{
 \item{data}{The raster brick with the data to be transformed and aggregated}
 
-\item{overlay_weights}{A table of weights which can be generated using
-the function overlay_weights()}
+\item{overlay_weights}{A table of weights which can be generated using the
+function \code{overlay_weights()}}
 
-\item{daily_agg}{How to aggregate daily values ('sum' and 'average' currently
-supported)}
+\item{daily_agg}{How to aggregate hourly values to daily values prior to
+transformation. Options are \code{'sum'}, \code{'average'}, or \code{'none'} (\code{'none'}
+will transform values without first aggregating to the daily level)}
 
-\item{time_agg}{the temporal scale to aggregate data to ('day', 'month', and
-'year' currently supported)
-'polynomial', this is an integer indicating the degree.}
+\item{time_agg}{the temporal scale to aggregate data to. Options are
+\code{'hour'}, \code{'day'}, \code{'month'}, or \code{'year'} (\code{'hour'} cannot be selected
+unless \code{daily_agg = 'none'})}
 
 \item{knot_locs}{where to place the knots}
 }
 \description{
-Restricted Cubic Spline Transformation and Aggregation of Climate Data
+The function \code{staggregate_spline()} aggregates climate data to the daily
+level, performs a restricted cubic spline transformation on these daily
+values, and aggregates the transformed values to the polygon level and
+desired temporal scale.
 }
 \examples{
 spline_output <- staggregate_spline(
-
 data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
-
 overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
-
-daily_agg = "average", # Average hourly values to produce daily values before transformation
-
+daily_agg = "average", # Average hourly values to produce daily values before
+                       # transformation
+time_agg = "month", # Sum the transformed daily values across months
 knot_locs = c(0, 7.5, 12.5, 20) # Where to place knots
 )
-
 
 head(spline_output)
 
