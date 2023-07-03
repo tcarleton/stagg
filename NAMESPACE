@@ -3,6 +3,7 @@
 export(overlay_weights)
 export(secondary_weights)
 export(staggregate_bin)
+export(staggregate_degree_days)
 export(staggregate_polynomial)
 export(staggregate_spline)
 importFrom(data.table,":=")

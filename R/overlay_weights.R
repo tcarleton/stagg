@@ -1,38 +1,41 @@
-#' Function to find spatial overlap between a raster and a set of polygons
+#' Find the spatial overlap between a raster and a set of polygons
+#'
+#' The `overlay_weights()` function generates a table of weights mapping
+#' each grid cell to its respective polygon(s) for use in the `staggregate_*()`
+#' family of functions.
 #'
 #' @param polygons a simple features polygon or multipolygon object
-#' @param polygon_id_col the name of a column in the sf object with a unique
-#'   identifier for each polygon
+#' @param polygon_id_col the name of a column in the `polygons` object with a
+#'   unique identifier for each polygon
 #' @param grid a raster layer with the same spatial resolution as the data
-#' @param secondary_weights an optional table of secondary weights, output
-#'   from secondary_weights()
+#' @param secondary_weights an optional table of secondary weights, output from
+#'   the `secondary_weights()` function
 #'
 #' @return a data.table of area weights and possibly secondary weights for each
-#'   cell within polygons (area weighted raster/polygon overlap)
+#'   cell within each polygon
 #'
 #' @examples
 #' kansas_counties <- tigris::counties("Kansas")
 #'
-#'
 #' overlay_output_with_secondary_weights <- overlay_weights(
-#'
-#'   kansas_counties, # Polygons outlining the 105 counties of Kansas
-#'
-#'   "COUNTYFP", # The name of the column with the unique county identifiers
-#'
-#'   era5_grid, # The empty grid to resample to and align with
-#'
-#'   cropland_world_2003_era5 # Output from secondary_weights
+#'   polygons = kansas_counties, # Polygons outlining the 105 counties of Kansas
+#'   polygon_id_col = "COUNTYFP", # The name of the column with the unique
+#'                                # county identifiers
+#'   era5_grid, # The grid to use when extracting area weights (era5_grid is the
+#'              # default)
+#'   cropland_world_2015_era5 # Output from secondary_weights
+#'                            # (cropland_world_2015_era5 is available to the
+#'                            # user)
 #'   )
-#'
 #'
 #' head(overlay_output_with_secondary_weights)
 #'
 #'
 #'
 #' overlay_output_without_secondary_weights <- overlay_weights(
-#'   kansas_counties, # Polygons outlining the 105 counties of Kansas
-#'   "COUNTYFP" # The name of the column with the unique county identifiers
+#'   polygons = kansas_counties, # Polygons outlining the 105 counties of Kansas
+#'   polygon_id_col = "COUNTYFP" # The name of the column with the unique county
+#'                               # identifiers
 #'   )
 #'
 #' head(overlay_output_without_secondary_weights)
@@ -47,7 +50,9 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
   ## Raster cell area
   ## -----------------------------------------------
 
-  clim_area_raster <- raster::area(clim_raster)
+  clim_area_raster <- suppressWarnings(raster::area(clim_raster)) # Suppressing warning that is
+                                                                  # thrown because era5_grid has
+                                                                  # lat extent <-90.1 and >90.1
 
   ## Raster/polygon alignment
   ## -----------------------------------------------
@@ -80,7 +85,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
   ## -----------------------------------------------
   message(crayon::green('Extracting raster polygon overlap'))
 
-  overlap <- data.table::rbindlist(exactextractr::exact_extract(clim_area_raster, polygons_reproj, progress = T, include_xy = T), idcol = "poly_id")
+  overlap <- data.table::rbindlist(exactextractr::exact_extract(clim_area_raster, polygons_reproj, progress = F, include_xy = T), idcol = "poly_id")
   overlap[, ':=' (poly_id = polygons_reproj[[polygon_id_col]][poly_id], cell_area_km2 = value)] # Add the unique id for each polygon based on the input col name
 
 
