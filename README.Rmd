@@ -20,6 +20,8 @@ knitr::opts_chunk$set(
 
 The R Package `stagg` aims to harmonize the preparation of spatiotemporal data obtained from the [ERA5 project](https://www.ecmwf.int/en/forecasts/datasets/reanalysis-datasets/era5) for use in statistical analyses. This allows for more efficient useof researchers' time, and avoids common missteps. The end goal is a greater quantity of quality research into the study of coupled human-geophysical systems. 
 
+Further documentation, including the working paper, AGU conference poster, and cheat sheet are available [here](https://www.tammacarleton.com/)
+
 ## Installation
 
 Although `stagg` is not yet on CRAN, you can install the development version of `stagg` from [GitHub](https://github.com/) with:
