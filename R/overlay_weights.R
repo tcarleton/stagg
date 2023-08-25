@@ -59,23 +59,64 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
 
   message(crayon::yellow('Checking for raster/polygon alignment'))
 
+  ## polygon and raster xmin and xmax values
   poly_xmin <- raster::extent(polygons)@xmin
   poly_xmax <- raster::extent(polygons)@xmax
   rast_xmin <- raster::extent(clim_area_raster)@xmin
   rast_xmax <- raster::extent(clim_area_raster)@xmax
+  rast_res <-  raster::xres(clim_area_raster)
 
-  # Shift polygons if initial longitudes don't align
-  if(!dplyr::near(poly_xmax, rast_xmax, tol=1.01)) {
+  ## specify polygon coordinate system
+  poly_coord <- if(poly_xmax > 180) {
+    "climate (0-360)"
+  } else {
+    "standard (-180 to 180)"}
 
-    message(crayon::yellow('Adjusting raster longitude from',
-                           round(rast_xmin,0), '-', round(rast_xmax,0),
-                           'to -180 to 180'))
+  message(crayon::yellow('Polygon coordinate system:', poly_coord))
 
+  ## stop if polygons are not in standard coordinate system
+  if(poly_coord != "standard (-180 to 180)") {
 
-    clim_area_raster <- raster::rotate(clim_area_raster)
-
+    stop(crayon::red('Polygons must be in standard coordinate system (longitude -180 to 180).'))
 
   }
+
+  ## specify climate raster coordinate system
+  rast_coord <- if(rast_xmax > 180 + rast_res / 2) {
+    "climate (0-360)"
+  } else {
+    "standard (-180 to 180)"}
+
+  message(crayon::yellow('Climate raster coordinate system:', rast_coord))
+
+  ## check if coordinate systems match, if no shift raster in 0-360 format
+  if(poly_coord != rast_coord) {
+
+    message(crayon::yellow('Coordinate systems do not match. Adjusting raster longitude
+                           to standard coordiantes between -180 and 180 degrees.'))
+
+    ## create global extent for padding so rotate function can be used
+    global_extent <- c(0, 360, -90, 90)
+
+    ## check if raster needs to be padded, extend if needed
+    if(!dplyr::near(rast_xmin, 0, tol = rast_res) | !dplyr::near(rast_xmax, 360, tol = rast_res)) {
+
+      clim_area_raster <- extend(clim_area_raster, global_extent)
+
+      }
+
+     ## shift raster
+     message(crayon::yellow('Adjusting climate raster longitude from 0 to 360 to
+                             standard coordinates between -180 and 180 degrees.'))
+
+     clim_area_raster <- raster::rotate(clim_area_raster)
+
+     } else {
+
+    message(crayon::green('Coordinate systems match.'))
+
+  }
+
 
   # Match raster and polygon crs
   crs_raster <- raster::crs(clim_area_raster)
@@ -113,12 +154,11 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     rast_xmax <- raster::extent(clim_area_raster)@xmax
 
 
-    # If weights don't match raster convert them
-    if(!dplyr::near(weights_xmax, rast_xmax, tol=1.01)) {
+    # If weights are not in standard coordinates (-180 to 180), convert
+    if(weights_xmax > 180) {
 
-      message(crayon::yellow('Adjusting secondary weights longitude from',
-                             round(weights_xmin,0), '-', round(weights_xmax,0),
-                             'to', round(rast_xmin,0), '-', round(rast_xmax,0)))
+      message(crayon::yellow('Adjusting secondary weights longitude to standard
+                             coordinates (-180 to 180)'))
 
       weights_dt[, x := data.table::fifelse(x >= 180, x - 360, x)]
 
@@ -152,8 +192,6 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
       warning(crayon::red("Warning: weight = 0 for all pixels in some of your polygons; area-weights will be returned"))
 
     }
-
-
 
     # List any polygons with NA values in 1 or more grid cells
     na_polys <- data.frame(w_merged) %>%
