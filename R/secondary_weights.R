@@ -64,7 +64,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   } else {
     "standard (-180 to 180)"}
 
-  message(crayon::yellow('Climate raster coordinate system:', c_rast_coord))
+  message(crayon::yellow('Grid coordinate system:', c_rast_coord))
 
   ## check if coordinate systems match, if no shift raster in 0-360 format
   if(s_rast_coord != c_rast_coord) {
@@ -83,12 +83,12 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
 
       if(!dplyr::near(c_rast_xmin, 0, tol = c_rast_res) | !dplyr::near(c_rast_xmax, 360, tol = c_rast_res)) {
 
-        clim_raster <- extend(clim_raster, global_extent)
+        clim_raster <- raster::extend(clim_raster, global_extent)
 
       }
 
       ## shift raster
-      message(crayon::yellow('Adjusting climate raster longitude from 0 to 360 to
+      message(crayon::yellow('Adjusting grid longitude from 0 to 360 to
                              standard coordinates between -180 and 180 degrees.'))
 
       clim_raster <- raster::rotate(clim_raster)
@@ -100,7 +100,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
 
         if(!dplyr::near(s_rast_xmin, 0, tol = s_rast_res) | !dplyr::near(s_rast_xmax, 360, tol = s_rast_res)) {
 
-          secondary_raster <- extend(secondary_raster, global_extent)
+          secondary_raster <- raster::extend(secondary_raster, global_extent)
 
         }
 
@@ -130,7 +130,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
 
   ## set crs of secondary raster to match climate data
   ## -----------------------------------------------
-  crs(secondary_raster) <- crs(clim_raster)
+  raster::crs(secondary_raster) <- raster::crs(clim_raster)
 
 
   ## Make the values of the clim_raster resampled weights
