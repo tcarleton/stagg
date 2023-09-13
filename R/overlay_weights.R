@@ -101,7 +101,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     ## check if raster needs to be padded, extend if needed
     if(!dplyr::near(rast_xmin, 0, tol = rast_res) | !dplyr::near(rast_xmax, 360, tol = rast_res)) {
 
-      clim_area_raster <- extend(clim_area_raster, global_extent)
+      clim_area_raster <- raster::extend(clim_area_raster, global_extent)
 
       }
 
