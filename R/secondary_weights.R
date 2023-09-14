@@ -39,48 +39,94 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   # Create ERA raster from input raster
   clim_raster <- raster::raster(grid) # only reads the first band
 
-  ## Raster alignment: make sure clim_raster is -180 to 180 longitude
+  ## Raster alignment: make sure clim_raster is in same coordinate system as secondary
   ## -----------------------------------------------
 
   message(crayon::yellow('Checking for raster alignment'))
 
-  poly_xmin <- -180
-  poly_xmax <- 180
-  rast_xmin <- raster::extent(clim_raster)@xmin
-  rast_xmax <- raster::extent(clim_raster)@xmax
+  ## secondary raster
+  s_rast_xmax <- raster::extent(secondary_raster)@xmax
+  s_rast_res <- raster::xres(secondary_raster)
 
-  # Rotate raster if initial longitudes don't align
-  if(!dplyr::near(poly_xmax, rast_xmax, tol=1.01)) {
+  s_rast_coord <- if(s_rast_xmax > 180 + s_rast_res / 2) {
+    "climate (0-360)"
+  } else {
+    "standard (-180 to 180)"}
 
-    message(crayon::yellow('Adjusting raster longitude from',
-                           round(rast_xmin,0), '-', round(rast_xmax,0),
-                           'to', round(poly_xmin,0), '-', round(poly_xmax,0)))
+  message(crayon::yellow('Secondary raster coordinate system:', s_rast_coord))
 
-    clim_raster <- raster::rotate(clim_raster)
+  ## climate raster
+  c_rast_xmax <- raster::extent(clim_raster)@xmax
+  c_rast_res <- raster::xres(clim_raster)
 
-  }
+  c_rast_coord <- if(c_rast_xmax > 180 + c_rast_res / 2) {
+    "climate (0-360)"
+  } else {
+    "standard (-180 to 180)"}
 
-  # Check longitude ranges match (with a tolerance of 1 in case lon +- 179 vs. +-180)
-  poly_range <- c(-180, 180)
-  rast_range <- c(raster::extent(clim_raster)@xmin, raster::extent(clim_raster)@xmax)
+  message(crayon::yellow('Grid coordinate system:', c_rast_coord))
 
-  if(dplyr::near(poly_range[1], rast_range[1], tol=1.01) & dplyr::near(poly_range[2], rast_range[2], tol=1.01)){
+  ## check if coordinate systems match, if no shift raster in 0-360 format
+  if(s_rast_coord != c_rast_coord) {
 
-    message(crayon::green('Longitude ranges match'))
+    message(crayon::yellow('Coordinate systems do not match. Adjusting raster longitude
+                            from 0 to 360 to standard coordiantes between -180 and 180 degrees.'))
+
+    ## create global extent for padding so rotate function can be used
+    global_extent <- c(0, 360, -90, 90)
+
+    ## shift the raster that has x coordinates in 0-360 format
+    if(s_rast_coord == "standard (-180 to 180)") {
+
+      ## check if raster needs to be padded, extend if needed
+      c_rast_xmin <- raster::extent(clim_raster)@xmin
+
+      if(!dplyr::near(c_rast_xmin, 0, tol = c_rast_res) | !dplyr::near(c_rast_xmax, 360, tol = c_rast_res)) {
+
+        clim_raster <- raster::extend(clim_raster, global_extent)
+
+      }
+
+      clim_raster <- raster::rotate(clim_raster)
+
+      } else {
+
+        ## check if raster needs to be padded, extend if needed
+        s_rast_xmin <- raster::extent(secondary_raster)@xmin
+
+        if(!dplyr::near(s_rast_xmin, 0, tol = s_rast_res) | !dplyr::near(s_rast_xmax, 360, tol = s_rast_res)) {
+
+          secondary_raster <- raster::extend(secondary_raster, global_extent)
+
+        }
+
+        ## shift raster
+        message(crayon::yellow('Adjusting secondary raster longitude from 0 to 360 to
+                               standard coordinates between -180 and 180 degrees.'))
+
+        secondary_raster <- raster::rotate(secondary_raster)
+
+      }
+
 
   } else {
 
-    stop(crayon::red('Raster longitude must be -180 to 180'))
+    message(crayon::green('Coordinate systems match.'))
 
-  }
+    }
 
-  ## crop the ERA raster to the polygon or at least the raster extent
+
+  ## crop the ERA/climate raster to the polygon or at least the raster extent
   ## -----------------------------------------------
   if (!is.character(extent)){
     clim_raster <- raster::crop(clim_raster, extent)
   } else {
     clim_raster <- raster::crop(clim_raster, raster::extent(secondary_raster))
   }
+
+  ## set crs of secondary raster to match climate data
+  ## -----------------------------------------------
+  raster::crs(secondary_raster) <- raster::crs(clim_raster)
 
 
   ## Make the values of the clim_raster resampled weights
