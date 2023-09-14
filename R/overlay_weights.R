@@ -93,7 +93,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
   if(poly_coord != rast_coord) {
 
     message(crayon::yellow('Coordinate systems do not match. Adjusting raster longitude
-                           to standard coordiantes between -180 and 180 degrees.'))
+                           from 0 to 360 to standard coordiantes between -180 and 180 degrees.'))
 
     ## create global extent for padding so rotate function can be used
     global_extent <- c(0, 360, -90, 90)
@@ -104,10 +104,6 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
       clim_area_raster <- raster::extend(clim_area_raster, global_extent)
 
       }
-
-     ## shift raster
-     message(crayon::yellow('Adjusting climate raster longitude from 0 to 360 to
-                             standard coordinates between -180 and 180 degrees.'))
 
      clim_area_raster <- raster::rotate(clim_area_raster)
 
@@ -142,12 +138,8 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     # Data.table of secondary weights
     weights_dt <- data.table::as.data.table(secondary_weights)
 
-    # Min/Max of secondary weights
-    weights_xmin <- min(weights_dt$x)
+    # xmax of secondary weights
     weights_xmax <- max(weights_dt$x)
-    weights_ymin <- min(weights_dt$y)
-    weights_ymax <- max(weights_dt$y)
-
 
     # Updated Min/Max of raster (post first shift)
     rast_xmin <- raster::extent(clim_area_raster)@xmin

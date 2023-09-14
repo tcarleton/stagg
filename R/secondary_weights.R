@@ -70,7 +70,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   if(s_rast_coord != c_rast_coord) {
 
     message(crayon::yellow('Coordinate systems do not match. Adjusting raster longitude
-                           to standard coordiantes between -180 and 180 degrees.'))
+                            from 0 to 360 to standard coordiantes between -180 and 180 degrees.'))
 
     ## create global extent for padding so rotate function can be used
     global_extent <- c(0, 360, -90, 90)
@@ -86,10 +86,6 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
         clim_raster <- raster::extend(clim_raster, global_extent)
 
       }
-
-      ## shift raster
-      message(crayon::yellow('Adjusting grid longitude from 0 to 360 to
-                             standard coordinates between -180 and 180 degrees.'))
 
       clim_raster <- raster::rotate(clim_raster)
 
