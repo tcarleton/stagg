@@ -38,22 +38,33 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
     }
   }
 
-  # If not, crop as usual
+  # read in climate data
+  clim_raster <- raster::stack(data)
+
+  # shift into 0 to 360 if not already in that format
+  if(raster::extent(clim_raster)@xmin < 0 - raster::xres(clim_raster) / 2) {
+
+    clim_raster <- raster::shift(clim_raster, dx = 360)
+
+  }
+
+  # If raster overlay_weights does not span prime meridian, crop as usual
   if(is_pm == FALSE){
     # Extent of area weights with 2 cell buffer to make sure all cells are included
-    min_x <- min(weights_dt$x) - 2*raster::xres(data)
-    max_x <- max(weights_dt$x) + 2*raster::xres(data)
-    min_y <- min(weights_dt$y) - 2*raster::yres(data)
-    max_y <- max(weights_dt$y) + 2*raster::yres(data)
+    min_x <- min(weights_dt$x) - 2*raster::xres(clim_raster)
+    max_x <- max(weights_dt$x) + 2*raster::xres(clim_raster)
+    min_y <- min(weights_dt$y) - 2*raster::yres(clim_raster)
+    max_y <- max(weights_dt$y) + 2*raster::yres(clim_raster)
 
     weights_ext <- raster::extent(min_x, max_x, min_y, max_y)
 
-    # Immediately crop to weights extent
-    clim_raster <- raster::crop(raster::stack(data), weights_ext)
+    clim_raster <- raster::crop(clim_raster, weights_ext)
 
     all_layers <- names(clim_raster)
+
   }
-  else{ # If yes, make 2 crops and stitch together
+
+  else { # If yes, make 2 crops and stitch together
     min_x_left <- min(weights_dt$x[weights_dt$x >= 180]) - 2*raster::xres(data)
     max_x_left <- 360
 
@@ -66,8 +77,8 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
     weights_ext_left <- raster::extent(min_x_left, max_x_left, min_y, max_y)
     weights_ext_right <- raster::extent(min_x_right, max_x_right, min_y, max_y)
 
-    clim_raster_left <- raster::crop(raster::stack(data), weights_ext_left)
-    clim_raster_right <- raster::crop(raster::stack(data), weights_ext_right)
+    clim_raster_left <- raster::crop(clim_raster, weights_ext_left)
+    clim_raster_right <- raster::crop(clim_raster, weights_ext_right)
 
 
     clim_raster <- raster::stack(raster::merge(clim_raster_left, clim_raster_right)) # Merge creates raster bricks without proper layer names
@@ -77,13 +88,8 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
   }
 
 
-
-
   ## Load climate data
   ## -----------------------------------------------
-
-
-
 
   # Pass all layers through if not aggregating to daily level
   if(daily_agg == "none"){
