@@ -47,15 +47,6 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
   # Create raster
   clim_raster <- raster::raster(grid) # only reads the first band
 
-  ## make sure climate raster is in 0-360
-  c_rast_xmin <- raster::extent(clim_raster)@xmin
-  c_rast_res <- raster::xres(clim_raster)
-
-  ## if climate raster is not in 0-360, shift
-  clim_raster <- if(c_rast_xmin >= 0 - c_rast_res / 2) {
-    clim_raster
-  } else {
-    raster::shift(clim_raster, dx = 360)}
 
   ## Raster cell area
   ## -----------------------------------------------
@@ -69,37 +60,43 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
   message(crayon::yellow('Checking for raster/polygon alignment'))
 
   ## polygon and raster xmin and xmax values
-  poly_xmin <- raster::extent(polygons)@xmin
-  # poly_xmax <- raster::extent(polygons)@xmax
-  # rast_xmin <- raster::extent(clim_area_raster)@xmin
-  # rast_xmax <- raster::extent(clim_area_raster)@xmax
+  poly_xmax <- raster::extent(polygons)@xmax
+  rast_xmax <- raster::extent(clim_area_raster)@xmax
   rast_res <-  raster::xres(clim_area_raster)
 
+ ## stop if polygons are not in standard coordinate system
+ if(poly_xmax > 180) {
 
- ## do the polygons need to be in standard coord system? possibly delete
-  # ## stop if polygons are not in standard coordinate system
-  # if(poly_xmin < 0 - c_rast_res / 2) {
-  #
-  #   stop(crayon::red('Polygons must be in standard coordinate system (longitude -180 to 180).'))
-  #
-  # }
+   stop(crayon::red('Polygons must be in standard coordinate system (longitude -180 to 180).'))
+
+ }
+
+  ## check if coordinate systems match, if no shift raster to -180 to 180
+  if(rast_xmax > 180 + rast_res / 2) {
+
+    message(crayon::yellow('Aligning longitudes to standard coordinates.'))
+
+    ## xmin for climate raster
+    rast_xmin <- raster::extent(clim_area_raster)@xmin
+
+    ## check if raster needs to be padded, extend if needed
+    if(!dplyr::near(rast_xmin, 0, tol = rast_res) | !dplyr::near(rast_xmax, 360, tol = rast_res)) {
+
+      ## create global extent for padding so rotate function can be used
+      global_extent <- c(0, 360, -90, 90)
+
+      ## pad
+      clim_area_raster <- raster::extend(clim_area_raster, global_extent)
+
+    }
+
+    ## rotate
+    clim_area_raster <- raster::rotate(clim_area_raster)
+
+    }
 
 
-  ## check if coordinate systems match, if no shift raster in 0-360 format
-  if(poly_xmin < 0 - rast_res / 2) {
-
-    message(crayon::yellow('Aligning longitudes to 0-360 coordinates.'))
-
-    polygons <- sf::st_shift_longitude(polygons)
-
-     } else {
-
-    message(crayon::green('Coordinate systems match.'))
-
-  }
-
-
-  # Match raster and polygon crs
+  ## Match raster and polygon crs
   crs_raster <- raster::crs(clim_area_raster)
   polygons_reproj <- sf::st_transform(polygons, crs = crs_raster)
 
@@ -123,18 +120,17 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     # Data.table of secondary weights
     weights_dt <- data.table::as.data.table(secondary_weights)
 
-    # xmin of secondary weights
-    weights_xmin <- min(weights_dt$x)
+    ## make sure secondary_weights is not in climate 0-360 coordinates
+    s_weight_max <- max(weights_dt$x)
 
-    # If weights in standard coordinates (-180 to 180), convert
-    if(weights_xmin < 0) {
+    ## if secondary_weights is in 0-360, adjust x val
+    if(s_weight_max > 180 + rast_res) {
 
-      message(crayon::yellow('Adjusting secondary weights longitude 0-360'))
+      message(crayon::yellow('Adjusting secondary weights longitude -180 to 180.'))
 
-      weights_dt[, x := data.table::fifelse(x < 0, x + 360, x)]
+      weights_dt[, x := data.table::fifelse(x > 180 + rast_res, x - 360, x)]
 
-    } else {
-      message(crayon::green('No need to adjust secondary weights'))}
+    }
 
     # Set key column in the merged dt table
     keycols = c("x", "y")
@@ -207,7 +203,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
   message(crayon::yellow('Checking sum of weights within polygons'))
   if(!is.null(secondary_weights)){
 
-    check_weights <- w_norm[, lapply(.SD, sum), by = poly_id,
+    check_weights <- w_norm[, lapply(.SD, sum, na.rm = T), by = poly_id,
                             .SDcols = c('w_area', 'weight')]
 
   } else {
@@ -221,13 +217,17 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
 
       if(!dplyr::near(check_weights$w_area[i], 1, tol=0.001)) {
 
-        stop(crayon::red('Weights for polygon', check_weights$poly_id, 'do not sum to 1')) }
+        stop(crayon::red('Weights for polygon', check_weights$poly_id[i], 'do not sum to 1')) }
 
         if(!is.na(check_weights$weight[i]) & !dplyr::near(check_weights$weight[i], 1, tol=0.001)) {
 
-          stop(crayon::red('Weights for polygon', check_weights$poly_id, 'do not sum to 1 and are not NA'))
+          stop(crayon::red('Weights for polygon', check_weights$poly_id[i], 'do not sum to 1')) }
 
-        }
+           if(is.na(check_weights$weight[i] & !check_weights$poly_id[i] %in% c(na_polys$poly_id, zero_polys$poly_id))) {
+
+             stop(crayon::red('Some weights for polygon', check_weights$poly_id[i], 'are NA. Should sum to 1 or all be NA.'))
+
+           }
 
      }
 
@@ -250,11 +250,10 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
   # If it doesn't error out then all weight sums = 1
   message(crayon::green('All weights sum to 1.'))
 
-  ## delete
-  # ## Convert back to 0-360
-  # ## -----------------------------------------------
-  #
-  # w_norm[, x := data.table::fifelse(x < 0, x + 360, x)]
+  ## Convert back to 0-360
+  ## -----------------------------------------------
+
+  w_norm[, x := data.table::fifelse(x < 0, x + 360, x)]
 
   return(w_norm)
 

@@ -38,34 +38,69 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   # Create ERA raster from input raster
   clim_raster <- raster::raster(grid) # only reads the first band
 
-  ## make sure climate raster is in 0-360
-  ## climate raster extent
-  c_rast_xmin <- raster::extent(clim_raster)@xmin
-  c_rast_res <- raster::xres(clim_raster)
 
-  ## if climate raster is not in 0-360, shift
-  clim_raster <- if(c_rast_xmin >= 0 - c_rast_res / 2) {
-    clim_raster
-  } else {
-    raster::shift(clim_raster, dx = 360)}
-
-  ## Raster alignment: make sure secondary raster is in the same coordinates system as climate (0-360)
+  ## Raster alignment: make sure clim_raster is in same coordinate system as secondary
+  ## can be in either x coord system
   ## -----------------------------------------------
 
   message(crayon::yellow('Checking for raster alignment'))
 
   ## secondary raster
-  s_rast_xmin <- raster::extent(secondary_raster)@xmin
+  s_rast_xmax <- raster::extent(secondary_raster)@xmax
+  # s_rast_xmin <- raster::extent(secondary_raster)@xmin
   s_rast_res <- raster::xres(secondary_raster)
 
-  ## check if secondary coordinate system is in 0-360, if no shift raster in 0-360 format
-  if(s_rast_xmin < 0 - s_rast_res / 2) {
+  ## climate raster
+  c_rast_xmax <- raster::extent(clim_raster)@xmax
+  # c_rast_xmin <- raster::extent(clim_raster)@xmin
+  c_rast_res <- raster::xres(clim_raster)
 
-    message(crayon::yellow('Aligning raster longitudes to 0-360 coordinates.'))
+  ## if secondary raster in -180 to 180 and clim raster 0-360, rotate clim raster
+  if(s_rast_xmax <= (180 + s_rast_res / 2) & c_rast_xmax >= (180 + c_rast_res / 2)) {
 
-    secondary_raster <- raster::shift(secondary_raster, dx = 360)
+    message(crayon::yellow('Longitude coordinates do not match. Aligning longitudes to -180 to 180.'))
+
+    ## check if raster needs to be padded, extend if needed
+    c_rast_xmin <- raster::extent(clim_raster)@xmin
+
+    if(!dplyr::near(c_rast_xmin, 0, tol = c_rast_res) | !dplyr::near(c_rast_xmax, 360, tol = c_rast_res)) {
+
+      ## create global extent for padding so rotate function can be used
+      global_extent <- c(0, 360, -90, 90)
+
+      ## pad
+      clim_raster <- raster::extend(clim_raster, global_extent)
+
+    }
+
+    ## rotate
+    clim_raster <- raster::rotate(clim_raster)
 
   }
+
+  ## if secondary raster in 0-360 and clim raster -180 to 180, rotate secondary raster
+  if(s_rast_xmax >= (180 + s_rast_res / 2) & c_rast_xmax <= (180 + c_rast_res / 2)) {
+
+    message(crayon::yellow('Longitude coordinates do not match. Aligning longitudes to -180 to 180.'))
+
+    ## check if raster needs to be padded, extend if needed
+    s_rast_xmin <- raster::extent(secondary_raster)@xmin
+
+    if(!dplyr::near(s_rast_xmin, 0, tol = s_rast_res) | !dplyr::near(s_rast_xmax, 360, tol = s_rast_res)) {
+
+      ## create global extent for padding so rotate function can be used
+      global_extent <- c(0, 360, -90, 90)
+
+      ## pad
+      secondary_raster <- raster::extend(secondary_raster, global_extent)
+
+    }
+
+    ## rotate
+    secondary_raster <- raster::rotate(secondary_raster)
+
+  }
+
 
   ## crop the ERA/climate raster to the appropriate extent
   ## secondary raster was previously cropped according to user input, so use that
