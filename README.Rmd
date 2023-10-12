@@ -40,12 +40,12 @@ other input data. The paper provides an overview of `stagg`'s functions and data
 
 Below is example code and commentary aimed at demonstrating expected typical usage. The order of the steps is important, as output from each step is used in the one that follows it. 
 
-*Important*
+**Important**
 
 The `stagg` package currently does not included functions to download climate data. There are many packages that can be used to download climate data. For example, [`climateR`](https://github.com/mikejohnson51/climateR) provides access to climate datasets from over 2000 different data providers. ERA5 climate data can be download through [`ecmwfr`](https://github.com/bluegreen-labs/ecmwfr), which provides an interface to two European Centre for Medium-Range Weather Forecast APIs. The [`KrigR`](https://github.com/ErikKusch/KrigR) package provides a helpful wrapper function for the `ecmwfr` package to enable direct downloading of ERA5 climate data in R. 
 
 While the package is designed to be used with ERA5 climate data, other types of climate data can be used. For compatibility with `stagg` climate data should be:  
-  - netCDF file   
+  - a raster or raster stack (netCDF, .tif or other format compatible with `raster::raster()`) 
   - hourly or daily temporal resolution   
     - if hourly, number of layers should be a multiple of 24 (i.e., represent whole days)   
   - layer names use a character-date-time or character-date format (e.g., x2021.01.01.00.00.00; x2021.01.01)   
