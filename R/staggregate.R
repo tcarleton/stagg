@@ -38,13 +38,31 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
     }
   }
 
-  # read in climate data
+  ## read in climate data
   clim_raster <- raster::stack(data)
 
-  # shift into 0 to 360 if not already in that format
+  ## shift into 0 to 360 if not already in that format
   if(raster::extent(clim_raster)@xmin < 0 - raster::xres(clim_raster) / 2) {
 
-    clim_raster <- raster::shift(clim_raster, dx = 360)
+    clim_raster_xmin <- raster::extent(clim_raster)@xmin - raster::xres(clim_raster) / 2
+    clim_raster_xmax <- raster::extent(clim_raster)@xmax + raster::xres(clim_raster) / 2
+    clim_raster_ymin <- raster::extent(clim_raster)@ymin - raster::yres(clim_raster) / 2
+    clim_raster_ymax <- raster::extent(clim_raster)@ymax + raster::yres(clim_raster) / 2
+
+    clim_raster1 <- raster::crop(clim_raster, c(clim_raster_xmin, min(clim_raster_xmax, 0), clim_raster_ymin, clim_raster_ymax))
+
+    clim_raster1 <- raster::shift(clim_raster1, dx = 360)
+
+    if(raster::extent(clim_raster)@xmax > 0) {
+
+      clim_raster2 <- crop(r, c(0, clim_raster_xmax, clim_raster_ymin, clim_raster_ymax))
+
+      clim_raster <- raster::merge(x1, x2)
+
+    } else {
+
+      clim_raster <- clim_raster1
+    }
 
   }
 
