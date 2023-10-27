@@ -668,21 +668,37 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", t
     if(x == 0){ # For the lowest threshold, create a variable equal to 0 if the
                 # value is greater than the threshold, and equal to the
                 # threshold minus value otherwise
-      clim_table <- ifelse(clim_table > min(thresholds), 0, min(thresholds) - clim_table)
+      clim_table <- case_when(
+        clim_table > min(thresholds) ~ 0,
+        TRUE ~ min(thresholds - clim_table)
+      )
+
+        # ifelse(clim_table > min(thresholds), 0, min(thresholds) - clim_table)
     }
     else if(x == length(thresholds)){ # For the highest threshold, create a
                                       # variable equal to 0 if value is less
                                       # than threshold and equal to the value
                                       # minus the threshold if otherwise
-      clim_table <- ifelse(clim_table < max(thresholds), 0, clim_table - max(thresholds))
+      clim_table <- case_when(
+        clim_table < max(thresholds) ~ 0,
+        TRUE ~ clim_table - max(thresholds)
+      )
+
+        # ifelse(clim_table < max(thresholds), 0, clim_table - max(thresholds))
     }
     else{ # For all other thresholds, create variable equal to 0 if value is
           # less than threshold, equal to next threshold minus current threshold
           # if the value is greater than the next threshold, and equal to value
           # minus curent threshold otherwise
-      clim_table <- ifelse(clim_table < thresholds[x], 0,
-                           ifelse(clim_table > thresholds[x + 1], thresholds[x + 1] - thresholds[x],
-                                  clim_table - thresholds[x]))
+      clim_table <- case_when(
+        clim_table < thresholds[x] ~ 0,
+        clim_table > thresholds[x + 1] ~ thresholds[x + 1] - thresholds[x],
+        TRUE ~ clim_table - thresholds[x]
+      )
+
+        # ifelse(clim_table < thresholds[x], 0,
+                           # ifelse(clim_table > thresholds[x + 1], thresholds[x + 1] - thresholds[x],
+                           #        clim_table - thresholds[x]))
     }
 
     clim_rast_new <- clim_rast
