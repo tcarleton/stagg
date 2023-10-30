@@ -57,7 +57,7 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
 
       clim_raster2 <- crop(r, c(0, clim_raster_xmax, clim_raster_ymin, clim_raster_ymax))
 
-      clim_raster <- raster::merge(x1, x2)
+      clim_raster <- raster::merge(clim_raster1, clim_raster2)
 
     } else {
 
