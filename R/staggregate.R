@@ -673,7 +673,6 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", t
         TRUE ~ min(thresholds - clim_table)
       )
 
-        # ifelse(clim_table > min(thresholds), 0, min(thresholds) - clim_table)
     }
     else if(x == length(thresholds)){ # For the highest threshold, create a
                                       # variable equal to 0 if value is less
@@ -684,7 +683,6 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", t
         TRUE ~ clim_table - max(thresholds)
       )
 
-        # ifelse(clim_table < max(thresholds), 0, clim_table - max(thresholds))
     }
     else{ # For all other thresholds, create variable equal to 0 if value is
           # less than threshold, equal to next threshold minus current threshold
@@ -696,9 +694,6 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", t
         TRUE ~ clim_table - thresholds[x]
       )
 
-        # ifelse(clim_table < thresholds[x], 0,
-                           # ifelse(clim_table > thresholds[x + 1], thresholds[x + 1] - thresholds[x],
-                           #        clim_table - thresholds[x]))
     }
 
     clim_rast_new <- clim_rast
