@@ -38,22 +38,51 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
     }
   }
 
-  # If not, crop as usual
+  ## read in climate data
+  clim_raster <- raster::stack(data)
+
+  ## shift into 0 to 360 if not already in that format
+  if(raster::extent(clim_raster)@xmin < 0 - raster::xres(clim_raster) / 2) {
+
+    clim_raster_xmin <- raster::extent(clim_raster)@xmin - raster::xres(clim_raster) / 2
+    clim_raster_xmax <- raster::extent(clim_raster)@xmax + raster::xres(clim_raster) / 2
+    clim_raster_ymin <- raster::extent(clim_raster)@ymin - raster::yres(clim_raster) / 2
+    clim_raster_ymax <- raster::extent(clim_raster)@ymax + raster::yres(clim_raster) / 2
+
+    clim_raster1 <- raster::crop(clim_raster, c(clim_raster_xmin, min(clim_raster_xmax, 0), clim_raster_ymin, clim_raster_ymax))
+
+    clim_raster1 <- raster::shift(clim_raster1, dx = 360)
+
+    if(raster::extent(clim_raster)@xmax > 0) {
+
+      clim_raster2 <- crop(clim_raster, c(0, clim_raster_xmax, clim_raster_ymin, clim_raster_ymax))
+
+      clim_raster <- raster::merge(clim_raster1, clim_raster2)
+
+    } else {
+
+      clim_raster <- clim_raster1
+    }
+
+  }
+
+  # If raster overlay_weights does not span prime meridian, crop as usual
   if(is_pm == FALSE){
     # Extent of area weights with 2 cell buffer to make sure all cells are included
-    min_x <- min(weights_dt$x) - 2*raster::xres(data)
-    max_x <- max(weights_dt$x) + 2*raster::xres(data)
-    min_y <- min(weights_dt$y) - 2*raster::yres(data)
-    max_y <- max(weights_dt$y) + 2*raster::yres(data)
+    min_x <- min(weights_dt$x) - 2*raster::xres(clim_raster)
+    max_x <- max(weights_dt$x) + 2*raster::xres(clim_raster)
+    min_y <- min(weights_dt$y) - 2*raster::yres(clim_raster)
+    max_y <- max(weights_dt$y) + 2*raster::yres(clim_raster)
 
     weights_ext <- raster::extent(min_x, max_x, min_y, max_y)
 
-    # Immediately crop to weights extent
-    clim_raster <- raster::crop(raster::stack(data), weights_ext)
+    clim_raster <- raster::crop(clim_raster, weights_ext)
 
     all_layers <- names(clim_raster)
+
   }
-  else{ # If yes, make 2 crops and stitch together
+
+  else { # If yes, make 2 crops and stitch together
     min_x_left <- min(weights_dt$x[weights_dt$x >= 180]) - 2*raster::xres(data)
     max_x_left <- 360
 
@@ -66,8 +95,8 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
     weights_ext_left <- raster::extent(min_x_left, max_x_left, min_y, max_y)
     weights_ext_right <- raster::extent(min_x_right, max_x_right, min_y, max_y)
 
-    clim_raster_left <- raster::crop(raster::stack(data), weights_ext_left)
-    clim_raster_right <- raster::crop(raster::stack(data), weights_ext_right)
+    clim_raster_left <- raster::crop(clim_raster, weights_ext_left)
+    clim_raster_right <- raster::crop(clim_raster, weights_ext_right)
 
 
     clim_raster <- raster::stack(raster::merge(clim_raster_left, clim_raster_right)) # Merge creates raster bricks without proper layer names
@@ -77,13 +106,8 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
   }
 
 
-
-
   ## Load climate data
   ## -----------------------------------------------
-
-
-
 
   # Pass all layers through if not aggregating to daily level
   if(daily_agg == "none"){
@@ -644,21 +668,32 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", t
     if(x == 0){ # For the lowest threshold, create a variable equal to 0 if the
                 # value is greater than the threshold, and equal to the
                 # threshold minus value otherwise
-      clim_table <- ifelse(clim_table > min(thresholds), 0, min(thresholds) - clim_table)
+      clim_table <- case_when(
+        clim_table > min(thresholds) ~ 0,
+        TRUE ~ min(thresholds - clim_table)
+      )
+
     }
     else if(x == length(thresholds)){ # For the highest threshold, create a
                                       # variable equal to 0 if value is less
                                       # than threshold and equal to the value
                                       # minus the threshold if otherwise
-      clim_table <- ifelse(clim_table < max(thresholds), 0, clim_table - max(thresholds))
+      clim_table <- case_when(
+        clim_table < max(thresholds) ~ 0,
+        TRUE ~ clim_table - max(thresholds)
+      )
+
     }
     else{ # For all other thresholds, create variable equal to 0 if value is
           # less than threshold, equal to next threshold minus current threshold
           # if the value is greater than the next threshold, and equal to value
           # minus curent threshold otherwise
-      clim_table <- ifelse(clim_table < thresholds[x], 0,
-                           ifelse(clim_table > thresholds[x + 1], thresholds[x + 1] - thresholds[x],
-                                  clim_table - thresholds[x]))
+      clim_table <- case_when(
+        clim_table < thresholds[x] ~ 0,
+        clim_table > thresholds[x + 1] ~ thresholds[x + 1] - thresholds[x],
+        TRUE ~ clim_table - thresholds[x]
+      )
+
     }
 
     clim_rast_new <- clim_rast
