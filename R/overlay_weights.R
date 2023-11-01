@@ -126,7 +126,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     ## if secondary_weights is in 0-360, adjust x val
     if(s_weight_max > 180 + rast_res) {
 
-      message(crayon::yellow('Adjusting secondary weights longitude -180 to 180.'))
+      message(crayon::yellow('Adjusting secondary weights longitude to standard coordinates.'))
 
       weights_dt[, x := data.table::fifelse(x > 180 + rast_res, x - 360, x)]
 
@@ -196,7 +196,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
 
     w_norm <- data.table::copy(area_weight)
 
-    w_norm <- area_weight[, w_area := w_area / sum(w_area), by = poly_id]
+    w_norm <- w_norm[, w_area := w_area / sum(w_area), by = poly_id]
   }
 
 
@@ -217,7 +217,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
 
       if(!dplyr::near(check_weights$w_area[i], 1, tol=0.001)) {
 
-        stop(crayon::red('Weights for polygon', check_weights$poly_id[i], 'do not sum to 1')) }
+        stop(crayon::red('Area weights for polygon', check_weights$poly_id[i], 'do not sum to 1')) }
 
         if(!is.na(check_weights$weight[i]) & !dplyr::near(check_weights$weight[i], 1, tol=0.001)) {
 
