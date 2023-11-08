@@ -55,7 +55,7 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
 
     if(raster::extent(clim_raster)@xmax > 0) {
 
-      clim_raster2 <- crop(clim_raster, c(0, clim_raster_xmax, clim_raster_ymin, clim_raster_ymax))
+      clim_raster2 <- raster::crop(clim_raster, c(0, clim_raster_xmax, clim_raster_ymin, clim_raster_ymax))
 
       clim_raster <- raster::merge(clim_raster1, clim_raster2)
 
@@ -668,31 +668,21 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", t
     if(x == 0){ # For the lowest threshold, create a variable equal to 0 if the
                 # value is greater than the threshold, and equal to the
                 # threshold minus value otherwise
-      clim_table <- case_when(
-        clim_table > min(thresholds) ~ 0,
-        TRUE ~ min(thresholds - clim_table)
-      )
+      clim_table <- ifelse(clim_table > min(thresholds), 0, min(thresholds) - clim_table)
 
-    }
-    else if(x == length(thresholds)){ # For the highest threshold, create a
+    } else if(x == length(thresholds)){ # For the highest threshold, create a
                                       # variable equal to 0 if value is less
                                       # than threshold and equal to the value
-                                      # minus the threshold if otherwise
-      clim_table <- case_when(
-        clim_table < max(thresholds) ~ 0,
-        TRUE ~ clim_table - max(thresholds)
-      )
+                                      # minus the threshold otherwise
+      clim_table <- ifelse(clim_table < max(thresholds), 0, clim_table - max(thresholds))
 
-    }
-    else{ # For all other thresholds, create variable equal to 0 if value is
+    } else{ # For all other thresholds, create variable equal to 0 if value is
           # less than threshold, equal to next threshold minus current threshold
           # if the value is greater than the next threshold, and equal to value
-          # minus curent threshold otherwise
-      clim_table <- case_when(
-        clim_table < thresholds[x] ~ 0,
-        clim_table > thresholds[x + 1] ~ thresholds[x + 1] - thresholds[x],
-        TRUE ~ clim_table - thresholds[x]
-      )
+          # minus current threshold otherwise
+      clim_table <- ifelse(clim_table < thresholds[x], 0,
+                           ifelse(clim_table > thresholds[x + 1], thresholds[x + 1] - thresholds[x],
+                                  clim_table - thresholds[x]))
 
     }
 
