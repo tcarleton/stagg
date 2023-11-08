@@ -210,7 +210,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     check_weights <- w_norm[, w_sum := sum(w_area), by=poly_id]
   }
 
-  # Check that polygon weights sum to 1
+  # Check that polygon weights sum to 1 or 0 if all weights are NA
   if (!is.null(secondary_weights)){
 
     for(i in nrow(check_weights)){
@@ -219,7 +219,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
 
         stop(crayon::red('Area weights for polygon', check_weights$poly_id[i], 'do not sum to 1')) }
 
-        if(!is.na(check_weights$weight[i]) & !dplyr::near(check_weights$weight[i], 1, tol=0.001)) {
+        if(!check_weights$poly_id[i] %in% c(na_polys$poly_id, zero_polys$poly_id) & !dplyr::near(check_weights$weight[i], 1, tol=0.001)) {
 
           stop(crayon::red('Weights for polygon', check_weights$poly_id[i], 'do not sum to 1')) }
 
