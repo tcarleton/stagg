@@ -16,7 +16,7 @@ systems.
 
 Further documentation, including the working paper, AGU conference
 poster, and cheat sheet are available
-[here](https://www.tammacarleton.com/)
+[here](https://www.tammacarleton.com/projects-6)
 
 ## Installation
 
@@ -30,32 +30,26 @@ devtools::install_github("tcarleton/stagg")
 
 ## Abstract
 
-Spatiotemporal climate data is critical to interdisciplinary research on
-interactions between human and climate systems. However, it must be
-properly transformed and aggregated before it can be utilized in
-statistical research. In particular, most statistical analyses of
-coupled human-geophysical systems require careful alignment of gridded,
-high-resolution climate information with irregular and often temporally
-coarse administrative or survey data. While tools exist to aid in
-certain aspects of climate data manipulation, there is no standardized
-methodology or tools to support the full range of processing necessary
-for statistical analysis. Many researchers invest time and resources
-into creating individual solutions which may be closed-source,
-inconsistent, or employ inadequate methods for handling nonlinearities
-in spatial and temporal aggregations, while others forgo using the data
-altogether. Here, we present the R package stagg, which aims to
-standardize a pipeline for integrating climate and non-climate data for
-statistical analysis by automating the following key facets: (1)
-resampling, reprojection, and aggregation of raster data to resolve any
-spatial and temporal scale mismatches between climate and non-climate
-data; (2) transformations of data at grid scale for use in nonlinear
-regression causal analysis; (3) aggregation of climate data over
-administrative regions, with the capability to weight gridded climate
-values based on non-climate datasets, such as population and cropland.
-In automating these critical components, the stagg package enables
-computationally efficient, simple, and generalizable preparation of
-climate data for downstream use in statistical analyses, with the goal
-of facilitating a greater quantity of rigorous climate research.
+The increasing availability of high-resolution climate data has greatly
+expanded the study of how the climate impacts humans and society.
+However, the processing of these multi-dimensional datasets poses
+significant challenges for researchers in this growing field, most of
+whom are social scientists. This paper introduces `stagg` or “space-time
+aggregator”, a new R package that streamlines the three critical
+components of climate data processing for impact analysis: nonlinear
+transformation, spatial and temporal aggregation, and spatial weighting
+by additional social or economic variables. The package consolidates the
+entire data processing pipeline into just a few lines of code, lowering
+barriers to entry for researchers in the interdisciplinary field of
+climate impacts analysis and facilitating a larger and more diverse
+research community. While `stagg` is designed to be used with ERA5
+reanalysis climate data, it can be easily modified for other input data.
+The paper provides an overview of `stagg`’s functions and data
+processing pipeline, followed by an applied example demonstrating the
+package’s utility in climate impacts research. `stagg` has the potential
+to be a valuable tool in generating evidence-based estimates of the
+likely impacts of future climate change and quantifying the social cost
+of carbon.
 
 ## Workflow
 
@@ -63,18 +57,46 @@ Below is example code and commentary aimed at demonstrating expected
 typical usage. The order of the steps is important, as output from each
 step is used in the one that follows it.
 
+**Important**
+
+The `stagg` package currently does not included functions to download
+climate data. There are many packages that can be used to download
+climate data. For example,
+[`climateR`](https://github.com/mikejohnson51/climateR) provides access
+to climate datasets from over 2000 different data providers. ERA5
+climate data can be download through
+[`ecmwfr`](https://github.com/bluegreen-labs/ecmwfr), which provides an
+interface to two European Centre for Medium-Range Weather Forecast APIs.
+The [`KrigR`](https://github.com/ErikKusch/KrigR) package provides a
+helpful wrapper function for the `ecmwfr` package to enable direct
+downloading of ERA5 climate data in R.
+
+While the package is designed to be used with ERA5 climate data, other
+types of climate data can be used. For compatibility with `stagg`
+climate data should be:  
+- a raster or raster stack (netCDF, .tif or other format compatible with
+`raster::raster()`) - hourly or daily temporal resolution  
+- if hourly, number of layers should be a multiple of 24 (i.e.,
+represent whole days)  
+- layer names use a character-date-time or character-date format (e.g.,
+x2021.01.01.00.00.00; x2021.01.01)
+
 ``` r
 library(stagg)
+```
+
+``` r
+ # Using polygons outlining counties of Kansas as administrative regions
+kansas_counties <- tigris::counties("Kansas")
 ```
 
 ### Step 1 (Optional): Resample a secondary data input and generate secondary weights for Step 2
 
 It is common when studying interactions between human and natural
 systems to spatially aggregate climate data using weights derived from
-another raster dataset of interest, such as population or cropland. This
-allows the user to retrieve the climate experienced by humans or crops
-average climate experienced by humans or crops within a given
-administrative region. To account for this, `stagg` allows for the
+another dataset of interest, such as population or cropland. This allows
+the user to retrieve the climate experienced by humans or crops within a
+given administrative region. To account for this, `stagg` allows for the
 conversion of a raster into a data.table of weights via the
 `secondary_weights()` function. These weights can then be used to
 compute a weighted average of climate data over each administrative
@@ -84,11 +106,20 @@ The following example shows how one would go about generating cropland
 weights for the state of Kansas.
 
 ``` r
-small_extent <- c(-95.75, -95.25, 37.25, 37.75)
+# Generate an extent for cropping - a few options for obtaining the extent: 
+## use sf::st_bbox()
+kansas_extent <- sf::st_bbox(kansas_counties)
+
+## use raster::extent() 
+kansas_extent <- raster::extent(kansas_counties)
+
+## manually define extent 
+## Must be in xmin, xmax, ymin, ymax format if manually defined 
+kansas_extent <- c(-102, -94, 37, 41)
 
 cropland_weights <- secondary_weights(
   
-  secondary_raster = cropland_kansas_2011, # A raster layer of the secondary 
+  secondary_raster = cropland_kansas_2015, # A raster layer of the secondary 
                                            # variable to generate weights from
   
   grid = era5_grid,                        # A raster layer with the same 
@@ -99,22 +130,17 @@ cropland_weights <- secondary_weights(
                                            # data and the grid will be taken 
                                            # from its first layer
   
-  extent = small_extent                   # The extent to crop the  
+  extent = kansas_extent                   # The extent to crop the  
                                            # secondary_raster to, use whenever  
                                            # possible to save time (default is 
-                                           # "full"). Format is a vector of 4 
-                                           # numeric values defining boundaries
-                                           # in the following order:minimum 
-                                           # longitude, maximum longitude, 
-                                           # minimum latitude, maximum latitude.
+                                           # "full"). Format must be compatible
+                                           # with raster::crop()
 )
 ```
 
     #> Checking for raster alignment
 
-    #> Adjusting raster longitude from 0 - 360 to -180 - 180
-
-    #> Longitude ranges match
+    #> Longitude coordinates do not match. Aligning longitudes to standard coordinates.
 
     #> Resampling secondary_raster
 
@@ -125,11 +151,18 @@ cropland_weights <- secondary_weights(
 cropland_weights
 ```
 
-    #>         x     y    weight
-    #> 1: -95.75 37.50 0.3615269
-    #> 2: -95.50 37.50 0.3518547
-    #> 3: -95.75 37.25 0.2755257
-    #> 4: -95.50 37.25 0.3613482
+    #>            x     y    weight
+    #>   1: -101.75 40.00 0.3064352
+    #>   2: -101.50 40.00 0.4615438
+    #>   3: -101.25 40.00 0.5766846
+    #>   4: -101.00 40.00 0.4871151
+    #>   5: -100.75 40.00 0.5063345
+    #>  ---                        
+    #> 344:  -95.75 37.25 0.2806645
+    #> 345:  -95.50 37.25 0.3394896
+    #> 346:  -95.25 37.25 0.3870053
+    #> 347:  -95.00 37.25 0.4557442
+    #> 348:  -94.75 37.25 0.4356743
 
 As you can see from the output, `secondary_weights()` checks for
 alignment, and rotates the `secondary_raster` coordinates if necessary.
@@ -137,31 +170,15 @@ It also resamples the data to the spatial resolution of the grid, before
 outputting a data.table with latitudes, longitudes, and cropland
 weights.
 
-Due to size constraints, cropland_kansas_2011 is very small. Here we’ll
-replace the output from this example with pre-loaded, global cropland
-weights but keep the same name to demonstrate how the package normally
-would flow. Note that the pre-processed global cropland weights as well
-as global population weights are available as part of the package and
-can be used for analysis in any part of the globe.
-
-``` r
-cropland_weights <- dplyr::filter(cropland_world_2015_era5, 
-                                  x >= -103, x <= -94, y >= 37, y <= 41)
-```
-
 ### Step 2: Overlay administrative regions onto the data’s grid
 
 A core part of `stagg`’s functionality is to aggregate gridded data to
 the level of administrative regions. In order to do this, it first
 calculates the portion of each region that is covered by a particular
-cell. These weights may also be scaled by the secondary weights
-calculated in Step 1. This is accomplished using the `overlay_weights()`
-function.
+cell.
 
-``` r
- # Using polygons outlining counties of Kansas as administrative regions
-kansas_counties <- tigris::counties("Kansas")
-```
+These weights may also be scaled by the secondary weights calculated in
+Step 1. This is accomplished using the `overlay_weights()` function.
 
 ``` r
 county_weights <- overlay_weights(
@@ -187,11 +204,13 @@ county_weights <- overlay_weights(
 
     #> Checking for raster/polygon alignment
 
-    #> Adjusting raster longitude from 0 - 360 to -180 to 180
+    #> Aligning longitudes to standard coordinates.
 
     #> Extracting raster polygon overlap
 
-    #> Adjusting secondary weights longitude from -103 - -94 to -180 - 180
+    #> Warning in overlay_weights(polygons = kansas_counties, polygon_id_col =
+    #> "COUNTYFP", : Warning: some of the secondary weights are NA, meaning weights
+    #> cannot be calculated. NAs will be returned for weights.
 
     #> Checking sum of weights within polygons
 
@@ -219,7 +238,7 @@ represented by COUNTYFP 129 falls within the grid cell at 258 degrees
 longitude (0-360 range), 37 degrees latitude. It appears that this
 particular pixel has slightly less cropland than other pixels in this
 polygon though, since the area-normalized cropland weight for this cell
-is only around 10%.
+is only 9%.
 
 ### Step 3: Transform and aggregate data using the `staggregate_*` family of functions
 
@@ -228,7 +247,7 @@ data. This is the final step before the data is ready for use in
 downstream statistical analyses. The `stagg` package provides a family
 of functions to perform this final step, each offering a different type
 of non-linear transformation. Regardless of the specific
-function,`staggregate_*`’s workflow is to aggregate gridded values to
+function,`staggregate_*()`’s workflow is to aggregate gridded values to
 the daily level (this step can be skipped by specifying daily_agg =
 “none”, though is recommended for faster computation), perform a
 transformation on the daily values, and aggregate these values to the
@@ -266,7 +285,7 @@ polynomial_output <- staggregate_polynomial(
   time_agg = "month",               # The temporal level to aggregate daily 
                                     # transformed values to. Current options are 
                                     # "hour", day", "month", and "year". Note 
-                                    # that "hour" is only availabel if daily_agg
+                                    # that "hour" is only available if daily_agg
                                     # is set to "none"
   
   degree = 3                        # The highest order of the polynomial. Here 
@@ -288,29 +307,29 @@ polynomial_output <- staggregate_polynomial(
 polynomial_output
 ```
 
-    #>      year month poly_id   order_1  order_2   order_3
-    #>   1: 2020     1     129 112.92002 640.0153 3412.8025
-    #>   2: 2020     1     187 102.00318 590.2717 3012.2352
-    #>   3: 2020     1     075  80.82003 474.7735 1970.4388
-    #>   4: 2020     1     071  69.47838 418.2560 1316.2572
-    #>   5: 2020     1     199  66.90692 413.5508 1190.2729
-    #>  ---                                                
-    #> 101: 2020     1     011  79.68634 947.9243 7415.2695
-    #> 102: 2020     1     107  63.81250 878.3050 5521.9911
-    #> 103: 2020     1     121  43.60497 800.5253 3118.5685
-    #> 104: 2020     1     091  29.09490 764.9933 1514.0289
-    #> 105: 2020     1     209  15.17167 756.0888  207.5949
+    #>      year month poly_id order_1 order_2 order_3
+    #>   1: 2020     1     129      NA      NA      NA
+    #>   2: 2020     1     187      NA      NA      NA
+    #>   3: 2020     1     075      NA      NA      NA
+    #>   4: 2020     1     071      NA      NA      NA
+    #>   5: 2020     1     199      NA      NA      NA
+    #>  ---                                           
+    #> 101: 2020     1     011      NA      NA      NA
+    #> 102: 2020     1     107      NA      NA      NA
+    #> 103: 2020     1     121      NA      NA      NA
+    #> 104: 2020     1     091      NA      NA      NA
+    #> 105: 2020     1     209      NA      NA      NA
 
 You can see that 3 variables are created. `order_1` represents the
 original values, linearly aggregated to the county, monthly level.
 `order_2` and `order_3` represent the original values squared and cubed,
 respectively, prior to being aggregated to the county and monthly level.
-In this case, we are working with only 30 days of data to meet size
-constraints, and so each polygon only has one row corresponding to the
-only month present, December. Were this a full year of data, each
-polygon would appear 12 times. Note also that passing `time_agg = "day"`
-would create a data.table 30 times longer, with another column to the
-right of `month` called `day`.
+In this case, our example is only 30 days of temperature data and so
+each polygon only has one row corresponding to the only month present,
+December. Were this a full year of data, each polygon would appear 12
+times. Note also that passing `time_agg = "day"` would create a
+data.table 30 times longer, with another column to the right of `month`
+called `day`.
 
 #### Restricted Cubic Spline Transformation
 
@@ -318,13 +337,19 @@ Another type of transformation `stagg` supports is a restricted cubic
 spline. This, essentially, is a piecewise function where 3rd degree
 polynomials intersect at knots such that the function’s first and second
 derivatives are continuous from negative infinity to positive infinity,
-and that the function is linear before the first knot and after the last
-one. A more detailed explanation, as well as the formula used to
-transform the data, can be found
+and the function is linear before the first knot and after the last one.
+A more detailed explanation, as well as the formula used to transform
+the data, can be found
 [here](https://support.sas.com/resources/papers/proceedings16/5621-2016.pdf).
 `staggregate_spline()` executes this formula to create K-2 new
 variables, where K is the number of knots, in addition to preserving the
 original untransformed value of the variable.
+
+Computing knot locations can be very memory intensive therefore the
+`stagg` package does not compute any default knot locations. For larger
+data sets, users might want to load in a representative subset of data
+and calculate different quantiles to help with choosing the knot
+locations.
 
 ``` r
 spline_output <- staggregate_spline(
@@ -347,7 +372,7 @@ spline_output <- staggregate_spline(
                                     # transformed values to. Current options are 
                                     # "day", "month", and "year" 
   
-  knot_locs = c(0, 7.5, 12.5, 20)        # Where to place the knots
+  knot_locs = c(0, 7.5, 12.5, 20)   # Where to place the knots
 
 )
 ```
@@ -365,23 +390,23 @@ spline_output <- staggregate_spline(
 spline_output
 ```
 
-    #>      year month poly_id     value   term_1      term_2
-    #>   1: 2020     1     129 112.92002 3512.860   0.9215847
-    #>   2: 2020     1     187 102.00318 3166.144   1.8584816
-    #>   3: 2020     1     075  80.82003 2237.838   0.3262640
-    #>   4: 2020     1     071  69.47838 1700.104   0.0000000
-    #>   5: 2020     1     199  66.90692 1631.409   0.0000000
-    #>  ---                                                  
-    #> 101: 2020     1     011  79.68634 8110.379 411.9316720
-    #> 102: 2020     1     107  63.81250 6598.949 267.1903833
-    #> 103: 2020     1     121  43.60497 4806.142 148.6516660
-    #> 104: 2020     1     091  29.09490 3794.425 122.7619379
-    #> 105: 2020     1     209  15.17167 3153.768 106.8605142
+    #>      year month poly_id value term_1 term_2
+    #>   1: 2020     1     129    NA     NA     NA
+    #>   2: 2020     1     187    NA     NA     NA
+    #>   3: 2020     1     075    NA     NA     NA
+    #>   4: 2020     1     071    NA     NA     NA
+    #>   5: 2020     1     199    NA     NA     NA
+    #>  ---                                       
+    #> 101: 2020     1     011    NA     NA     NA
+    #> 102: 2020     1     107    NA     NA     NA
+    #> 103: 2020     1     121    NA     NA     NA
+    #> 104: 2020     1     091    NA     NA     NA
+    #> 105: 2020     1     209    NA     NA     NA
 
 You can see that your output looks very similar to the table from the
 polynomial transformation. The only difference here is that 4 - 2
-(number of knots minus two) new variables are being created. This data
-is now ready for use in a regression.
+(number of knots minus two) new variables are being created. These data
+are now ready for use in a regression.
 
 #### Binning Transformation
 
@@ -430,29 +455,29 @@ bin_output
 ```
 
     #>      year month poly_id bin_ninf_to_0 bin_0_to_2.5 bin_2.5_to_5 bin_5_to_7.5
-    #>   1: 2020     1     129      2.549250     5.636038    13.299869     7.514844
-    #>   2: 2020     1     187      3.113396     6.702054    12.197221     7.079204
-    #>   3: 2020     1     075      4.497534     8.875200    11.645565     5.107956
-    #>   4: 2020     1     071      5.102531    10.185469    10.569460     5.142540
-    #>   5: 2020     1     199      5.000000    10.673271    10.326729     5.000000
+    #>   1: 2020     1     129            NA           NA           NA           NA
+    #>   2: 2020     1     187            NA           NA           NA           NA
+    #>   3: 2020     1     075            NA           NA           NA           NA
+    #>   4: 2020     1     071            NA           NA           NA           NA
+    #>   5: 2020     1     199            NA           NA           NA           NA
     #>  ---                                                                        
-    #> 101: 2020     1     011      7.437066     8.605006     6.957929     3.000000
-    #> 102: 2020     1     107      8.069160    10.482130     4.537403     2.964308
-    #> 103: 2020     1     121      9.421720    11.553613     4.032575     2.100239
-    #> 104: 2020     1     091      9.281905    11.718095     4.018300     4.075213
-    #> 105: 2020     1     209     10.279019    10.720981     4.566454     4.414998
+    #> 101: 2020     1     011            NA           NA           NA           NA
+    #> 102: 2020     1     107            NA           NA           NA           NA
+    #> 103: 2020     1     121            NA           NA           NA           NA
+    #> 104: 2020     1     091            NA           NA           NA           NA
+    #> 105: 2020     1     209            NA           NA           NA           NA
     #>      bin_7.5_to_10 bin_10_to_inf
-    #>   1:    2.00000000      0.000000
-    #>   2:    1.90812541      0.000000
-    #>   3:    0.87374504      0.000000
-    #>   4:    0.00000000      0.000000
-    #>   5:    0.00000000      0.000000
+    #>   1:            NA            NA
+    #>   2:            NA            NA
+    #>   3:            NA            NA
+    #>   4:            NA            NA
+    #>   5:            NA            NA
     #>  ---                            
-    #> 101:    2.00000000      3.000000
-    #> 102:    2.74871671      2.198282
-    #> 103:    2.48594900      1.405904
-    #> 104:    0.90648694      1.000000
-    #> 105:    0.01854763      1.000000
+    #> 101:            NA            NA
+    #> 102:            NA            NA
+    #> 103:            NA            NA
+    #> 104:            NA            NA
+    #> 105:            NA            NA
 
 Like before, the output table features one row for every county for
 every time period specified by the `time_agg` argument. What has changed
@@ -463,10 +488,10 @@ necessarily integers since the polygon is made up of pixels that are
 sorted into bins and then weighted by the `overlay_weights` provided and
 aggregated, here, to the county level. Here we specify bins, in degrees
 Celsius, from negative infinity to 0, 0 to 2.5, 2.5 to 5, 5 to 7.5, 7.5
-to 10, and 10 to infinity by passing c(0, 2.5, 5, 7.5, 10) to bin_break.
-`staggregate_bin` draws a bin between each pair of breaks, and adds edge
-bins that encompass all values below the minimum break and above the
-maximum break.
+to 10, and 10 to infinity by passing `c(0, 2.5, 5, 7.5, 10)` to
+`bin_break`. `staggregate_bin()` draws a bin between each pair of
+breaks, and adds edge bins that encompass all values below the minimum
+break and above the maximum break.
 
 #### Degree Days Transformation
 
@@ -506,43 +531,44 @@ staggregate_degree_days(
     #> Aggregating by polygon and month
 
     #>      year month poly_id threshold_ninf_to_0 threshold_0_to_10
-    #>   1: 2020     1     129            539.9509          2994.173
-    #>   2: 2020     1     187            656.5378          2871.995
-    #>   3: 2020     1     075            820.5155          2598.197
-    #>   4: 2020     1     071            874.7042          2422.126
-    #>   5: 2020     1     199            890.6823          2370.442
+    #>   1: 2020     1     129                  NA                NA
+    #>   2: 2020     1     187                  NA                NA
+    #>   3: 2020     1     075                  NA                NA
+    #>   4: 2020     1     071                  NA                NA
+    #>   5: 2020     1     199                  NA                NA
     #>  ---                                                         
-    #> 101: 2020     1     011            793.1640          2437.138
-    #> 102: 2020     1     107            925.6238          2250.300
-    #> 103: 2020     1     121           1100.3957          2017.507
-    #> 104: 2020     1     091           1239.0013          1841.484
-    #> 105: 2020     1     209           1388.8817          1672.952
+    #> 101: 2020     1     011                  NA                NA
+    #> 102: 2020     1     107                  NA                NA
+    #> 103: 2020     1     121                  NA                NA
+    #> 104: 2020     1     091                  NA                NA
+    #> 105: 2020     1     209                  NA                NA
     #>      threshold_10_to_20 threshold_20_to_inf
-    #>   1:          255.85814                   0
-    #>   2:          232.61921                   0
-    #>   3:          161.99939                   0
-    #>   4:          120.05884                   0
-    #>   5:          126.00658                   0
+    #>   1:                 NA                  NA
+    #>   2:                 NA                  NA
+    #>   3:                 NA                  NA
+    #>   4:                 NA                  NA
+    #>   5:                 NA                  NA
     #>  ---                                       
-    #> 101:          268.49831                   0
-    #> 102:          206.82323                   0
-    #> 103:          129.40779                   0
-    #> 104:           95.79451                   0
-    #> 105:           80.04994                   0
+    #> 101:                 NA                  NA
+    #> 102:                 NA                  NA
+    #> 103:                 NA                  NA
+    #> 104:                 NA                  NA
+    #> 105:                 NA                  NA
 
 `staggregate_degree_days()` operates directly on the hourly values.
-Passing a vector of length n to `thresholds` creates n + 1 columns,
-similar to how `staggregate_bin()` opperates. For each value in the
+Passing a vector of length `n` to `thresholds` creates `n + 1` columns,
+similar to how `staggregate_bin()` operates. For each value in the
 climate raster brick (or stack), the function determines which
 thresholds the value falls between. For example, a value of 15 falls
 between 10 and 20. All the variables corresponding to threshold pairs
 below these receive the difference between the two thresholds
-(threshold_0_to_10 gets 10) and all variables above
-(threshold_20_to_inf) get 0. The variable in which the value falls gets
-the difference between the lower threshold and the value
-(threshold_10_to20 gets 5). The low edge variable (threshold_ninf_to_0)
-is unique in that it measures how far below the smallest threshold a
-value falls. A value of -3 would get 3 for this variable, while any
-value above 0 would receive 0 here. Once all values are transformed in
-this way the hourly values are then aggregated to the polygon level and
-temporal scale desired as with all other `staggregate_*` functions.
+(`threshold_0_to_10` gets 10) and all variables above
+(`threshold_20_to_inf`) get 0. The variable in which the value falls
+gets the difference between the lower threshold and the value
+(`threshold_10_to20` gets 5). The low edge variable
+(`threshold_ninf_to_0`) is unique in that it measures how far below the
+smallest threshold a value falls. A value of -3 would get 3 for this
+variable, while any value above 0 would receive 0 here. Once all values
+are transformed in this way the hourly values are then aggregated to the
+polygon level and temporal scale desired as with all other
+`staggregate_*()` functions.
