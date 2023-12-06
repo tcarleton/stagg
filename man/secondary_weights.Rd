@@ -14,7 +14,7 @@ cropland coverage or population}
 data}
 
 \item{extent}{an optional extent to crop the secondary_raster to for faster
-processing. Takes a vector in the form \code{c(min_lon, max_lon, min_lat, max_lat)}}
+processing. Format must be compatible with raster::crop()}
 }
 \value{
 a data.table of secondary weights
@@ -26,7 +26,7 @@ desired resolution and outputs a table of weights for use in the function
 }
 \examples{
 secondary_weights_output <- secondary_weights(
-  secondary_raster = cropland_kansas_2011, # A raster of cropland to resample
+  secondary_raster = cropland_kansas_2015, # A raster of cropland to resample
                                            # and convert to a data.table
   grid = era5_grid, # The grid to resample the secondary_raster to (`era5_grid`
                     # is the default)
