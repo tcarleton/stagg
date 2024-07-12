@@ -172,7 +172,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
   clim_dt[, date := lubridate::as_datetime(date)]
 
   # Keyed merge on the x/y column
-  merged_dt <- clim_dt[weights_dt, allow.cartesian = TRUE] #cols: x, y, date, value cols 1:k, poly_id, w_area, weight (if weights = T)
+  merged_dt <- clim_dt[weights_dt, allow.cartesian = TRUE] # cols: x, y, date, value cols 1:k, poly_id, w_area, weight (if weights = T)
 
   ## Multiply weights x climate value (all 1:k values); aggregate by month and polygon
   ## -----------------------------------------------
@@ -189,7 +189,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
   merged_dt[, ':=' (year = lubridate::year(date),
                     month = lubridate::month(date),
                     day = lubridate::day(date),
-                    hour = lubridate::hour(date))]
+                    hour = lubridate::hour(date))] # NOTE: if the timestep is smaller than hourly, the minutes and seconds will not be recorded. However, this does not affect the output since the lowest aggregation level possible is 'hour'.
 
   # Temporal Aggregation
   if(time_agg == "year"){
