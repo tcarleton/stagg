@@ -45,8 +45,8 @@ The `stagg` package currently does not included functions to download climate da
 
 While the package is designed to be used with ERA5 climate data, other types of climate data can be used. For compatibility with `stagg` climate data should be:  
   - a raster or raster stack (netCDF, .tif or other format compatible with `raster::raster()`) 
-  - hourly or daily temporal resolution   
-    - if hourly, number of layers should be a multiple of 24 (i.e., represent whole days)   
+  - daily or sub-daily temporal resolution   
+    - if sub-daily, number of layers should be consistent. By default, hourly timesteps are assumed (i.e. 24 timesteps per day), though  a different number can be specified using the `timesteps_per_day` argument in the `staggregate_*()` functions.  
   - layer names use a character-date-time or character-date format (e.g., x2021.01.01.00.00.00; x2021.01.01)   
 
 ```{r}

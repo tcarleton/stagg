@@ -18,7 +18,7 @@ as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE
 }
 
 # Function to convert raster to data.table and aggregate to daily values before transformation
-daily_aggregation <- function(data, overlay_weights, daily_agg){
+daily_aggregation <- function(data, overlay_weights, daily_agg, timesteps_per_day=24){
 
   if(!daily_agg %in% c('average', 'sum', 'none')){
 
@@ -119,11 +119,11 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
   }
 
 
-  if(!(raster::nlayers(clim_raster)%%24 == 0)){
-    stop(crayon::red("Data does not contain a number of layers that is a multiple of 24. Please use hourly data representing a whole number of days."))
+  if(!(raster::nlayers(clim_raster)%%timesteps_per_day == 0)){
+    stop(crayon::red(sprintf("Data does not contain a number of layers that is a multiple of %d. Please use complete data with all timesteps availble for each day, as defined by the timesteps_per_day argument.", timesteps_per_day)))
   }
 
-  layer_names <- all_layers[seq(1, length(all_layers), 24)] # Keep every 24th layer name (1 per day)
+  layer_names <- all_layers[seq(1, length(all_layers), timesteps_per_day)] # Keep one layer name per day
 
   ## Aggregate to grid-day level
   ## -----------------------------------------------
@@ -133,8 +133,8 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
 
     message(crayon::green("Averaging hourly values to get daily values"))
 
-    # Average over each set of 24 layers
-    indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
+    # Average over each set of layers representing one day
+    indices<-rep(1:(raster::nlayers(clim_raster)/timesteps_per_day),each=timesteps_per_day)
     clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=mean)
   }
 
@@ -143,8 +143,8 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
 
     message(crayon::green("Summing hourly values to daily values"))
 
-    # Sum over each set of 24 layers
-    indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
+    # Sum over each set of layers representing one day
+    indices<-rep(1:(raster::nlayers(clim_raster)/timesteps_per_day),each=timesteps_per_day)
     clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=sum)
   }
 
@@ -257,6 +257,9 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' @param daily_agg How to aggregate hourly values to daily values prior to
 #'   transformation. Options are `'sum'`, `'average'`, or `'none'` (`'none'`
 #'   will transform values without first aggregating to the daily level)
+#' @param timesteps_per_day the number of layers in one day. The default is 24,
+#'  and it is only used for the daily aggregation, i.e. when `daily_agg` in not
+#'  `'none'`.
 #' @param time_agg the temporal scale to aggregate data to. Options are
 #'   `'hour'`, `'day'`, `'month'`, or `'year'` (`'hour'` cannot be selected
 #'   unless `daily_agg = 'none'`)
@@ -268,6 +271,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 #'   daily_agg = "average", # Average hourly values to produce daily values
 #'                          # before transformation
+#'   timesteps_per_day = 24, # The dataset has hourly timesteps (24 in one day)
 #'   time_agg = "month", # Sum the transformed daily values across months
 #'   degree = 4 # Highest order
 #'   )
@@ -275,7 +279,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' head(polynomial_output)
 #'
 #' @export
-staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = "month", degree){
+staggregate_polynomial <- function(data, overlay_weights, daily_agg, timesteps_per_day = 24, time_agg = "month", degree){
 
 
   # Change daily_agg to "none" if time_agg is "hour"
@@ -285,7 +289,7 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
   }
 
   # Aggregate climate data to daily values
-  setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
+  setup_list <- daily_aggregation(data, overlay_weights, daily_agg, timesteps_per_day)
 
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
@@ -361,6 +365,9 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #' @param daily_agg How to aggregate hourly values to daily values prior to
 #'   transformation. Options are `'sum'`, `'average'`, or `'none'` (`'none'`
 #'   will transform values without first aggregating to the daily level)
+#' @param timesteps_per_day the number of layers in one day. The default is 24,
+#'  and it is only used for the daily aggregation, i.e. when `daily_agg` in not
+#'  `'none'`.
 #' @param time_agg the temporal scale to aggregate data to. Options are
 #'   `'hour'`, `'day'`, `'month'`, or `'year'` (`'hour'` cannot be selected
 #'   unless `daily_agg = 'none'`)
@@ -372,6 +379,7 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #' overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 #' daily_agg = "average", # Average hourly values to produce daily values before
 #'                        # transformation
+#' timesteps_per_day = 24, # The dataset has hourly timesteps (24 in one day)
 #' time_agg = "month", # Sum the transformed daily values across months
 #' knot_locs = c(0, 7.5, 12.5, 20) # Where to place knots
 #' )
@@ -379,7 +387,7 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #' head(spline_output)
 #'
 #' @export
-staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "month", knot_locs){
+staggregate_spline <- function(data, overlay_weights, daily_agg, timesteps_per_day = 24, time_agg = "month", knot_locs){
 
   # Change daily_agg to "none" if time_agg is "hour"
   if(time_agg == "hour" & daily_agg != "none"){
@@ -388,7 +396,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
     }
 
   # Aggregated climate data to daily values
-  setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
+  setup_list <- daily_aggregation(data, overlay_weights, daily_agg, timesteps_per_day)
 
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
@@ -492,6 +500,9 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #' @param daily_agg How to aggregate hourly values to daily values prior to
 #'   transformation. Options are `'sum'`, `'average'`, or `'none'` (`'none'`
 #'   will transform values without first aggregating to the daily level)
+#' @param timesteps_per_day the number of layers in one day. The default is 24,
+#'  and it is only used for the daily aggregation, i.e. when `daily_agg` in not
+#'  `'none'`.
 #' @param time_agg the temporal scale to aggregate data to. Options are
 #'   `'hour'`, `'day'`, `'month'`, or `'year'` (`'hour'` cannot be selected
 #'   unless `daily_agg = 'none'`)
@@ -503,6 +514,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 #'   daily_agg = "average", # Average hourly values to produce daily values
 #'                          # before transformation
+#'   timesteps_per_day = 24, # The dataset has hourly timesteps (24 in one day)
 #'   time_agg = "month", # Sum the transformed daily values across months
 #'   bin_breaks = c(0, 2.5, 5, 7.5, 10) # Draw 6 bins from ninf to 0, 0 to 2.5,
 #'                                      # 2.5 to 5, 5 to 7.5, 7.5 to 10, 10 to inf
@@ -511,7 +523,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #' head(bin_output)
 #'
 #' @export
-staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month", bin_breaks){
+staggregate_bin <- function(data, overlay_weights, daily_agg, timesteps_per_day = 24, time_agg = "month", bin_breaks){
 
   # Change daily_agg to "none" if time_agg is "hour"
   if(time_agg == "hour" & daily_agg != "none"){
@@ -520,7 +532,7 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
   }
 
   # Aggregate climate data to daily values
-  setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
+  setup_list <- daily_aggregation(data, overlay_weights, daily_agg, timesteps_per_day)
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
 
