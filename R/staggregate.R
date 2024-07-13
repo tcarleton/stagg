@@ -167,8 +167,8 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 
 
   # Convert layer names to dates
-  message(crayon::yellow("Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()"))
-  clim_dt[, date := stringr::str_sub(date, 2, -1)]
+  message(crayon::yellow("Assuming layer name format which after removal of any non-digit characters from the start is compatible with lubridate::as_datetime()"))
+  clim_dt[, date := stringr::str_replace(date, "^[^0-9]+", "")] # Remove any non-digit characters from the start of the string
   clim_dt[, date := lubridate::as_datetime(date)]
 
   # Keyed merge on the x/y column

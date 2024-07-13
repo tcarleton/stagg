@@ -47,7 +47,7 @@ While the package is designed to be used with ERA5 climate data, other types of 
   - a raster or raster stack (netCDF, .tif or other format compatible with `raster::raster()`) 
   - daily or sub-daily temporal resolution   
     - if sub-daily, number of layers should be consistent. By default, hourly timesteps are assumed (i.e. 24 timesteps per day), though  a different number can be specified using the `timesteps_per_day` argument in the `staggregate_*()` functions.  
-  - layer names use a character-date-time or character-date format (e.g., x2021.01.01.00.00.00; x2021.01.01)   
+  - layer names use a character-date-time or character-date format following a string header. For example, ERA5 uses the format x2021.01.01.00.00.00 or x2021.01.01, and data retrieved using `climateR` uses the format variable_2021-01-01, both of which are compatible with `stagg`. This allows for `staggregate_*()` to correctly interpret the temporal structure of the date and aggregate to the appropriate year, month, or day intervals.
 
 ```{r}
 library(stagg)
