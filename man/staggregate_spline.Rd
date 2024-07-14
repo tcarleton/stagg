@@ -36,7 +36,7 @@ desired temporal scale.
 }
 \examples{
 spline_output <- staggregate_spline(
-data = temp_nj_jun_2024_era5, # Climate data to transform and aggregate
+data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and aggregate
 overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 daily_agg = "average", # Average hourly values to produce daily values before
                        # transformation

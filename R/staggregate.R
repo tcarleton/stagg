@@ -264,7 +264,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #'
 #' @examples
 #' polynomial_output <- staggregate_polynomial(
-#'   data = temp_nj_jun_2024_era5, # Climate data to transform and aggregate
+#'   data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and aggregate
 #'   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 #'   daily_agg = "average", # Average hourly values to produce daily values
 #'                          # before transformation
@@ -368,7 +368,7 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #'
 #' @examples
 #' spline_output <- staggregate_spline(
-#' data = temp_nj_jun_2024_era5, # Climate data to transform and aggregate
+#' data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and aggregate
 #' overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 #' daily_agg = "average", # Average hourly values to produce daily values before
 #'                        # transformation
@@ -499,7 +499,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'
 #' @examples
 #' bin_output <- staggregate_bin(
-#'   data = temp_nj_jun_2024_era5, # Climate data to transform and aggregate
+#'   data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and aggregate
 #'   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 #'   daily_agg = "average", # Average hourly values to produce daily values
 #'                          # before transformation
@@ -628,7 +628,7 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 #'
 #' @examples
 #' degree_days_output <- staggregate_degree_days(
-#'   data = temp_nj_jun_2024_era5, # Climate data to transform and aggregate
+#'   data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and aggregate
 #'   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 #'   time_agg = "month", # Sum the transformed daily values across months
 #'   thresholds = c(0, 10, 20) # Calculate degree days above 0, 10, and 20
