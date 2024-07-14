@@ -86,8 +86,8 @@ library(stagg)
 ```
 
 ``` r
- # Using polygons outlining counties of Kansas as administrative regions
-kansas_counties <- tigris::counties("Kansas")
+ # Using polygons outlining counties of New Jersey as administrative regions
+nj_counties <- tigris::counties("NJ")
 ```
 
 ### Step 1 (Optional): Resample a secondary data input and generate secondary weights for Step 2
@@ -103,23 +103,12 @@ compute a weighted average of climate data over each administrative
 region.
 
 The following example shows how one would go about generating cropland
-weights for the state of Kansas.
+weights for the state of New Jersey.
 
 ``` r
-# Generate an extent for cropping - a few options for obtaining the extent: 
-## use sf::st_bbox()
-kansas_extent <- sf::st_bbox(kansas_counties)
-
-## use raster::extent() 
-kansas_extent <- raster::extent(kansas_counties)
-
-## manually define extent 
-## Must be in xmin, xmax, ymin, ymax format if manually defined 
-kansas_extent <- c(-102, -94, 37, 41)
-
 cropland_weights <- secondary_weights(
   
-  secondary_raster = cropland_kansas_2015, # A raster layer of the secondary 
+  secondary_raster = cropland_nj_2015,     # A raster layer of the secondary 
                                            # variable to generate weights from
   
   grid = era5_grid,                        # A raster layer with the same 
@@ -130,7 +119,7 @@ cropland_weights <- secondary_weights(
                                            # data and the grid will be taken 
                                            # from its first layer
   
-  extent = kansas_extent                   # The extent to crop the  
+  extent = "full"                          # The extent to crop the  
                                            # secondary_raster to, use whenever  
                                            # possible to save time (default is 
                                            # "full"). Format must be compatible
@@ -151,18 +140,19 @@ cropland_weights <- secondary_weights(
 cropland_weights
 ```
 
-    #>            x     y    weight
-    #>   1: -101.75 40.00 0.3064352
-    #>   2: -101.50 40.00 0.4615438
-    #>   3: -101.25 40.00 0.5766846
-    #>   4: -101.00 40.00 0.4871151
-    #>   5: -100.75 40.00 0.5063345
-    #>  ---                        
-    #> 344:  -95.75 37.25 0.2806645
-    #> 345:  -95.50 37.25 0.3394896
-    #> 346:  -95.25 37.25 0.3870053
-    #> 347:  -95.00 37.25 0.4557442
-    #> 348:  -94.75 37.25 0.4356743
+    #>           x     y        weight
+    #>       <num> <num>         <num>
+    #>   1: -75.75 41.50  0.0944147354
+    #>   2: -75.50 41.50  0.0796618272
+    #>   3: -75.25 41.50  0.0346200160
+    #>   4: -75.00 41.50 -0.0006449262
+    #>   5: -74.75 41.50 -0.0137744415
+    #>  ---                           
+    #> 116: -74.50 38.75  0.0000000000
+    #> 117: -74.25 38.75  0.0000000000
+    #> 118: -74.00 38.75  0.0000000000
+    #> 119: -73.75 38.75  0.0000000000
+    #> 120: -73.50 38.75  0.0000000000
 
 As you can see from the output, `secondary_weights()` checks for
 alignment, and rotates the `secondary_raster` coordinates if necessary.
@@ -183,7 +173,7 @@ Step 1. This is accomplished using the `overlay_weights()` function.
 ``` r
 county_weights <- overlay_weights(
   
-  polygons = kansas_counties,          # A simple features object with the 
+  polygons = nj_counties,              # A simple features object with the 
                                        # desired polygons
   
   polygon_id_col = "COUNTYFP",         # The name of the column containing 
@@ -208,18 +198,28 @@ county_weights <- overlay_weights(
 
     #> Extracting raster polygon overlap
 
-    #> Warning in overlay_weights(polygons = kansas_counties, polygon_id_col =
-    #> "COUNTYFP", : Warning: some of the secondary weights are NA, meaning weights
-    #> cannot be calculated. NAs will be returned for weights.
-
     #> Checking sum of weights within polygons
 
     #> All weights sum to 1.
 
 ``` r
 # Display results
-county_weights
+print(county_weights, digits = 4)
 ```
+
+    #>          x     y poly_id    w_area    weight
+    #>      <num> <num>  <char>     <num>     <num>
+    #>   1: 284.5 39.25     011 0.0172214 0.0313069
+    #>   2: 284.5 39.25     033 0.0058167 0.0055363
+    #>   3: 284.5 39.50     011 0.0170326 0.0332240
+    #>   4: 284.5 39.50     033 0.3550772 0.3626242
+    #>   5: 284.5 39.75     015 0.0219315 0.0245433
+    #>  ---                                        
+    #> 137: 286.0 40.75     013 0.0095999 0.0065357
+    #> 138: 286.0 40.75     003 0.1828317 0.1316480
+    #> 139: 286.0 40.75     031 0.0065826 0.0027441
+    #> 140: 286.0 41.00     003 0.5410404 0.5931713
+    #> 141: 286.0 41.00     031 0.0007093 0.0004502
 
 You can see that the function outputs multiple rows for each polygon,
 one for every grid cell it overlaps. The column `w_area` represents the
@@ -233,12 +233,11 @@ wish only to use `w_area` in aggregating by polygon, you need not run
 your call to `overlay_weights()`.
 
 Given all of this information, we can interpret the top row in the
-output as follows: About 11% of the area in the Kansas county
-represented by COUNTYFP 129 falls within the grid cell at 258 degrees
-longitude (0-360 range), 37 degrees latitude. It appears that this
-particular pixel has slightly less cropland than other pixels in this
-polygon though, since the area-normalized cropland weight for this cell
-is only 9%.
+output as follows: About 1.7% of the area in the county represented by
+COUNTYFP 011 falls within the grid cell at 284.50 degrees longitude
+(0-360 range), 39.25 degrees latitude. It appears that this particular
+pixel has slightly more cropland than other pixels in this polygon
+though, since the cropland weight for this cell is 3.1%.
 
 ### Step 3: Transform and aggregate data using the `staggregate_*` family of functions
 
@@ -268,14 +267,16 @@ aggregating to the polygon and monthly/yearly level through with
 ``` r
 polynomial_output <- staggregate_polynomial(
   
-  data = temp_kansas_jan_2020_era5, # A raster brick of our primary data, 
-                                    # typically but not necessarily climate 
-                                    # data. For now, data must start at midnight
-                                    # and be hourly.
+  data = temp_nj_jun_2024_era5 - 273.15, # A raster brick of our primary data, 
+                                         # typically but not necessarily climate 
+                                         # data. For now, data must start at 
+                                         # midnight and be hourly. We're 
+                                         # converting from Kelvin to Celsius 
+                                         # here.
   
   overlay_weights = county_weights, # Output from Step 2, determined here by 
                                     # area-normalized cropland weights for grid 
-                                    # cells within each county in Kansas
+                                    # cells within each county in New Jersey
   
   daily_agg = "average",            # How to aggregate hourly values to the 
                                     # daily level (options are "sum", "average",
@@ -307,18 +308,30 @@ polynomial_output <- staggregate_polynomial(
 polynomial_output
 ```
 
-    #>      year month poly_id order_1 order_2 order_3
-    #>   1: 2020     1     129      NA      NA      NA
-    #>   2: 2020     1     187      NA      NA      NA
-    #>   3: 2020     1     075      NA      NA      NA
-    #>   4: 2020     1     071      NA      NA      NA
-    #>   5: 2020     1     199      NA      NA      NA
-    #>  ---                                           
-    #> 101: 2020     1     011      NA      NA      NA
-    #> 102: 2020     1     107      NA      NA      NA
-    #> 103: 2020     1     121      NA      NA      NA
-    #> 104: 2020     1     091      NA      NA      NA
-    #> 105: 2020     1     209      NA      NA      NA
+    #>      year month poly_id  order_1  order_2  order_3
+    #>     <num> <num>  <char>    <num>    <num>    <num>
+    #>  1:  2024     6     011 727.4672 17794.91 439122.3
+    #>  2:  2024     6     033 734.1446 18138.95 452446.7
+    #>  3:  2024     6     015 729.0135 17892.22 443428.8
+    #>  4:  2024     6     009 686.5504 15818.35 366967.2
+    #>  5:  2024     6     007 730.9461 17986.23 446917.4
+    #>  6:  2024     6     041 683.8770 15894.08 376303.5
+    #>  7:  2024     6     019 706.1414 16895.95 410720.8
+    #>  8:  2024     6     001 724.3873 17655.14 434329.6
+    #>  9:  2024     6     005 726.9416 17800.11 440367.0
+    #> 10:  2024     6     021 721.1470 17550.20 432291.7
+    #> 11:  2024     6     027 686.6788 16005.44 379638.7
+    #> 12:  2024     6     037 663.4873 14991.05 345698.7
+    #> 13:  2024     6     023 718.8042 17434.85 428000.8
+    #> 14:  2024     6     035 709.9632 17060.85 416117.7
+    #> 15:  2024     6     029 720.6260 17498.11 429445.2
+    #> 16:  2024     6     025 709.4887 16969.68 410464.1
+    #> 17:  2024     6     039 702.8470 16685.24 401235.7
+    #> 18:  2024     6     013 698.1990 16454.86 392588.5
+    #> 19:  2024     6     031 672.3034 15344.78 356438.4
+    #> 20:  2024     6     017 705.0655 16740.65 401508.9
+    #> 21:  2024     6     003 688.3550 16002.56 376794.2
+    #>      year month poly_id  order_1  order_2  order_3
 
 You can see that 3 variables are created. `order_1` represents the
 original values, linearly aggregated to the county, monthly level.
@@ -326,10 +339,9 @@ original values, linearly aggregated to the county, monthly level.
 respectively, prior to being aggregated to the county and monthly level.
 In this case, our example is only 30 days of temperature data and so
 each polygon only has one row corresponding to the only month present,
-December. Were this a full year of data, each polygon would appear 12
-times. Note also that passing `time_agg = "day"` would create a
-data.table 30 times longer, with another column to the right of `month`
-called `day`.
+June Were this a full year of data, each polygon would appear 12 times.
+Note also that passing `time_agg = "day"` would create a data.table 30
+times longer, with another column to the right of `month` called `day`.
 
 #### Restricted Cubic Spline Transformation
 
@@ -354,14 +366,16 @@ locations.
 ``` r
 spline_output <- staggregate_spline(
   
-  data = temp_kansas_jan_2020_era5, # A raster brick of our primary data, 
-                                    # typically but not necessarily climate 
-                                    # data. For now, data must start at midnight
-                                    # and be hourly.
+  data = temp_nj_jun_2024_era5 - 273.15, # A raster brick of our primary data, 
+                                         # typically but not necessarily climate 
+                                         # data. For now, data must start at 
+                                         # midnight and be hourly. We're
+                                         # converting from Kelvin to Celsius 
+                                         # here.
   
   overlay_weights = county_weights, # Output from Step 2, determined here by 
                                     # area-normalized cropland weights for grid
-                                    # cells within each county in Kansas
+                                    # cells within each county in New Jersey.
   
   daily_agg = "average",            # How to aggregate hourly values to the 
                                     # daily level, "sum" and "average" are the 
@@ -390,18 +404,30 @@ spline_output <- staggregate_spline(
 spline_output
 ```
 
-    #>      year month poly_id value term_1 term_2
-    #>   1: 2020     1     129    NA     NA     NA
-    #>   2: 2020     1     187    NA     NA     NA
-    #>   3: 2020     1     075    NA     NA     NA
-    #>   4: 2020     1     071    NA     NA     NA
-    #>   5: 2020     1     199    NA     NA     NA
-    #>  ---                                       
-    #> 101: 2020     1     011    NA     NA     NA
-    #> 102: 2020     1     107    NA     NA     NA
-    #> 103: 2020     1     121    NA     NA     NA
-    #> 104: 2020     1     091    NA     NA     NA
-    #> 105: 2020     1     209    NA     NA     NA
+    #>      year month poly_id    value   term_1   term_2
+    #>     <num> <num>  <char>    <num>    <num>    <num>
+    #>  1:  2024     6     011 727.4672 301850.4 61400.11
+    #>  2:  2024     6     033 734.1446 306858.5 62652.14
+    #>  3:  2024     6     015 729.0135 303010.3 61690.09
+    #>  4:  2024     6     009 686.5504 271163.1 53728.30
+    #>  5:  2024     6     007 730.9461 304459.7 62052.45
+    #>  6:  2024     6     041 683.8770 269228.9 53255.37
+    #>  7:  2024     6     019 706.1414 285873.0 57408.31
+    #>  8:  2024     6     001 724.3873 299540.5 60822.64
+    #>  9:  2024     6     005 726.9416 301456.6 61301.70
+    #> 10:  2024     6     021 721.1470 297111.6 60215.60
+    #> 11:  2024     6     027 686.6788 271308.0 53771.83
+    #> 12:  2024     6     037 663.4873 254033.6 49471.12
+    #> 13:  2024     6     023 718.8042 295354.0 59776.14
+    #> 14:  2024     6     035 709.9632 288731.9 58121.89
+    #> 15:  2024     6     029 720.6260 296720.0 60117.58
+    #> 16:  2024     6     025 709.4887 288367.4 58029.49
+    #> 17:  2024     6     039 702.8470 283391.0 56786.11
+    #> 18:  2024     6     013 698.1990 279904.4 55914.35
+    #> 19:  2024     6     031 672.3034 260561.3 51090.41
+    #> 20:  2024     6     017 705.0655 285049.9 57200.08
+    #> 21:  2024     6     003 688.3550 272528.3 54071.38
+    #>      year month poly_id    value   term_1   term_2
 
 You can see that your output looks very similar to the table from the
 polynomial transformation. The only difference here is that 4 - 2
@@ -418,14 +444,16 @@ nonlinearities within the data, and accomplished by calling
 ``` r
 bin_output <- staggregate_bin(
   
-  data = temp_kansas_jan_2020_era5,  # A raster brick of our primary data, 
-                                     # typically but not necessarily climate 
-                                     # data. For now, data must start at midnight
-                                     # and be hourly.
+  data = temp_nj_jun_2024_era5 - 273.15, # A raster brick of our primary data, 
+                                         # typically but not necessarily climate 
+                                         # data. For now, data must start at 
+                                         # midnight and be hourly. We're 
+                                         # converting from Kelvin to Celsius
+                                         # here.
   
   overlay_weights = county_weights,  # Output from Step 2, determined here by 
                                      # area-normalized cropland weights for grid 
-                                     # cells within each county in Kansas
+                                     # cells within each county in New Jersey
   
   
   daily_agg = "average",             # How to aggregate hourly values to the 
@@ -455,29 +483,53 @@ bin_output
 ```
 
     #>      year month poly_id bin_ninf_to_0 bin_0_to_2.5 bin_2.5_to_5 bin_5_to_7.5
-    #>   1: 2020     1     129            NA           NA           NA           NA
-    #>   2: 2020     1     187            NA           NA           NA           NA
-    #>   3: 2020     1     075            NA           NA           NA           NA
-    #>   4: 2020     1     071            NA           NA           NA           NA
-    #>   5: 2020     1     199            NA           NA           NA           NA
-    #>  ---                                                                        
-    #> 101: 2020     1     011            NA           NA           NA           NA
-    #> 102: 2020     1     107            NA           NA           NA           NA
-    #> 103: 2020     1     121            NA           NA           NA           NA
-    #> 104: 2020     1     091            NA           NA           NA           NA
-    #> 105: 2020     1     209            NA           NA           NA           NA
-    #>      bin_7.5_to_10 bin_10_to_inf
-    #>   1:            NA            NA
-    #>   2:            NA            NA
-    #>   3:            NA            NA
-    #>   4:            NA            NA
-    #>   5:            NA            NA
-    #>  ---                            
-    #> 101:            NA            NA
-    #> 102:            NA            NA
-    #> 103:            NA            NA
-    #> 104:            NA            NA
-    #> 105:            NA            NA
+    #>     <num> <num>  <char>         <num>        <num>        <num>        <num>
+    #>  1:  2024     6     011             0            0            0            0
+    #>  2:  2024     6     033             0            0            0            0
+    #>  3:  2024     6     015             0            0            0            0
+    #>  4:  2024     6     009             0            0            0            0
+    #>  5:  2024     6     007             0            0            0            0
+    #>  6:  2024     6     041             0            0            0            0
+    #>  7:  2024     6     019             0            0            0            0
+    #>  8:  2024     6     001             0            0            0            0
+    #>  9:  2024     6     005             0            0            0            0
+    #> 10:  2024     6     021             0            0            0            0
+    #> 11:  2024     6     027             0            0            0            0
+    #> 12:  2024     6     037             0            0            0            0
+    #> 13:  2024     6     023             0            0            0            0
+    #> 14:  2024     6     035             0            0            0            0
+    #> 15:  2024     6     029             0            0            0            0
+    #> 16:  2024     6     025             0            0            0            0
+    #> 17:  2024     6     039             0            0            0            0
+    #> 18:  2024     6     013             0            0            0            0
+    #> 19:  2024     6     031             0            0            0            0
+    #> 20:  2024     6     017             0            0            0            0
+    #> 21:  2024     6     003             0            0            0            0
+    #>      year month poly_id bin_ninf_to_0 bin_0_to_2.5 bin_2.5_to_5 bin_5_to_7.5
+    #>     bin_7.5_to_10 bin_10_to_inf
+    #>             <num>         <num>
+    #>  1:             0            30
+    #>  2:             0            30
+    #>  3:             0            30
+    #>  4:             0            30
+    #>  5:             0            30
+    #>  6:             0            30
+    #>  7:             0            30
+    #>  8:             0            30
+    #>  9:             0            30
+    #> 10:             0            30
+    #> 11:             0            30
+    #> 12:             0            30
+    #> 13:             0            30
+    #> 14:             0            30
+    #> 15:             0            30
+    #> 16:             0            30
+    #> 17:             0            30
+    #> 18:             0            30
+    #> 19:             0            30
+    #> 20:             0            30
+    #> 21:             0            30
+    #>     bin_7.5_to_10 bin_10_to_inf
 
 Like before, the output table features one row for every county for
 every time period specified by the `time_agg` argument. What has changed
@@ -501,14 +553,16 @@ crops. This is used to generate estimates for piecewise functions.
 
 ``` r
 staggregate_degree_days(
-  data = temp_kansas_jan_2020_era5, # A raster brick of our primary data, 
-                                    # typically but not necessarily climate 
-                                    # data. For now, data must start at midnight
-                                    # and be hourly.
+  data = temp_nj_jun_2024_era5 - 273.15, # A raster brick of our primary data, 
+                                         # typically but not necessarily climate 
+                                         # data. For now, data must start at 
+                                         # midnight and be hourly. We're
+                                         # converting from Kelvin to Celsius
+                                         # here. 
   
   overlay_weights = county_weights, # Output from Step 2, determined here by 
                                     # area-normalized cropland weights for grid 
-                                    # cells within each county in Kansas
+                                    # cells within each county in New Jersey
   
   # Note degree_days() does not take a daily_agg as it uses hourly values
   
@@ -531,29 +585,53 @@ staggregate_degree_days(
     #> Aggregating by polygon and month
 
     #>      year month poly_id threshold_ninf_to_0 threshold_0_to_10
-    #>   1: 2020     1     129                  NA                NA
-    #>   2: 2020     1     187                  NA                NA
-    #>   3: 2020     1     075                  NA                NA
-    #>   4: 2020     1     071                  NA                NA
-    #>   5: 2020     1     199                  NA                NA
-    #>  ---                                                         
-    #> 101: 2020     1     011                  NA                NA
-    #> 102: 2020     1     107                  NA                NA
-    #> 103: 2020     1     121                  NA                NA
-    #> 104: 2020     1     091                  NA                NA
-    #> 105: 2020     1     209                  NA                NA
-    #>      threshold_10_to_20 threshold_20_to_inf
-    #>   1:                 NA                  NA
-    #>   2:                 NA                  NA
-    #>   3:                 NA                  NA
-    #>   4:                 NA                  NA
-    #>   5:                 NA                  NA
-    #>  ---                                       
-    #> 101:                 NA                  NA
-    #> 102:                 NA                  NA
-    #> 103:                 NA                  NA
-    #> 104:                 NA                  NA
-    #> 105:                 NA                  NA
+    #>     <num> <num>  <char>               <num>             <num>
+    #>  1:  2024     6     011                   0              7200
+    #>  2:  2024     6     033                   0              7200
+    #>  3:  2024     6     015                   0              7200
+    #>  4:  2024     6     009                   0              7200
+    #>  5:  2024     6     007                   0              7200
+    #>  6:  2024     6     041                   0              7200
+    #>  7:  2024     6     019                   0              7200
+    #>  8:  2024     6     001                   0              7200
+    #>  9:  2024     6     005                   0              7200
+    #> 10:  2024     6     021                   0              7200
+    #> 11:  2024     6     027                   0              7200
+    #> 12:  2024     6     037                   0              7200
+    #> 13:  2024     6     023                   0              7200
+    #> 14:  2024     6     035                   0              7200
+    #> 15:  2024     6     029                   0              7200
+    #> 16:  2024     6     025                   0              7200
+    #> 17:  2024     6     039                   0              7200
+    #> 18:  2024     6     013                   0              7200
+    #> 19:  2024     6     031                   0              7200
+    #> 20:  2024     6     017                   0              7200
+    #> 21:  2024     6     003                   0              7200
+    #>      year month poly_id threshold_ninf_to_0 threshold_0_to_10
+    #>     threshold_10_to_20 threshold_20_to_inf
+    #>                  <num>               <num>
+    #>  1:           7052.015            3207.199
+    #>  2:           6998.201            3421.270
+    #>  3:           6929.917            3366.407
+    #>  4:           7133.817            2143.393
+    #>  5:           6935.154            3407.553
+    #>  6:           6482.774            2730.275
+    #>  7:           6664.668            3082.725
+    #>  8:           6964.307            3220.987
+    #>  9:           6901.680            3344.918
+    #> 10:           6821.689            3285.840
+    #> 11:           6539.259            2741.031
+    #> 12:           6339.128            2384.568
+    #> 13:           6833.017            3218.283
+    #> 14:           6709.898            3129.220
+    #> 15:           6893.267            3201.758
+    #> 16:           6889.351            2938.378
+    #> 17:           6793.669            2874.659
+    #> 18:           6806.230            2750.546
+    #> 19:           6458.801            2476.480
+    #> 20:           6951.579            2769.992
+    #> 21:           6738.039            2582.482
+    #>     threshold_10_to_20 threshold_20_to_inf
 
 `staggregate_degree_days()` operates directly on the hourly values.
 Passing a vector of length `n` to `thresholds` creates `n + 1` columns,
