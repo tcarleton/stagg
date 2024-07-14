@@ -35,8 +35,8 @@ values to the polygon level and desired temporal scale.
 }
 \examples{
 bin_output <- staggregate_bin(
-  data = temp_kansas_jan_2020_era5, # Climate data to transform and aggregate
-  overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
+  data = temp_nj_jun_2024_era5, # Climate data to transform and aggregate
+  overlay_weights = overlay_weights_nj, # Output from overlay_weights()
   daily_agg = "average", # Average hourly values to produce daily values
                          # before transformation
   time_agg = "month", # Sum the transformed daily values across months

@@ -15,10 +15,10 @@
 #'   cell within each polygon
 #'
 #' @examples
-#' kansas_counties <- tigris::counties("Kansas")
+#' nj_counties <- tigris::counties("nj")
 #'
 #' overlay_output_with_secondary_weights <- overlay_weights(
-#'   polygons = kansas_counties, # Polygons outlining the 105 counties of Kansas
+#'   polygons = nj_counties, # Polygons outlining the 21 counties of New Jersey
 #'   polygon_id_col = "COUNTYFP", # The name of the column with the unique
 #'                                # county identifiers
 #'   era5_grid, # The grid to use when extracting area weights (era5_grid is the
@@ -33,7 +33,7 @@
 #'
 #'
 #' overlay_output_without_secondary_weights <- overlay_weights(
-#'   polygons = kansas_counties, # Polygons outlining the 105 counties of Kansas
+#'   polygons = nj_counties, # Polygons outlining the 21 counties of New Jersey
 #'   polygon_id_col = "COUNTYFP" # The name of the column with the unique county
 #'                               # identifiers
 #'   )
