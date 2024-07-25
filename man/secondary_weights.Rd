@@ -26,8 +26,8 @@ desired resolution and outputs a table of weights for use in the function
 }
 \examples{
 secondary_weights_output <- secondary_weights(
-  secondary_raster = cropland_kansas_2015, # A raster of cropland to resample
-                                           # and convert to a data.table
+  secondary_raster = cropland_nj_2015, # A raster of cropland to resample
+                                       # and convert to a data.table
   grid = era5_grid, # The grid to resample the secondary_raster to (`era5_grid`
                     # is the default)
   extent = "full" # The default which resamples the whole secondary raster
