@@ -28,15 +28,54 @@
 #' @export
 secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full"){
 
+  # Create ERA raster from input raster
+  clim_raster <- raster::raster(grid) # only reads the first band
+
+  ## climate raster information for creating buffer and doing checks/rotations
+  c_rast_xmax <- raster::extent(clim_raster)@xmax
+  # c_rast_xmin <- raster::extent(clim_raster)@xmin
+  c_rast_res <- raster::xres(clim_raster)
+
+  ## add buffer to extent
+  buffer_size <- 4 * c_rast_res
+
+  ## add buffer to the extent for bbox
+  if(is.vector(extent)) {
+    extent <- c(
+      extent[1] - buffer_size,  # xmin (negative direction)
+      extent[2] + buffer_size,  # xmax (positive direction)
+      extent[3] - buffer_size,  # ymin (negative direction)
+      extent[4] + buffer_size   # ymax (positive direction)
+    )
+  } else if (inherits(extent, "bbox")) {
+    extent <- c(
+      extent$xmin - buffer_size,  # xmin (negative direction)
+      extent$xmax + buffer_size,  # xmax (positive direction)
+      extent$ymin - buffer_size,  # ymin (negative direction)
+      extent$ymax + buffer_size   # ymax (positive direction)
+    )
+  } else if(inherits(extent, "Extent")) {
+    extent <- c(
+      extent@xmin - buffer_size,  # xmin (negative direction)
+      extent@xmax + buffer_size,  # xmax (positive direction)
+      extent@ymin - buffer_size,  # ymin (negative direction)
+      extent@ymax + buffer_size   # ymax (positive direction)
+    )
+  } else if(is.character(extent)) {
+
+      extent <- extent
+
+    } else {
+
+      stop("User-defined extent not compatible with raster.")
+
+    }
+
   ## If an extent was included, crop it to the extent to save ram
   ## -----------------------------------------------
   if (!is.character(extent)){
     secondary_raster <- raster::crop(secondary_raster, extent)
   }
-
-  # Create ERA raster from input raster
-  clim_raster <- raster::raster(grid) # only reads the first band
-
 
   ## Raster alignment: make sure clim_raster is in same coordinate system as secondary
   ## can be in either x coord system
@@ -49,10 +88,6 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   # s_rast_xmin <- raster::extent(secondary_raster)@xmin
   s_rast_res <- raster::xres(secondary_raster)
 
-  ## climate raster
-  c_rast_xmax <- raster::extent(clim_raster)@xmax
-  # c_rast_xmin <- raster::extent(clim_raster)@xmin
-  c_rast_res <- raster::xres(clim_raster)
 
   ## if secondary raster in -180 to 180 and clim raster 0-360, rotate clim raster
   if(s_rast_xmax <= (180 + s_rast_res / 2) & c_rast_xmax >= (180 + c_rast_res / 2)) {
@@ -102,7 +137,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
 
 
   ## crop the ERA/climate raster to the appropriate extent
-  ## secondary raster was previously cropped according to user input, so use that
+  ## use the extent of the previously user-cropped secondary raster
   ## -----------------------------------------------
 
   clim_raster <- raster::crop(clim_raster, raster::extent(secondary_raster))
