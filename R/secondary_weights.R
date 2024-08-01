@@ -28,6 +28,27 @@
 #' @export
 secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full"){
 
+  ## check if secondary raster completely overlaps with user-defined extent
+  if(!extent = "full") {
+
+    extent_rect <- raster::extent(extent)
+
+    extent_secondary_r <- raster::extent(secondary_raster)
+
+    # check if the raster extent covers the rectangle extent
+    covers <- extent_secondary_r@xmin <= extent_rect@xmin &&
+      extent_secondary_r@xmax >= extent_rect@xmax &&
+      extent_secondary_r@ymin <= extent_rect@ymin &&
+      extent_secondary_r@ymax >= extent_rect@ymax
+
+    if (covers) {
+      message(crayon::green('The secondary raster fully overlaps the user-specified extent.'))
+    } else {
+      message(crayon::yellow('The secondary raster does not fully overlap with the user-specified extent. Resulting data frame will not fully cover user-defined extent.'))
+    }
+
+  }
+
   # Create ERA raster from input raster
   clim_raster <- raster::raster(grid) # only reads the first band
 
@@ -37,7 +58,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   c_rast_res <- raster::xres(clim_raster)
 
   ## add buffer to extent
-  buffer_size <- 4 * c_rast_res
+  buffer_size <- c_rast_res
 
   ## add buffer to the extent for bbox
   if(is.vector(extent)) {
