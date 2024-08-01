@@ -174,6 +174,9 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
 
 # Function to infer date-times for raster layers based on a time interval
 infer_layer_datetimes <- function(raster_stack, start_date, time_interval) {
+  # Turn the data into a raster stack in case it's a SpatRaster
+  raster_stack <- raster::stack(data)
+
   # Number of layers in the raster stack
   num_layers <- raster::nlayers(raster_stack)
 
