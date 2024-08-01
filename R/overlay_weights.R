@@ -117,7 +117,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
   # IF weights = TRUE, merge secondary weights with area weights
   if(!is.null(secondary_weights)){
 
-    # Data.table of secondary weights
+    # data.table of secondary weights
     weights_dt <- data.table::as.data.table(secondary_weights)
 
     ## make sure secondary_weights is not in climate 0-360 coordinates
@@ -132,15 +132,36 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
 
     }
 
+    ## check if secondary raster fully overlaps with area_weight df
+    covers <- min(weights_dt$x) <= min(area_weight$x) &&
+              max(weights_dt$x) >= max(area_weight$x) &&
+              min(weights_dt$y) <= min(area_weight$y) &&
+              max(weights_dt$y) >= max(area_weight$y)
+
+    if (covers) {
+      message(crayon::green('Secondary weights fully overlap with the administrative regions.'))
+    } else {
+      message(crayon::red('Warning: secondary weights do not fully overlap with the administrative regions. Resulting weights will contain NAs.'))
+    }
+
+
+  ## check if secondary weights table contains NA values
+  if(isTRUE(any(is.na(weights_dt[["weight"]])))) {
+
+    ## print warning if there are NAs in the secondary weights
+    warning(crayon::red("Warning: secondary weight values contain one or more NAs. NAs will be returned for weights."))
+
+  }
+
     # Set key column in the merged dt table
     keycols = c("x", "y")
     data.table::setkeyv(area_weight, keycols)
-
 
     # Merge with secondary weights, NA for missing values
     w_merged <- merge(area_weight, weights_dt,
                       by = c('x', 'y'),
                       all.x = T)
+
 
     # Weight in pixel = w_area * weight
     w_merged[, weight := weight * w_area]
@@ -166,13 +187,12 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
       dplyr::select(poly_id) %>%
       dplyr::distinct()
 
-
-    # Warning if there are polygons with NA weight values
-    if(nrow(na_polys > 0)) {
-
-      warning(crayon::red("Warning: some of the secondary weights are NA, meaning weights cannot be calculated. NAs will be returned for weights."))
-
-    }
+    # # Warning if there are polygons with NA weight values
+    # if(nrow(na_polys > 0)) {
+    #
+    #   warning(crayon::red("Warning: some of the secondary weights are NA, meaning weights cannot be calculated. NAs will be returned for weights."))
+    #
+    # }
 
     # Update the weight to equal w_area for all grid cells in na_polys
     w_merged <- w_merged %>%

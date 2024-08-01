@@ -29,7 +29,7 @@
 secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full"){
 
   ## check if secondary raster completely overlaps with user-defined extent
-  if(!extent = "full") {
+  if(!is.character(extent)) {
 
     extent_rect <- raster::extent(extent)
 
@@ -166,6 +166,14 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   ## set crs of secondary raster to match climate data
   ## -----------------------------------------------
   raster::crs(secondary_raster) <- raster::crs(clim_raster)
+
+
+  ## check if secondary raster contains NA values
+  if(isTRUE(any(is.na(values(secondary_raster))))) {
+
+    message(crayon::red("Warning: secondary raster contains NA values. NAs will be returned for weights."))
+
+  }
 
 
   ## Make the values of the clim_raster resampled weights
