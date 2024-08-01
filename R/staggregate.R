@@ -230,31 +230,6 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
                     day = lubridate::day(date),
                     hour = lubridate::hour(date))] # NOTE: if the timestep is smaller than hourly, the minutes and seconds will not be recorded. However, this does not affect the output since the lowest aggregation level possible is 'hour'.
 
-  # Check that the temporal aggregation is not of higher temporal resolution than the available data
-  # (e.g. that you don't have monthly data being aggregated to daily levels)
-
-  # Determine the granularity of your data
-  if (length(unique(merged_dt$hour)) > 1) {
-    data_granularity <- "hour"
-  } else if (length(unique(merged_dt$day)) > 1) {
-    data_granularity <- "day"
-  } else if (length(unique(merged_dt$month)) > 1) {
-    data_granularity <- "month"
-  } else {
-    data_granularity <- "year"
-  }
-
-  # Define a hierarchy of temporal resolutions
-  temporal_hierarchy <- c("year", "month", "day", "hour")
-
-  # Compare the data granularity with the time_agg value
-  data_granularity_index <- match(data_granularity, temporal_hierarchy)
-  time_agg_index <- match(time_agg, temporal_hierarchy)
-
-  if (time_agg_index > data_granularity_index) {
-    stop(crayon::red(paste("The temporal aggregation level", time_agg, "is of higher resolution than the available data, which is at the", data_granularity, "level. Please ensure that you use data with an appropriate temporal resolution for this level of temporal aggregation.")))
-  }
-
   # Temporal Aggregation
   if(time_agg == "year"){
     message(crayon::green("Aggregating by polygon and year"))
