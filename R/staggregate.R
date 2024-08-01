@@ -133,7 +133,7 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
 
   # Check if the number of timesteps in a day is a whole number
   if(timesteps_per_day != as.integer(timesteps_per_day)) {
-    stop(crayon::red("The number of timesteps in a day is not a whole number. Please change the `time_interval` argument to reflect a dataset wherein all layers correspond to a specific day in order to perform the daily aggregation."))
+    stop(crayon::red("The number of timesteps in a day is not a whole number. Please change the `time_interval` argument to a number of hours that can evenly divide 24 hours."))
   }
 
   # Check that you have a dataset with a number of layers that is divisible by the number of timesteps in a day
