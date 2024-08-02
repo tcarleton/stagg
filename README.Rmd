@@ -86,9 +86,12 @@ cropland_weights <- secondary_weights(
                                            # cropping the secondary_raster, 
                                            # which saves compute time. Input 
                                            # format must be compatible with 
-                                           # raster::crop().
-
+                                           # raster::crop(), such as:
+                                           #    nj_extent <- sf::st_bbox(nj_counties)
+                                           #    nj_extent <- raster::extent(nj_counties)
+                                           #    nj_extent <- c(-76, -73, 38, 42)
 )
+
 #Display resulting table
 cropland_weights
 ```
