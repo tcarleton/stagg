@@ -9,7 +9,8 @@
 #' @param grid a raster layer with the same spatial resolution as the climate
 #'   data
 #' @param extent an optional extent to crop the secondary_raster to for faster
-#'   processing. Format must be compatible with raster::crop()
+#'   processing. Format must be compatible with raster::crop(). The default is "full", which
+#'   resamples the whole secondary raster without cropping.
 #'
 #' @return a data.table of secondary weights
 #'
@@ -19,7 +20,7 @@
 #'                                        # and convert to a data.table
 #'   grid = era5_grid, # The grid to resample the secondary_raster to (`era5_grid`
 #'                     # is the default)
-#'   extent = "full" # The default which resamples the whole secondary raster
+#'   extent = "full" # The default, which resamples the whole secondary raster
 #'                   # without cropping (`'full'` is the default)
 #'   )
 #'
