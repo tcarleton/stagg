@@ -28,7 +28,7 @@
 #' @export
 secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full"){
 
-  ## check if secondary raster completely overlaps with user-defined extent
+  ## check if secondary raster fully overlaps with user-defined extent
   if(!is.character(extent)) {
 
     extent_rect <- raster::extent(extent)
@@ -44,7 +44,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
     if (covers) {
       message(crayon::green('The secondary raster fully overlaps the user-specified extent.'))
     } else {
-      message(crayon::yellow('The secondary raster does not fully overlap with the user-specified extent. Resulting data frame will not fully cover user-defined extent.'))
+      message(crayon::yellow('Warning: the secondary raster does not fully overlap with the user-specified extent. Resulting data frame will not fully cover user-defined extent.'))
     }
 
   }
@@ -168,7 +168,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   raster::crs(secondary_raster) <- raster::crs(clim_raster)
 
 
-  ## check if secondary raster contains NA values
+  ## check if the cropped secondary raster contains NA values
   if(isTRUE(any(is.na(values(secondary_raster))))) {
 
     message(crayon::red("Warning: secondary raster contains NA values. NAs will be returned for weights."))

@@ -132,7 +132,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
 
     }
 
-    ## check if secondary raster fully overlaps with area_weight df
+    ## check if secondary weights fully overlaps with area_weight df
     covers <- min(weights_dt$x) <= min(area_weight$x) &&
               max(weights_dt$x) >= max(area_weight$x) &&
               min(weights_dt$y) <= min(area_weight$y) &&
@@ -149,7 +149,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
   if(isTRUE(any(is.na(weights_dt[["weight"]])))) {
 
     ## print warning if there are NAs in the secondary weights
-    warning(crayon::red("Warning: secondary weight values contain one or more NAs. NAs will be returned for weights."))
+    warning(crayon::red("Warning: secondary weight values contain one or more NAs. The resulting weights for x,y coordinates with NA secondary weight values will be NAs."))
 
   }
 
