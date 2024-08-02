@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-The R Package `stagg` aims to harmonize the preparation of spatiotemporal data obtained from the [ERA5 project](https://www.ecmwf.int/en/forecasts/datasets/reanalysis-datasets/era5) for use in statistical analyses. This allows for more efficient useof researchers' time, and avoids common missteps. The end goal is a greater quantity of quality research into the study of coupled human-geophysical systems. 
+The R Package `stagg` aims to harmonize the preparation of spatiotemporal data obtained from the [ERA5 project](https://www.ecmwf.int/en/forecasts/datasets/reanalysis-datasets/era5) for use in statistical analyses. This allows for more efficient use of researchers' time, and avoids common missteps. The end goal is a greater quantity of quality research into the study of coupled human-geophysical systems. 
 
 Further documentation, including the working paper, AGU conference poster, and cheat sheet are available [here](https://www.tammacarleton.com/projects-6)
 
@@ -79,17 +79,21 @@ cropland_weights <- secondary_weights(
                                            # data and the grid will be taken 
                                            # from its first layer
   
-  extent = "full"                          # The extent to crop the  
-                                           # secondary_raster to, use whenever  
-                                           # possible to save time (default is 
-                                           # "full"). Format must be compatible
-                                           # with raster::crop()
+  extent = "full"                          # The default is "full", which 
+                                           # generates weights for entire 
+                                           # secondary data raster. User has the 
+                                           # option to define an extent for 
+                                           # cropping the secondary_raster, 
+                                           # which saves compute time. Input 
+                                           # format must be compatible with 
+                                           # raster::crop().
+
 )
 #Display resulting table
 cropland_weights
 ```
 
-As you can see from the output, `secondary_weights()` checks for alignment, and rotates the `secondary_raster` coordinates if necessary. It also resamples the data to the spatial resolution of the grid, before outputting a data.table with latitudes, longitudes, and cropland weights.
+As you can see from the output, `secondary_weights()` checks for alignment, and rotates the `secondary_raster` coordinates if necessary. It also resamples the data to the spatial resolution of the cliamte grid using bilinear interpolation, and returns a `data.table` with latitudes, longitudes, and cropland weights.
 
 ### Step 2: Overlay administrative regions onto the data's grid
 
