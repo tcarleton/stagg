@@ -18,13 +18,12 @@ as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE
 }
 
 # Function to convert raster to data.table and aggregate to daily values before transformation
-daily_aggregation <- function(data, overlay_weights, daily_agg){
+daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1 hour'){
 
   if(!daily_agg %in% c('average', 'sum', 'none')){
 
     stop(crayon::red("daily_agg must be 'average', 'sum', or 'none'"))
   }
-
 
   # Data.table of weights
   weights_dt <- data.table::as.data.table(overlay_weights)
@@ -118,12 +117,31 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
     return(list(clim_hourly, all_names))
   }
 
+  # Turn the "time_interval" argument into a number of timesteps per day.
+  # Throw errors if:
+  # (1) the time interval is 1 day or longer or
+  # (2) the number of timesteps in a day is not a whole number
 
-  if(!(raster::nlayers(clim_raster)%%24 == 0)){
-    stop(crayon::red("Data does not contain a number of layers that is a multiple of 24. Please use hourly data representing a whole number of days."))
+  interval_duration <- duration(time_interval)
+  day_duration <- duration("1 day")
+
+  if(interval_duration >= day_duration) {
+    stop(crayon::red("The time interval must be less than 1 day in order to perform a daily aggregation. Please set `daily_agg` to `none` to avoid attempting daily aggregation."))
   }
 
-  layer_names <- all_layers[seq(1, length(all_layers), 24)] # Keep every 24th layer name (1 per day)
+  timesteps_per_day <- as.numeric(day_duration / interval_duration)
+
+  # Check if the number of timesteps in a day is a whole number
+  if(timesteps_per_day != as.integer(timesteps_per_day)) {
+    stop(crayon::red("The number of timesteps in a day is not a whole number. Please change the `time_interval` argument to a number of hours that can evenly divide 24 hours."))
+  }
+
+  # Check that you have a dataset with a number of layers that is divisible by the number of timesteps in a day
+  if(!(raster::nlayers(clim_raster)%%timesteps_per_day == 0)){
+    stop(crayon::red(sprintf("The data does not contain a number of layers that is a multiple of %d (the number of timesteps in a day calculated using the `time_interval` argument, currently set to %s). Please use complete data with all timesteps available for each day.", timesteps_per_day, time_interval)))
+  }
+
+  layer_names <- all_layers[seq(1, length(all_layers), timesteps_per_day)] # Keep one layer name per day
 
   ## Aggregate to grid-day level
   ## -----------------------------------------------
@@ -131,20 +149,20 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
   ## Average
   if(daily_agg == 'average'){
 
-    message(crayon::green("Averaging hourly values to get daily values"))
+    message(crayon::green(sprintf("Averaging over %d layers per day to get daily values", timesteps_per_day)))
 
-    # Average over each set of 24 layers
-    indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
+    # Average over each set of layers representing one day
+    indices<-rep(1:(raster::nlayers(clim_raster)/timesteps_per_day),each=timesteps_per_day)
     clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=mean)
   }
 
   ## Sum
   if(daily_agg == 'sum'){
 
-    message(crayon::green("Summing hourly values to daily values"))
+    message(crayon::green(sprintf("Summing over %d layers per day to get daily values", timesteps_per_day)))
 
-    # Sum over each set of 24 layers
-    indices<-rep(1:(raster::nlayers(clim_raster)/24),each=24)
+    # Sum over each set of layers representing one day
+    indices<-rep(1:(raster::nlayers(clim_raster)/timesteps_per_day),each=timesteps_per_day)
     clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=sum)
   }
 
@@ -154,6 +172,28 @@ daily_aggregation <- function(data, overlay_weights, daily_agg){
   return(list(clim_daily, layer_names))
 }
 
+# Function to infer date-times for raster layers based on a time interval
+infer_layer_datetimes <- function(raster_stack, start_date, time_interval) {
+  # Turn the data into a raster stack in case it's a SpatRaster
+  raster_stack <- raster::stack(data)
+
+  # Number of layers in the raster stack
+  num_layers <- raster::nlayers(raster_stack)
+
+  # Convert start date to POSIXct
+  start_date <- lubridate::as_datetime(start_date)
+
+  # Generate the sequence of date-times for each layer
+  layer_dates <- seq(start_date, by = time_interval, length.out = num_layers)
+
+  # Make sure the full date shows up in the string every time
+  formatted_dates <- format(layer_dates, "X%Y.%m.%d.%H.%M.%S")
+
+  # Assign the inferred date-times to the raster layers
+  names(raster_stack) <- as.character(formatted_dates)
+
+  return(raster_stack)
+}
 
 # Function to merge with geoweights and aggregate by polygon
 polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
@@ -167,12 +207,11 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 
 
   # Convert layer names to dates
-  message(crayon::yellow("Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()"))
-  clim_dt[, date := stringr::str_sub(date, 2, -1)]
+  clim_dt[, date := stringr::str_replace(date, "^[^0-9]+", "")] # Remove any non-digit characters from the start of the string
   clim_dt[, date := lubridate::as_datetime(date)]
 
   # Keyed merge on the x/y column
-  merged_dt <- clim_dt[weights_dt, allow.cartesian = TRUE] #cols: x, y, date, value cols 1:k, poly_id, w_area, weight (if weights = T)
+  merged_dt <- clim_dt[weights_dt, allow.cartesian = TRUE] # cols: x, y, date, value cols 1:k, poly_id, w_area, weight (if weights = T)
 
   ## Multiply weights x climate value (all 1:k values); aggregate by month and polygon
   ## -----------------------------------------------
@@ -189,7 +228,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
   merged_dt[, ':=' (year = lubridate::year(date),
                     month = lubridate::month(date),
                     day = lubridate::day(date),
-                    hour = lubridate::hour(date))]
+                    hour = lubridate::hour(date))] # NOTE: if the timestep is smaller than hourly, the minutes and seconds will not be recorded. However, this does not affect the output since the lowest aggregation level possible is 'hour'.
 
   # Temporal Aggregation
   if(time_agg == "year"){
@@ -260,6 +299,16 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' @param time_agg the temporal scale to aggregate data to. Options are
 #'   `'hour'`, `'day'`, `'month'`, or `'year'` (`'hour'` cannot be selected
 #'   unless `daily_agg = 'none'`)
+#' @param start_date the date (and time, if applicable) of the first layer in
+#'  the raster. To be input in a format compatible with
+#'  lubridate::as_datetime(), e.g. `"1991-10-29"` or `"1991-10-29 00:00:00"`.
+#'  The default is `NA` since the rasters usually already contain temporal
+#'  information in the layer names and they do not need to be manually supplied.
+#' @param time_interval the time interval between layers in the raster to be
+#'  aggregated. To be input in a format compatible with seq(), e.g.
+#'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
+#'  required if daily_agg is not `'none'` or if the `start_date` argument is not
+#'  `NA`.
 #' @param degree the highest exponent to raise the data to
 #'
 #' @examples
@@ -269,14 +318,21 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #'   daily_agg = "average", # Average hourly values to produce daily values
 #'                          # before transformation
 #'   time_agg = "month", # Sum the transformed daily values across months
+#'   start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
+#'   time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the start_date argument is not NA
 #'   degree = 4 # Highest order
 #'   )
 #'
 #' head(polynomial_output)
 #'
 #' @export
-staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = "month", degree){
+staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = "month", start_date = NA, time_interval = "1 hour", degree){
 
+  # If the start date is supplied, overwrite the raster's layer names to reflect the specified temporal metadata
+  if(!is.na(start_date)){
+    message(crayon::green(sprintf("Rewriting the data's temporal metadata (layer names) to reflect a dataset starting on the supplied start date and with a temporal interval of %s", time_interval)))
+    data <- infer_layer_datetimes(data, start_date, time_interval)
+  }
 
   # Change daily_agg to "none" if time_agg is "hour"
   if(time_agg == "hour" & daily_agg != "none"){
@@ -285,7 +341,7 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
   }
 
   # Aggregate climate data to daily values
-  setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
+  setup_list <- daily_aggregation(data, overlay_weights, daily_agg, time_interval)
 
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
@@ -364,6 +420,16 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #' @param time_agg the temporal scale to aggregate data to. Options are
 #'   `'hour'`, `'day'`, `'month'`, or `'year'` (`'hour'` cannot be selected
 #'   unless `daily_agg = 'none'`)
+#' @param start_date the date (and time, if applicable) of the first layer in
+#'  the raster. To be input in a format compatible with
+#'  lubridate::as_datetime(), e.g. `"1991-10-29"` or `"1991-10-29 00:00:00"`.
+#'  The default is `NA` since the rasters usually already contain temporal
+#'  information in the layer names and they do not need to be manually supplied.
+#' @param time_interval the time interval between layers in the raster to be
+#'  aggregated. To be input in a format compatible with seq(), e.g.
+#'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
+#'  required if daily_agg is not `'none'` or if the `start_date` argument is not
+#'  `NA`.
 #' @param knot_locs where to place the knots
 #'
 #' @examples
@@ -373,13 +439,21 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #' daily_agg = "average", # Average hourly values to produce daily values before
 #'                        # transformation
 #' time_agg = "month", # Sum the transformed daily values across months
+#' start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
+#' time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the start_date argument is not NA
 #' knot_locs = c(0, 7.5, 12.5, 20) # Where to place knots
 #' )
 #'
 #' head(spline_output)
 #'
 #' @export
-staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "month", knot_locs){
+staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "month", start_date = NA, time_interval = "1 hour", knot_locs){
+
+  # If the start date is supplied, overwrite the raster's layer names to reflect the specified temporal metadata
+  if(!is.na(start_date)){
+    message(crayon::green(sprintf("Rewriting the data's temporal metadata (layer names) to reflect a dataset starting on the supplied start date and with a temporal interval of %s", time_interval)))
+    data <- infer_layer_datetimes(data, start_date, time_interval)
+  }
 
   # Change daily_agg to "none" if time_agg is "hour"
   if(time_agg == "hour" & daily_agg != "none"){
@@ -388,7 +462,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
     }
 
   # Aggregated climate data to daily values
-  setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
+  setup_list <- daily_aggregation(data, overlay_weights, daily_agg, time_interval)
 
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
@@ -495,6 +569,16 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #' @param time_agg the temporal scale to aggregate data to. Options are
 #'   `'hour'`, `'day'`, `'month'`, or `'year'` (`'hour'` cannot be selected
 #'   unless `daily_agg = 'none'`)
+#' @param start_date the date (and time, if applicable) of the first layer in
+#'  the raster. To be input in a format compatible with
+#'  lubridate::as_datetime(), e.g. `"1991-10-29"` or `"1991-10-29 00:00:00"`.
+#'  The default is `NA` since the rasters usually already contain temporal
+#'  information in the layer names and they do not need to be manually supplied.
+#' @param time_interval the time interval between layers in the raster to be
+#'  aggregated. To be input in a format compatible with seq(), e.g.
+#'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
+#'  required if daily_agg is not `'none'` or if the `start_date` argument is not
+#'  `NA`.
 #' @param bin_breaks A vector of bin boundaries to split the data by
 #'
 #' @examples
@@ -504,6 +588,8 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'   daily_agg = "average", # Average hourly values to produce daily values
 #'                          # before transformation
 #'   time_agg = "month", # Sum the transformed daily values across months
+#'   start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
+#'   time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the start_date argument is not NA
 #'   bin_breaks = c(0, 2.5, 5, 7.5, 10) # Draw 6 bins from ninf to 0, 0 to 2.5,
 #'                                      # 2.5 to 5, 5 to 7.5, 7.5 to 10, 10 to inf
 #'   )
@@ -511,7 +597,13 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #' head(bin_output)
 #'
 #' @export
-staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month", bin_breaks){
+staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month", start_date = NA, time_interval = '1 hour', bin_breaks){
+
+  # If the start date is supplied, overwrite the raster's layer names to reflect the specified temporal metadata
+  if(!is.na(start_date)){
+    message(crayon::green(sprintf("Rewriting the data's temporal metadata (layer names) to reflect a dataset starting on the supplied start date and with a temporal interval of %s", time_interval)))
+    data <- infer_layer_datetimes(data, start_date, time_interval)
+  }
 
   # Change daily_agg to "none" if time_agg is "hour"
   if(time_agg == "hour" & daily_agg != "none"){
@@ -520,7 +612,7 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
   }
 
   # Aggregate climate data to daily values
-  setup_list <- daily_aggregation(data, overlay_weights, daily_agg)
+  setup_list <- daily_aggregation(data, overlay_weights, daily_agg, time_interval)
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
 
@@ -624,6 +716,15 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 #'   function `overlay_weights()`
 #' @param time_agg the temporal scale to aggregate data to. Options are `'day'`,
 #'   `'month'`, or `'year'`
+#' @param start_date the date (and time, if applicable) of the first layer in
+#'  the raster. To be input in a format compatible with
+#'  lubridate::as_datetime(), e.g. `"1991-10-29"` or `"1991-10-29 00:00:00"`.
+#'  The default is `NA` since the rasters usually already contain temporal
+#'  information in the layer names and they do not need to be manually supplied.
+#' @param time_interval the time interval between layers in the raster to be
+#'  aggregated. To be input in a format compatible with seq(), e.g.
+#'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
+#'  required if the `start_date` argument is not `NA`.
 #' @param thresholds A vector of temperature thresholds critical to a crop
 #'
 #' @examples
@@ -631,6 +732,8 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 #'   data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and aggregate
 #'   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 #'   time_agg = "month", # Sum the transformed daily values across months
+#'   start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
+#'   time_interval = "1 hour", # The temporal interval of the supplied data, only required if the start_date is not NA
 #'   thresholds = c(0, 10, 20) # Calculate degree days above 0, 10, and 20
 #'                             # degrees Celsius
 #'   )
@@ -638,9 +741,15 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 #' head(degree_days_output)
 #'
 #' @export
-staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", thresholds){
+staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", start_date = NA, time_interval = '1 hour', thresholds){
 
-   # Run climate data through daily_aggregation)() (not actually aggregating to daily values)
+  # If the start date is supplied, overwrite the raster's layer names to reflect the specified temporal metadata
+  if(!is.na(start_date)){
+    message(crayon::green(sprintf("Rewriting the data's temporal metadata (layer names) to reflect a dataset starting on the supplied start date and with a temporal interval of %s", time_interval)))
+    data <- infer_layer_datetimes(data, start_date, time_interval)
+  }
+
+  # Run climate data through daily_aggregation)() (not actually aggregating to daily values)
   setup_list <- daily_aggregation(data, overlay_weights, daily_agg = "none")
   clim_rast <- setup_list[[1]] # Pulls the raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
