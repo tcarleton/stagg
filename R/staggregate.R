@@ -307,8 +307,8 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' @param time_interval the time interval between layers in the raster to be
 #'  aggregated. To be input in a format compatible with seq(), e.g.
 #'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
-#'  required if daily_agg is not `'none'` or if the layer name format is not
-#'  compatible with stagg.
+#'  required if daily_agg is not `'none'` or if the `start_date` argument is not
+#'  `NA`.
 #' @param degree the highest exponent to raise the data to
 #'
 #' @examples
@@ -319,7 +319,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #'                          # before transformation
 #'   time_agg = "month", # Sum the transformed daily values across months
 #'   start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
-#'   time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the layer name format is not compatible with stagg
+#'   time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the start_date argument is not NA
 #'   degree = 4 # Highest order
 #'   )
 #'
@@ -428,8 +428,8 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #' @param time_interval the time interval between layers in the raster to be
 #'  aggregated. To be input in a format compatible with seq(), e.g.
 #'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
-#'  required if daily_agg is not `'none'` or if the layer name format is not
-#'  compatible with stagg.
+#'  required if daily_agg is not `'none'` or if the `start_date` argument is not
+#'  `NA`.
 #' @param knot_locs where to place the knots
 #'
 #' @examples
@@ -440,7 +440,7 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #'                        # transformation
 #' time_agg = "month", # Sum the transformed daily values across months
 #' start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
-#' time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the layer name format is not compatible with stagg
+#' time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the start_date argument is not NA
 #' knot_locs = c(0, 7.5, 12.5, 20) # Where to place knots
 #' )
 #'
@@ -577,8 +577,8 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #' @param time_interval the time interval between layers in the raster to be
 #'  aggregated. To be input in a format compatible with seq(), e.g.
 #'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
-#'  required if daily_agg is not `'none'` or if the layer name format is not
-#'  compatible with stagg.
+#'  required if daily_agg is not `'none'` or if the `start_date` argument is not
+#'  `NA`.
 #' @param bin_breaks A vector of bin boundaries to split the data by
 #'
 #' @examples
@@ -589,7 +589,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'                          # before transformation
 #'   time_agg = "month", # Sum the transformed daily values across months
 #'   start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
-#'   time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the layer name format is not compatible with stagg
+#'   time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the start_date argument is not NA
 #'   bin_breaks = c(0, 2.5, 5, 7.5, 10) # Draw 6 bins from ninf to 0, 0 to 2.5,
 #'                                      # 2.5 to 5, 5 to 7.5, 7.5 to 10, 10 to inf
 #'   )
@@ -724,7 +724,7 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 #' @param time_interval the time interval between layers in the raster to be
 #'  aggregated. To be input in a format compatible with seq(), e.g.
 #'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
-#'  required if the layer name format is not compatible with stagg.
+#'  required if the `start_date` argument is not `NA`.
 #' @param thresholds A vector of temperature thresholds critical to a crop
 #'
 #' @examples
@@ -733,7 +733,7 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 #'   overlay_weights = overlay_weights_kansas, # Output from overlay_weights()
 #'   time_agg = "month", # Sum the transformed daily values across months
 #'   start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
-#'   time_interval = "1 hour", # The temporal interval of the supplied data, only required if the layer name format is not compatible with stagg
+#'   time_interval = "1 hour", # The temporal interval of the supplied data, only required if the start_date is not NA
 #'   thresholds = c(0, 10, 20) # Calculate degree days above 0, 10, and 20
 #'                             # degrees Celsius
 #'   )
