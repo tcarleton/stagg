@@ -62,7 +62,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   buffer_size <- c_rast_res
 
   ## add buffer to the extent for bbox
-  if(is.vector(extent)) {
+  if(is.vector(extent) & length(extent) > 1) {
     extent <- c(
       extent[1] - buffer_size,  # xmin (negative direction)
       extent[2] + buffer_size,  # xmax (positive direction)
