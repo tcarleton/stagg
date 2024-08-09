@@ -43,4 +43,38 @@ test_that("Data values of overlay_weights are normal", {
 
 })
 
+test_that("overlay_weights errors", {
 
+  # Load data to run in overlay_weights
+  load("data/era5_grid.rda")
+  load("data/cropland_nj_2015.rda")
+  nj <- tigris::counties(state="New Jersey")
+  # Run secondary_weights
+  crop_weights <- secondary_weights(cropland_nj_2015) |>
+    # Set all odd rows to NA
+    dplyr::mutate(weight = ifelse(x==-74.5, NA, weight))
+
+  # Shift the nj polygons so they are 0-360
+  nj_shift <- nj |> sf::st_shift_longitude()
+
+  # Errors: 4 stops in the overlay_weight function
+  ## Error if polygons are in 0-360
+  expect_error(overlay_weights(polygons = nj_shift,
+                               polygon_id_col = "COUNTYFP",
+                               grid = era5_grid))
+
+  ## Error if weights don't sum to 1 or all cells are NA
+  expect_error(overlay_weights(polygons = nj,
+                               polygon_id_col = "COUNTYFP",
+                               grid = era5_grid,
+                               secondary_weights = crop_weights)) # Still doesn't error?
+  # Always returns NA for the entire polygon
+  # Investing in overlay weights it looks like we change every cell to NA within a certain polygon id
+  # if one cell is NA in the weights.
+
+  ## Error if area weights or weights don't sum to 1: can't break this since it
+  ## requires changing the function itself not the input data
+  ## But checking outputs sum to 1 is included above
+
+
+})
