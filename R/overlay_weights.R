@@ -194,7 +194,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     #
     # }
 
-    # Update the weight to equal w_area for all grid cells in na_polys
+    # Update the weight to NA for all grid cells in na_polys
     w_merged <- w_merged %>%
       dplyr::mutate(weight = ifelse(poly_id %in% c(na_polys$poly_id, zero_polys$poly_id), NA, weight)) %>%
       data.table::as.data.table()
@@ -242,12 +242,6 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
         if(!check_weights$poly_id[i] %in% c(na_polys$poly_id, zero_polys$poly_id) & !dplyr::near(check_weights$weight[i], 1, tol=0.001)) {
 
           stop(crayon::red('Weights for polygon', check_weights$poly_id[i], 'do not sum to 1')) }
-
-           if(is.na(check_weights$weight[i] & !check_weights$poly_id[i] %in% c(na_polys$poly_id, zero_polys$poly_id))) {
-
-             stop(crayon::red('Some weights for polygon', check_weights$poly_id[i], 'are NA. Should sum to 1 or all be NA.'))
-
-           }
 
      }
 
