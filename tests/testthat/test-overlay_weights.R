@@ -68,16 +68,9 @@ test_that("overlay_weights works when some secondary weights are NA", {
   nj <- tigris::counties(state="New Jersey")
 
   # Run secondary_weights
-  crop_weights <- secondary_weights(cropland_nj_2015)
-  crop_weights_na <- crop_weights |>
+  crop_weights_na <- secondary_weights(cropland_nj_2015) |>
     # Set all odd rows to NA
     dplyr::mutate(weight = ifelse(x==-74.5, NA, weight))
-
-  # Expect a warning that secondary weights contains one more NAs
-  expect_warning(overlay_weights(polygons = nj,
-                                 polygon_id_col = "COUNTYFP",
-                                 grid = era5_grid,
-                                 secondary_weights = crop_weights_na))
 
   # Run overlay_weights with NAs
   options(warn=-1)  # This won't actually run within the testing code because of the warning so we supress it
@@ -97,6 +90,36 @@ test_that("overlay_weights works when some secondary weights are NA", {
 
   # Expect that area + secondary weights are either 1 or NA
   expect_true(all(round(sum_na$weight) == 1 | is.na(sum_na$weight)))
+
+})
+
+test_that("overlay_weights warnings", {
+
+  # Load data to run in overlay_weights
+  load("data/era5_grid.rda")
+  load("data/cropland_nj_2015.rda")
+  nj <- tigris::counties(state="New Jersey")
+
+  # Run secondary_weights
+  crop_weights_na <- secondary_weights(cropland_nj_2015) |>
+    # Set all odd rows to NA
+    dplyr::mutate(weight = ifelse(x==-74.5, NA, weight))
+
+  # Make the extent of secondary weights smaller than polygons
+  crop_weights_small <- secondary_weights(cropland_nj_2015) |>
+    dplyr::filter(y >= 39 & y< 41)
+
+  # Expect a warning that secondary weights contains one more NAs
+  expect_warning(overlay_weights(polygons = nj,
+                                 polygon_id_col = "COUNTYFP",
+                                 grid = era5_grid,
+                                 secondary_weights = crop_weights_na))
+
+  # Expect a warning that secondary weights doesn't overlap fully with polygons
+  expect_warning(overlay_weights(polygons = nj,
+                                 polygon_id_col = "COUNTYFP",
+                                 grid = era5_grid,
+                                 secondary_weights = crop_weights_small))
 
 })
 
