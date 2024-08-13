@@ -141,7 +141,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     if (covers) {
       message(crayon::green('Secondary weights fully overlap with the administrative regions.'))
     } else {
-      message(crayon::red('Warning: secondary weights do not fully overlap with the administrative regions. Resulting weights will contain NAs.'))
+      warning(crayon::red('Warning: secondary weights do not fully overlap with the administrative regions. Resulting weights will contain NAs.'))
     }
 
 
