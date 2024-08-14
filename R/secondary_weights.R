@@ -170,7 +170,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
 
 
   ## check if the cropped secondary raster contains NA values
-  if(isTRUE(any(is.na(values(secondary_raster))))) {
+  if(isTRUE(any(is.na(raster::values(secondary_raster))))) {
 
     message(crayon::red("Warning: secondary raster contains NA values. NAs will be returned for weights."))
 

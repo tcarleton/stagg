@@ -25,5 +25,6 @@ Imports:
     stringr
 Suggests: 
     testthat (>= 3.0.0),
-    tigris
+    tigris,
+    usethis
 Config/testthat/edition: 3
