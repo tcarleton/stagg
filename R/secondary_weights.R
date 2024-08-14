@@ -29,6 +29,13 @@
 #' @export
 secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full"){
 
+  ## Return error if raster::extent can't inherit from the value supplied
+  ## won't be able to check if secondary raster fully overlaps if
+  ## this input isn't compatible with raster::extent()
+  tryCatch(raster::crop(cropland_nj_2015, nj), #function to test
+           error=stop(crayon::red("User-defined extent not compatible with raster.")) #Display if there's an error in the test function
+  )
+
   ## check if secondary raster fully overlaps with user-defined extent
   if(!is.character(extent)) {
 
@@ -45,7 +52,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
     if (covers) {
       message(crayon::green('The secondary raster fully overlaps the user-specified extent.'))
     } else {
-      message(crayon::yellow('Warning: the secondary raster does not fully overlap with the user-specified extent. Resulting data frame will not fully cover user-defined extent.'))
+      warning(crayon::red('Warning: the secondary raster does not fully overlap with the user-specified extent. Resulting data frame will not fully cover user-defined extent.'))
     }
 
   }
@@ -86,10 +93,6 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   } else if(is.character(extent)) {
 
       extent <- extent
-
-    } else {
-
-      stop("User-defined extent not compatible with raster.")
 
     }
 
@@ -172,7 +175,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   ## check if the cropped secondary raster contains NA values
   if(isTRUE(any(is.na(raster::values(secondary_raster))))) {
 
-    message(crayon::red("Warning: secondary raster contains NA values. NAs will be returned for weights."))
+    warning(crayon::red("Warning: secondary raster contains NA values. NAs will be returned for weights."))
 
   }
 
