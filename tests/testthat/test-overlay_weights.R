@@ -1,24 +1,7 @@
 # Test overlay weights
-test_that("Data structure of overlay_weights is normal", {
-
-  load("data/overlay_weights_nj.rda")
-
-  # Expect the correct column names
-  expect_equal(names(overlay_weights_nj), c("x", "y", "poly_id", "w_area", "weight"))
-
-  # Expect the correct number of rows
-  expect_equal(nrow(overlay_weights_nj), 141)
-
-  # Expect the correct number of unique counties
-  expect_equal(length(unique(overlay_weights_nj$poly_id)), 21)
-
-})
-
 test_that("overlay_weights outputs are normal", {
 
   # Load data to run in overlay_weights
-  load("data/era5_grid.rda")
-  load("data/cropland_nj_2015.rda")
   nj <- tigris::counties(state="New Jersey")
 
   # Run secondary_weights
@@ -32,12 +15,21 @@ test_that("overlay_weights outputs are normal", {
                                    polygon_id_col = "COUNTYFP",
                                    grid = era5_grid,
                                    secondary_weights = crop_weights)
-
+  # And sum by polygon to check outputs
   sum_normal <- normal_output |>
     group_by(poly_id) |>
     summarize(w_area = sum(w_area),
               weight = sum(weight)) |>
     ungroup()
+
+  # Expect the correct column names
+  expect_equal(names(normal_output), c("x", "y", "poly_id", "w_area", "weight"))
+
+  # Expect the correct number of rows
+  expect_equal(nrow(normal_output), 141)
+
+  # Expect the correct number of unique counties
+  expect_equal(length(unique(normal_output$poly_id)), 21)
 
   # Expect that area weights are between 0 and 1
   ## Smallest value in the area weights column > 0
@@ -51,11 +43,10 @@ test_that("overlay_weights outputs are normal", {
   ## Largest value in the weights column <= 1
   expect_lte(max(normal_output$weight), 1)
 
-  # Normal output
-  ## Expect that area weights sum to 1 for each county
+  # Expect that area weights sum to 1 for each county
   expect_true(all(round(sum_normal$w_area) == 1))
 
-  ## Expect that area + secondary weights sum to 1 by county
+  # Expect that area + secondary weights sum to 1 by county
   expect_true(all(round(sum_normal$weight) == 1))
 
 })
@@ -63,8 +54,6 @@ test_that("overlay_weights outputs are normal", {
 test_that("overlay_weights works when some secondary weights are NA", {
 
   # Load data to run in overlay_weights
-  load("data/era5_grid.rda")
-  load("data/cropland_nj_2015.rda")
   nj <- tigris::counties(state="New Jersey")
 
   # Run secondary_weights
@@ -73,7 +62,7 @@ test_that("overlay_weights works when some secondary weights are NA", {
     dplyr::mutate(weight = ifelse(x==-74.5, NA, weight))
 
   # Run overlay_weights with NAs
-  options(warn=-1)  # This won't actually run within the testing code because of the warning so we supress it
+  options(warn=-1)  # This won't actually run within the testing code because of the warning so we suppress it
   na_output <- overlay_weights(polygons = nj,
                                polygon_id_col = "COUNTYFP",
                                grid = era5_grid,
@@ -96,8 +85,6 @@ test_that("overlay_weights works when some secondary weights are NA", {
 test_that("overlay_weights warnings", {
 
   # Load data to run in overlay_weights
-  load("data/era5_grid.rda")
-  load("data/cropland_nj_2015.rda")
   nj <- tigris::counties(state="New Jersey")
 
   # Run secondary_weights
@@ -113,13 +100,15 @@ test_that("overlay_weights warnings", {
   expect_warning(overlay_weights(polygons = nj,
                                  polygon_id_col = "COUNTYFP",
                                  grid = era5_grid,
-                                 secondary_weights = crop_weights_na))
+                                 secondary_weights = crop_weights_na),
+                 "Warning: secondary weight values contain one or more NAs. The resulting weights for x,y coordinates with NA secondary weight values will be NAs.")
 
   # Expect a warning that secondary weights doesn't overlap fully with polygons
   expect_warning(overlay_weights(polygons = nj,
                                  polygon_id_col = "COUNTYFP",
                                  grid = era5_grid,
-                                 secondary_weights = crop_weights_small))
+                                 secondary_weights = crop_weights_small),
+                 "Warning: secondary weights do not fully overlap with the administrative regions. Resulting weights will contain NAs.")
 
 })
 
