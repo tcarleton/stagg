@@ -14,7 +14,8 @@ cropland coverage or population}
 data}
 
 \item{extent}{an optional extent to crop the secondary_raster to for faster
-processing. Format must be compatible with raster::crop()}
+processing. Format must be compatible with raster::crop(). The default is "full", which
+resamples the whole secondary raster without cropping.}
 }
 \value{
 a data.table of secondary weights
@@ -30,7 +31,7 @@ secondary_weights_output <- secondary_weights(
                                        # and convert to a data.table
   grid = era5_grid, # The grid to resample the secondary_raster to (`era5_grid`
                     # is the default)
-  extent = "full" # The default which resamples the whole secondary raster
+  extent = "full" # The default, which resamples the whole secondary raster
                   # without cropping (`'full'` is the default)
   )
 

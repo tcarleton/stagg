@@ -1,26 +1,76 @@
 # Test overlay weights
-test_that("overlay_weights outputs are normal", {
+test_that("overlay_weights matches key", {
 
-  # Load data to run in overlay_weights
-  nj <- tigris::counties(state="New Jersey")
+  # With secondary weights
+
+  # Run code
+  overlay_weights_cropland_output <- overlay_weights(
+    polygons = nj_counties,
+    polygon_id_col = "COUNTYFP",
+    grid = era5_grid,
+    secondary_weights = cropland_world_2015_era5
+  ) %>%
+    dplyr::arrange(poly_id, x, y)
+
+  # Load key generate by previous run
+  overlay_weights_cropland_key <- readRDS(
+    testthat::test_path("fixtures/overlay_weights_cropland_key.rds")
+    ) %>%
+    dplyr::arrange(poly_id, x, y)
+
+  # Expect identical
+  expect_true(all.equal(
+    overlay_weights_cropland_output,
+    overlay_weights_cropland_key
+  ))
+
+
+  # Without secondary weights
+
+  # With secondary weights
+
+  # Run code
+  overlay_weights_area_output <- overlay_weights(
+    polygons = nj_counties,
+    polygon_id_col = "COUNTYFP",
+    grid = era5_grid
+  ) %>%
+    dplyr::arrange(poly_id, x, y)
+
+  # Load key generate by previous run
+  overlay_weights_area_key <- readRDS(
+    testthat::test_path("fixtures/overlay_weights_area_key.rds")
+  ) %>%
+    dplyr::arrange(poly_id, x, y)
+
+  # Expect identical
+  expect_true(all.equal(
+    overlay_weights_area_output,
+    overlay_weights_area_key
+  ))
+
+
+})
+
+test_that("overlay_weights outputs are normal", {
 
   # Run secondary_weights
   crop_weights <- secondary_weights(cropland_nj_2015)
-  crop_weights_na <- crop_weights |>
+  crop_weights_na <- crop_weights  %>%
     # Set all odd rows to NA
     dplyr::mutate(weight = ifelse(x==-74.5, NA, weight))
 
   # Run overlay_weights normal
-  normal_output <- overlay_weights(polygons = nj,
+  normal_output <- overlay_weights(polygons = nj_counties,
                                    polygon_id_col = "COUNTYFP",
                                    grid = era5_grid,
                                    secondary_weights = crop_weights)
   # And sum by polygon to check outputs
-  sum_normal <- normal_output |>
-    group_by(poly_id) |>
-    summarize(w_area = sum(w_area),
-              weight = sum(weight)) |>
-    ungroup()
+  sum_normal <- normal_output %>%
+    dplyr::group_by(poly_id) %>%
+    dplyr::summarize(w_area = sum(w_area),
+              weight = sum(weight)) %>%
+    dplyr::ungroup()
 
   # Expect the correct column names
   expect_equal(names(normal_output), c("x", "y", "poly_id", "w_area", "weight"))
@@ -53,26 +103,23 @@ test_that("overlay_weights outputs are normal", {
 
 test_that("overlay_weights works when some secondary weights are NA", {
 
-  # Load data to run in overlay_weights
-  nj <- tigris::counties(state="New Jersey")
-
   # Run secondary_weights
-  crop_weights_na <- secondary_weights(cropland_nj_2015) |>
+  crop_weights_na <- secondary_weights(cropland_nj_2015)  %>%
     # Set all odd rows to NA
     dplyr::mutate(weight = ifelse(x==-74.5, NA, weight))
 
   # Run overlay_weights with NAs
   options(warn=-1)  # This won't actually run within the testing code because of the warning so we suppress it
-  na_output <- overlay_weights(polygons = nj,
+  na_output <- overlay_weights(polygons = nj_counties,
                                polygon_id_col = "COUNTYFP",
                                grid = era5_grid,
                                secondary_weights = crop_weights_na)
 
-  sum_na <- na_output |>
-    group_by(poly_id) |>
-    summarize(w_area = sum(w_area),
-              weight = sum(weight)) |>
-    ungroup()
+  sum_na <- na_output %>%
+    dplyr::group_by(poly_id) %>%
+    dplyr::summarize(w_area = sum(w_area),
+              weight = sum(weight)) %>%
+    dplyr::ungroup()
 
   # Expect that area weights sum to 1 for each county (rounded because expect true requires identical matching)
   expect_true(all(round(sum_na$w_area) == 1))
@@ -84,27 +131,26 @@ test_that("overlay_weights works when some secondary weights are NA", {
 
 test_that("overlay_weights warnings", {
 
-  # Load data to run in overlay_weights
-  nj <- tigris::counties(state="New Jersey")
+
 
   # Run secondary_weights
-  crop_weights_na <- secondary_weights(cropland_nj_2015) |>
+  crop_weights_na <- secondary_weights(cropland_nj_2015) %>%
     # Set all odd rows to NA
     dplyr::mutate(weight = ifelse(x==-74.5, NA, weight))
 
   # Make the extent of secondary weights smaller than polygons
-  crop_weights_small <- secondary_weights(cropland_nj_2015) |>
+  crop_weights_small <- secondary_weights(cropland_nj_2015) %>%
     dplyr::filter(y >= 39 & y< 41)
 
   # Expect a warning that secondary weights contains one more NAs
-  expect_warning(overlay_weights(polygons = nj,
+  expect_warning(overlay_weights(polygons = nj_counties,
                                  polygon_id_col = "COUNTYFP",
                                  grid = era5_grid,
                                  secondary_weights = crop_weights_na),
                  "Warning: secondary weight values contain one or more NAs. The resulting weights for x,y coordinates with NA secondary weight values will be NAs.")
 
   # Expect a warning that secondary weights doesn't overlap fully with polygons
-  expect_warning(overlay_weights(polygons = nj,
+  expect_warning(overlay_weights(polygons = nj_counties,
                                  polygon_id_col = "COUNTYFP",
                                  grid = era5_grid,
                                  secondary_weights = crop_weights_small),
@@ -114,13 +160,8 @@ test_that("overlay_weights warnings", {
 
 test_that("overlay_weights errors", {
 
-  # Load data to run in overlay_weights
-  load("data/era5_grid.rda")
-  load("data/cropland_nj_2015.rda")
-  nj <- tigris::counties(state="New Jersey")
-
-  # Shift the nj polygons so they are 0-360
-  nj_shift <- nj |> sf::st_shift_longitude()
+  # Shift the nj_countiespolygons so they are 0-360
+  nj_shift <- nj_counties%>% sf::st_shift_longitude()
 
   # Errors: 3 stops in the overlay_weight function
   ## Error if polygons are in 0-360

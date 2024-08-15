@@ -32,9 +32,20 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   ## Return error if raster::extent can't inherit from the value supplied
   ## won't be able to check if secondary raster fully overlaps if
   ## this input isn't compatible with raster::extent()
-  tryCatch(raster::crop(cropland_nj_2015, nj), #function to test
-           error=stop(crayon::red("User-defined extent not compatible with raster.")) #Display if there's an error in the test function
-  )
+  if(!is.character(extent) | length(extent) > 1){
+    tryCatch({
+      raster::extent(extent)
+      message(crayon::green("User-defined extent compatible with raster"))
+      }, #function to test
+      error = function(cond){
+        stop(
+          # Display if there's an error in the test function
+          crayon::red("User-defined extent not compatible with raster.")
+          )
+             }
+    )
+  }
+
 
   ## check if secondary raster fully overlaps with user-defined extent
   if(!is.character(extent)) {

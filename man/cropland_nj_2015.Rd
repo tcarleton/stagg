@@ -5,7 +5,7 @@
 \alias{cropland_nj_2015}
 \title{Cropland data for the state of New Jersey.}
 \format{
-An object of class \code{RasterLayer} of dimension 120 x 100 x 1.
+An object of class \code{RasterLayer} of dimension 150 x 140 x 1.
 }
 \usage{
 cropland_nj_2015
