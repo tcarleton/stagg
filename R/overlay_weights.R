@@ -44,14 +44,12 @@
 overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondary_weights = NULL){
 
   # Create raster
-  clim_raster <- raster::raster(grid) # only reads the first band
+  clim_raster <- terra::rast(grid) # only reads the first band
 
 
   ## Raster cell area
   ## -----------------------------------------------
-  clim_area_raster <- suppressWarnings(raster::area(clim_raster)) # Suppressing warning that is
-                                                                  # thrown because era5_grid has
-                                                                  # lat extent <-90.1 and >90.1
+  clim_area_raster <- terra::cellSize(clim_raster, unit = "km")
 
   ## Raster/polygon alignment
   ## -----------------------------------------------
@@ -59,9 +57,9 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
   message(crayon::yellow('Checking for raster/polygon alignment'))
 
   ## polygon and raster xmin and xmax values
-  poly_xmax <- raster::extent(polygons)@xmax
-  rast_xmax <- raster::extent(clim_area_raster)@xmax
-  rast_res <-  raster::xres(clim_area_raster)
+  poly_xmax <- terra::ext(polygons)$xmax
+  rast_xmax <- terra::ext(clim_area_raster)$xmax
+  rast_res <-  terra::xres(clim_area_raster)
 
  ## stop if polygons are not in standard coordinate system
  if(poly_xmax > 180) {
@@ -76,27 +74,27 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     message(crayon::yellow('Aligning longitudes to standard coordinates.'))
 
     ## xmin for climate raster
-    rast_xmin <- raster::extent(clim_area_raster)@xmin
+    rast_xmin <- terra::ext(clim_area_raster)$xmin
 
     ## check if raster needs to be padded, extend if needed
     if(!dplyr::near(rast_xmin, 0, tol = rast_res) | !dplyr::near(rast_xmax, 360, tol = rast_res)) {
 
       ## create global extent for padding so rotate function can be used
-      global_extent <- c(0, 360, -90, 90)
+      global_extent <- terra::ext(0, 360, -90, 90)
 
       ## pad
-      clim_area_raster <- raster::extend(clim_area_raster, global_extent)
+      clim_area_raster <- terra::extend(clim_area_raster, global_extent)
 
     }
 
     ## rotate
-    clim_area_raster <- raster::rotate(clim_area_raster)
+    clim_area_raster <- terra::rotate(clim_area_raster)
 
     }
 
 
   ## Match raster and polygon crs
-  crs_raster <- raster::crs(clim_area_raster)
+  crs_raster <- terra::crs(clim_area_raster)
   polygons_reproj <- sf::st_transform(polygons, crs = crs_raster)
 
   ## Raster / Polygon overlap (using data.table)
@@ -166,12 +164,12 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     w_merged[, weight := weight * w_area]
 
     # Create column that determines if entire polygon has a weight == 0
-    zero_polys <- data.frame(w_merged) %>%
-      dplyr::group_by(poly_id) %>%
-      dplyr::summarise(sum_weight = sum(weight)) %>%
-      dplyr::ungroup() %>%
-      dplyr::filter(sum_weight == 0) %>%
-      dplyr::select(poly_id) %>%
+    zero_polys <- data.frame(w_merged) |>
+      dplyr::group_by(poly_id) |>
+      dplyr::summarise(sum_weight = sum(weight)) |>
+      dplyr::ungroup() |>
+      dplyr::filter(sum_weight == 0) |>
+      dplyr::select(poly_id) |>
       dplyr::distinct()
 
     if(nrow(zero_polys > 0)) {
@@ -181,9 +179,9 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     }
 
     # List any polygons with NA values in 1 or more grid cells
-    na_polys <- data.frame(w_merged) %>%
-      dplyr::filter(is.na(weight)) %>%
-      dplyr::select(poly_id) %>%
+    na_polys <- data.frame(w_merged) |>
+      dplyr::filter(is.na(weight)) |>
+      dplyr::select(poly_id) |>
       dplyr::distinct()
 
     # # Warning if there are polygons with NA weight values
@@ -194,8 +192,8 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     # }
 
     # Update the weight to NA for all grid cells in na_polys
-    w_merged <- w_merged %>%
-      dplyr::mutate(weight = ifelse(poly_id %in% c(na_polys$poly_id, zero_polys$poly_id), NA, weight)) %>%
+    w_merged <- w_merged |>
+      dplyr::mutate(weight = ifelse(poly_id %in% c(na_polys$poly_id, zero_polys$poly_id), NA, weight)) |>
       data.table::as.data.table()
 
     ## this doesn't work with dt... figure out or delete and use above
