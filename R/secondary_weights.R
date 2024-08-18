@@ -29,12 +29,12 @@
 #' @export
 secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full"){
 
-  ## Return error if raster::extent can't inherit from the value supplied
+  ## Return error if terra::extent can't inherit from the value supplied
   ## won't be able to check if secondary raster fully overlaps if
-  ## this input isn't compatible with raster::extent()
+  ## this input isn't compatible with terra::extent()
   if(!is.character(extent) | length(extent) > 1){
     tryCatch({
-      raster::extent(extent)
+      terra::ext(extent)
       message(crayon::green("User-defined extent compatible with raster"))
       }, #function to test
       error = function(cond){
@@ -46,19 +46,21 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
     )
   }
 
+  ## Secondary raster as a spatial rast
+  secondary_raster <- terra::rast(secondary_raster)
 
   ## check if secondary raster fully overlaps with user-defined extent
   if(!is.character(extent)) {
 
-    extent_rect <- raster::extent(extent)
+    extent_rect <- terra::ext(extent)
 
-    extent_secondary_r <- raster::extent(secondary_raster)
+    extent_secondary_r <- terra::ext(secondary_raster)
 
     # check if the raster extent covers the rectangle extent
-    covers <- extent_secondary_r@xmin <= extent_rect@xmin &&
-      extent_secondary_r@xmax >= extent_rect@xmax &&
-      extent_secondary_r@ymin <= extent_rect@ymin &&
-      extent_secondary_r@ymax >= extent_rect@ymax
+    covers <- extent_secondary_r$xmin <= extent_rect$xmin &&
+      extent_secondary_r$xmax >= extent_rect$xmax &&
+      extent_secondary_r$ymin <= extent_rect$ymin &&
+      extent_secondary_r$ymax >= extent_rect$ymax
 
     if (covers) {
       message(crayon::green('The secondary raster fully overlaps the user-specified extent.'))
@@ -69,12 +71,12 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   }
 
   # Create ERA raster from input raster
-  clim_raster <- raster::raster(grid) # only reads the first band
+  clim_raster <- terra::rast(grid) # only reads the first band
 
   ## climate raster information for creating buffer and doing checks/rotations
-  c_rast_xmax <- raster::extent(clim_raster)@xmax
+  c_rast_xmax <- terra::ext(clim_raster)$xmax
   # c_rast_xmin <- raster::extent(clim_raster)@xmin
-  c_rast_res <- raster::xres(clim_raster)
+  c_rast_res <- terra::xres(clim_raster)
 
   ## add buffer to extent
   buffer_size <- c_rast_res
@@ -96,10 +98,10 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
     )
   } else if(inherits(extent, "Extent")) {
     extent <- c(
-      extent@xmin - buffer_size,  # xmin (negative direction)
-      extent@xmax + buffer_size,  # xmax (positive direction)
-      extent@ymin - buffer_size,  # ymin (negative direction)
-      extent@ymax + buffer_size   # ymax (positive direction)
+      extent$xmin - buffer_size,  # xmin (negative direction)
+      extent$xmax + buffer_size,  # xmax (positive direction)
+      extent$ymin - buffer_size,  # ymin (negative direction)
+      extent$ymax + buffer_size   # ymax (positive direction)
     )
   } else if(is.character(extent)) {
 
@@ -110,7 +112,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   ## If an extent was included, crop it to the extent to save ram
   ## -----------------------------------------------
   if (!is.character(extent)){
-    secondary_raster <- raster::crop(secondary_raster, extent)
+    secondary_raster <- terra::crop(secondary_raster, extent)
   }
 
   ## Raster alignment: make sure clim_raster is in same coordinate system as secondary
@@ -120,9 +122,9 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   message(crayon::yellow('Checking for raster alignment'))
 
   ## secondary raster
-  s_rast_xmax <- raster::extent(secondary_raster)@xmax
+  s_rast_xmax <- terra::ext(secondary_raster)$xmax
   # s_rast_xmin <- raster::extent(secondary_raster)@xmin
-  s_rast_res <- raster::xres(secondary_raster)
+  s_rast_res <- terra::xres(secondary_raster)
 
 
   ## if secondary raster in -180 to 180 and clim raster 0-360, rotate clim raster
@@ -131,7 +133,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
     message(crayon::yellow('Longitude coordinates do not match. Aligning longitudes to standard coordinates.'))
 
     ## check if raster needs to be padded, extend if needed
-    c_rast_xmin <- raster::extent(clim_raster)@xmin
+    c_rast_xmin <- terra::ext(clim_raster)$xmin
 
     if(!dplyr::near(c_rast_xmin, 0, tol = c_rast_res) | !dplyr::near(c_rast_xmax, 360, tol = c_rast_res)) {
 
@@ -139,12 +141,12 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
       global_extent <- c(0, 360, -90, 90)
 
       ## pad
-      clim_raster <- raster::extend(clim_raster, global_extent)
+      clim_raster <- terra::extend(clim_raster, global_extent)
 
     }
 
     ## rotate
-    clim_raster <- raster::rotate(clim_raster)
+    clim_raster <- terra::rotate(clim_raster)
 
   }
 
@@ -154,7 +156,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
     message(crayon::yellow('Longitude coordinates do not match. Aligning longitudes to standard coordinates.'))
 
     ## check if raster needs to be padded, extend if needed
-    s_rast_xmin <- raster::extent(secondary_raster)@xmin
+    s_rast_xmin <- terra::ext(secondary_raster)$xmin
 
     if(!dplyr::near(s_rast_xmin, 0, tol = s_rast_res) | !dplyr::near(s_rast_xmax, 360, tol = s_rast_res)) {
 
@@ -162,12 +164,12 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
       global_extent <- c(0, 360, -90, 90)
 
       ## pad
-      secondary_raster <- raster::extend(secondary_raster, global_extent)
+      secondary_raster <- terra::extend(secondary_raster, global_extent)
 
     }
 
     ## rotate
-    secondary_raster <- raster::rotate(secondary_raster)
+    secondary_raster <- terra::rotate(secondary_raster)
 
   }
 
@@ -176,15 +178,15 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   ## use the extent of the previously user-cropped secondary raster
   ## -----------------------------------------------
 
-  clim_raster <- raster::crop(clim_raster, raster::extent(secondary_raster))
+  clim_raster <- terra::crop(clim_raster, terra::ext(secondary_raster), snap="out")
 
   ## set crs of secondary raster to match climate data
   ## -----------------------------------------------
-  raster::crs(secondary_raster) <- raster::crs(clim_raster)
+  terra::crs(secondary_raster) <- terra::crs(clim_raster)
 
 
   ## check if the cropped secondary raster contains NA values
-  if(isTRUE(any(is.na(raster::values(secondary_raster))))) {
+  if(isTRUE(any(is.na(terra::values(secondary_raster, na.rm=FALSE))))) {
 
     warning(crayon::red("Warning: secondary raster contains NA values. NAs will be returned for weights."))
 
@@ -195,13 +197,13 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   ## -----------------------------------------------
   message(crayon::green("Resampling secondary_raster"))
 
-  resampled_raster = raster::resample(secondary_raster, clim_raster, method="bilinear")
+  resampled_raster = terra::resample(secondary_raster, clim_raster, method="bilinear")
 
   ## Make a data.table of the values of the resampled raster with lat/lon
   ## -----------------------------------------------
   message(crayon::green("Creating a table of weights"))
 
-  weight_table <- raster::as.data.frame(resampled_raster, xy=TRUE)
+  weight_table <- terra::as.data.frame(resampled_raster, xy=TRUE)
   colnames(weight_table) <- c("x", "y", "weight")
   weight_table <- data.table::as.data.table(weight_table)
 
