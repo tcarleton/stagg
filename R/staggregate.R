@@ -48,15 +48,15 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
   }
 
   ## read in climate data
-  clim_raster <- raster::stack(data)
+  clim_raster <- c(data)
 
   ## shift into 0 to 360 if not already in that format
-  if(raster::extent(clim_raster)@xmin < 0 - raster::xres(clim_raster) / 2) {
+  if(terra::extent(clim_raster)$xmin < 0 - terra::xres(clim_raster) / 2) {
 
-    clim_raster_xmin <- raster::extent(clim_raster)@xmin - raster::xres(clim_raster) / 2
-    clim_raster_xmax <- raster::extent(clim_raster)@xmax + raster::xres(clim_raster) / 2
-    clim_raster_ymin <- raster::extent(clim_raster)@ymin - raster::yres(clim_raster) / 2
-    clim_raster_ymax <- raster::extent(clim_raster)@ymax + raster::yres(clim_raster) / 2
+    clim_raster_xmin <- terra::ext(clim_raster)$xmin - terra::xres(clim_raster) / 2
+    clim_raster_xmax <- terra::ext(clim_raster)$xmax + terra::xres(clim_raster) / 2
+    clim_raster_ymin <- terra::ext(clim_raster)$ymin - terra::yres(clim_raster) / 2
+    clim_raster_ymax <- terra::ext(clim_raster)$ymax + terra::yres(clim_raster) / 2
 
     clim_raster1 <- raster::crop(clim_raster, c(clim_raster_xmin, min(clim_raster_xmax, 0), clim_raster_ymin, clim_raster_ymax))
 
