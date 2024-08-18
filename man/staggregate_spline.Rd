@@ -9,6 +9,8 @@ staggregate_spline(
   overlay_weights,
   daily_agg,
   time_agg = "month",
+  start_date = NA,
+  time_interval = "1 hour",
   knot_locs
 )
 }
@@ -26,6 +28,18 @@ will transform values without first aggregating to the daily level)}
 \code{'hour'}, \code{'day'}, \code{'month'}, or \code{'year'} (\code{'hour'} cannot be selected
 unless \code{daily_agg = 'none'})}
 
+\item{start_date}{the date (and time, if applicable) of the first layer in
+the raster. To be input in a format compatible with
+lubridate::as_datetime(), e.g. \code{"1991-10-29"} or \code{"1991-10-29 00:00:00"}.
+The default is \code{NA} since the rasters usually already contain temporal
+information in the layer names and they do not need to be manually supplied.}
+
+\item{time_interval}{the time interval between layers in the raster to be
+aggregated. To be input in a format compatible with seq(), e.g.
+\code{'1 day'} or \code{'3 months'}. The default is \code{'1 hour'} and this argument is
+required if daily_agg is not \code{'none'} or if the \code{start_date} argument is not
+\code{NA}.}
+
 \item{knot_locs}{where to place the knots}
 }
 \description{
@@ -41,6 +55,8 @@ overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 daily_agg = "average", # Average hourly values to produce daily values before
                        # transformation
 time_agg = "month", # Sum the transformed daily values across months
+start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
+time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the start_date argument is not NA
 knot_locs = c(0, 7.5, 12.5, 20) # Where to place knots
 )
 
