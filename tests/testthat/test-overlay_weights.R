@@ -56,9 +56,6 @@ test_that("overlay_weights outputs are normal", {
 
   # Run secondary_weights
   crop_weights <- secondary_weights(cropland_nj_2015)
-  crop_weights_na <- crop_weights  %>%
-    # Set all odd rows to NA
-    dplyr::mutate(weight = ifelse(x==-74.5, NA, weight))
 
   # Run overlay_weights normal
   normal_output <- overlay_weights(polygons = nj_counties,
