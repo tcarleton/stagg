@@ -1,21 +1,31 @@
 # Function to convert raster to data.table from https://gist.github.com/etiennebr/9515738
-as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE, inmem = raster::canProcessInMemory(x, 2), ...) {
+as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE, inmem = terra::inMemory(x), ...) {
   if(inmem) {
-    v <- data.table::as.data.table(raster::as.data.frame(x, row.names=row.names, optional=optional, xy=xy, ...))
+    v <- data.table::as.data.table(terra::as.data.frame(x, row.names=row.names, optional=optional, xy=xy, ...))
+    coln <- names(x)
+    if(xy) coln <- c("x", "y", coln)
+    data.table::setnames(v, coln)
   } else {
-    tr <- raster::blockSize(x, n=2)
-    l <- lapply(1:tr$n, function(i)
-      data.table::as.data.table(raster::as.data.frame(raster::getValues(x,
-                                                                        row=tr$row[i],
-                                                                        nrows=tr$nrows[i]),
-                                                      row.names=row.names, optional=optional, xy=xy, ...)))
+    tr <- terra::blocks(x)
+    l <- lapply(1:tr$n, function(i) {
+      DT <- data.table::as.data.table(terra::as.data.frame(terra::values(x, row = tr$row[i], nrows = tr$nrows[i]), ...))
+      if(xy == TRUE) {
+        cells <- terra::cellFromRowCol(x, c(tr$row[i], tr$row[i] + tr$nrows[i] - 1), c(1, ncol(x)))
+        coords <- terra::xyFromCell(x, cell = cells[1]:cells[2])
+        DT[, c("x", "y") := data.frame(terra::xyFromCell(x, cell = cells[1]:cells[2]))]
+      }
+      DT
+    })
     v <- data.table::rbindlist(l)
+    coln <- names(x)
+    if(xy) {
+      coln <- c("x", "y", coln)
+      data.table::setcolorder(v, coln)
+    }
   }
-  coln <- names(x)
-  if(xy) coln <- c("x", "y", coln)
-  data.table::setnames(v, coln)
   v
 }
+
 
 # Function to convert raster to data.table and aggregate to daily values before transformation
 daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1 hour'){
@@ -122,8 +132,8 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
   # (1) the time interval is 1 day or longer or
   # (2) the number of timesteps in a day is not a whole number
 
-  interval_duration <- duration(time_interval)
-  day_duration <- duration("1 day")
+  interval_duration <- lubridate::duration(time_interval)
+  day_duration <- lubridate::duration("1 day")
 
   if(interval_duration >= day_duration) {
     stop(crayon::red("The time interval must be less than 1 day in order to perform a daily aggregation. Please set `daily_agg` to `none` to avoid attempting daily aggregation."))
