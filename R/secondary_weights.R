@@ -177,7 +177,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   ## crop the ERA/climate raster to the appropriate extent
   ## use the extent of the previously user-cropped secondary raster
   ## -----------------------------------------------
-
+  # Find the difference between the climate raster resolution and secondary raster resolution
   clim_raster <- terra::crop(clim_raster, terra::ext(secondary_raster), snap="out")
 
   ## set crs of secondary raster to match climate data
