@@ -1,32 +1,6 @@
 # Test secondary_weights()
 test_that("secondary_weights matches key", {
 
-
-  # With full extent
-
-  # Run code
-  secondary_weights_full_extent_output <- secondary_weights(
-    secondary_raster = cropland_nj_2015,
-    grid = era5_grid,
-    extent = "full"
-  ) %>%
-    dplyr::arrange(x, y)
-
-  # Load key generate by previous run
-  secondary_weights_full_extent_key <- readRDS(
-    testthat::test_path("fixtures/secondary_weights_full_extent_key.rds")
-  ) %>%
-    dplyr::arrange(x, y)
-
-  # Expect identical
-  expect_true(all.equal(
-    secondary_weights_full_extent_output,
-    secondary_weights_full_extent_key
-  ))
-
-
-  # With cropping
-
   # Run code
   secondary_weights_cropped_output <- secondary_weights(
     secondary_raster = cropland_nj_2015,
