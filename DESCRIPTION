@@ -10,7 +10,7 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Depends: 
-    R (>= 2.10)
+    R (>= 3.5.0)
 LazyData: true
 Imports: 
     crayon,
@@ -22,9 +22,14 @@ Imports:
     methods,
     raster,
     sf,
-    stringr
+    stringr,
+    terra
 Suggests: 
+    climateR,
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0),
     tigris,
     usethis
 Config/testthat/edition: 3
+VignetteBuilder: knitr
