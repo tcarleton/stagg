@@ -46,8 +46,10 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
     )
   }
 
-  ## Secondary raster as a spatial rast
-  secondary_raster <- terra::rast(secondary_raster)
+  ## check to make sure secondary raster is a spatraster, change if not
+    if (!inherits(secondary_raster, "SpatRaster")) {
+      secondary_raster <- terra::rast(secondary_raster)
+    }
 
   ## check if secondary raster fully overlaps with user-defined extent
   if(!is.character(extent)) {
@@ -76,10 +78,18 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   ## climate raster information for creating buffer and doing checks/rotations
   c_rast_xmax <- terra::ext(clim_raster)$xmax
   # c_rast_xmin <- raster::extent(clim_raster)@xmin
-  c_rast_res <- terra::xres(clim_raster)
+
+  ## find xy resolution for rasters
+  c_rast_xres <- terra::xres(clim_raster)
+  c_rast_yres <- terra::yres(clim_raster)
+  s_rast_xres <- terra::xres(secondary_raster)
+  s_rast_yres <- terra::yres(secondary_raster)
 
   ## add buffer to extent
-  buffer_size <- c_rast_res
+  buffer_size <- max(c_rast_xres,
+                     c_rast_yres,
+                     s_rast_xres,
+                     s_rast_yres)
 
   ## add buffer to the extent for bbox
   if(is.vector(extent) & length(extent) > 1) {
