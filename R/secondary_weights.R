@@ -72,7 +72,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
 
   }
 
-  # Create ERA raster from input raster
+  # Create climate raster from input raster
   clim_raster <- terra::rast(grid) # only reads the first band
 
   ## climate raster information for creating buffer and doing checks/rotations
@@ -133,19 +133,18 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
 
   ## secondary raster
   s_rast_xmax <- terra::ext(secondary_raster)$xmax
-  # s_rast_xmin <- raster::extent(secondary_raster)@xmin
-  s_rast_res <- terra::xres(secondary_raster)
+
 
 
   ## if secondary raster in -180 to 180 and clim raster 0-360, rotate clim raster
-  if(s_rast_xmax <= (180 + s_rast_res / 2) & c_rast_xmax >= (180 + c_rast_res / 2)) {
+  if(s_rast_xmax <= (180 + s_rast_xres / 2) & c_rast_xmax >= (180 + c_rast_xres / 2)) {
 
     message(crayon::yellow('Longitude coordinates do not match. Aligning longitudes to standard coordinates.'))
 
     ## check if raster needs to be padded, extend if needed
     c_rast_xmin <- terra::ext(clim_raster)$xmin
 
-    if(!dplyr::near(c_rast_xmin, 0, tol = c_rast_res) | !dplyr::near(c_rast_xmax, 360, tol = c_rast_res)) {
+    if(!dplyr::near(c_rast_xmin, 0, tol = c_rast_xres) | !dplyr::near(c_rast_xmax, 360, tol = c_rast_xres)) {
 
       ## create global extent for padding so rotate function can be used
       global_extent <- c(0, 360, -90, 90)
@@ -161,14 +160,14 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   }
 
   ## if secondary raster in 0-360 and clim raster -180 to 180, rotate secondary raster
-  if(s_rast_xmax >= (180 + s_rast_res / 2) & c_rast_xmax <= (180 + c_rast_res / 2)) {
+  if(s_rast_xmax >= (180 + s_rast_xres / 2) & c_rast_xmax <= (180 + c_rast_xres / 2)) {
 
     message(crayon::yellow('Longitude coordinates do not match. Aligning longitudes to standard coordinates.'))
 
     ## check if raster needs to be padded, extend if needed
     s_rast_xmin <- terra::ext(secondary_raster)$xmin
 
-    if(!dplyr::near(s_rast_xmin, 0, tol = s_rast_res) | !dplyr::near(s_rast_xmax, 360, tol = s_rast_res)) {
+    if(!dplyr::near(s_rast_xmin, 0, tol = s_rast_xres) | !dplyr::near(s_rast_xmax, 360, tol = s_rast_xres)) {
 
       ## create global extent for padding so rotate function can be used
       global_extent <- c(0, 360, -90, 90)
