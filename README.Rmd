@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-The R Package `stagg` aims to harmonize the preparation of spatiotemporal data obtained from the [ERA5 project](https://www.ecmwf.int/en/forecasts/datasets/reanalysis-datasets/era5) for use in statistical analyses. This allows for more efficient use of researchers' time, and avoids common missteps. The end goal is a greater quantity of quality research into the study of coupled human-geophysical systems. 
+The R Package `stagg` aims to harmonize the preparation of spatiotemporal raster data, in particular climate observations, for use in statistical analyses. This allows for more efficient use of researchers' time, and avoids common missteps. The end goal is a greater quantity of quality research into the study of coupled human-geophysical systems. 
 
 Further documentation, including the working paper, AGU conference poster, and cheat sheet are available [here](https://www.tammacarleton.com/projects-6)
 
@@ -43,8 +43,10 @@ Below is example code and commentary aimed at demonstrating expected typical usa
 
 The `stagg` package currently does not included functions to download climate data. There are many packages that can be used to download climate data. For example, [`climateR`](https://github.com/mikejohnson51/climateR) provides access to climate datasets from over 2000 different data providers. ERA5 climate data can be download through [`ecmwfr`](https://github.com/bluegreen-labs/ecmwfr), which provides an interface to two European Centre for Medium-Range Weather Forecast APIs. The [`KrigR`](https://github.com/ErikKusch/KrigR) package provides a helpful wrapper function for the `ecmwfr` package to enable direct downloading of ERA5 climate data in R. ECMWF also provides a general [guide to downloading ERA5 data](https://confluence.ecmwf.int/display/CKB/How+to+download+ERA5). 
 
-While the package is designed to be used with ERA5 climate data, other types of climate data can be used. For compatibility with `stagg` climate data should be:  
-  - a raster or raster stack (read in using `raster::raster()` or `raster::stack()`; can originally be stored in formats such as netCDF or .tif) 
+In this example we use ERA5 climate data, and the package includes a global raster layer of ERA5 climate data which can be used in the `secondary_weights()` and `overlay_weights()` functions. However, other types of climate data can be used. 
+
+For compatibility with `stagg` climate data should be:  
+  - a raster or raster stack (e.g., `raster::raster()` or `raster::stack()`; can originally be stored in formats such as netCDF or .tif) 
   - at least yearly temporal resolution, since the most coarse temporal aggregation offered by `stagg` is yearly. 
     - if sub-daily, number of layers per day should be consistent. By default, hourly time steps are assumed (i.e. 24 time steps per day), though  a different number can be specified using the `time_interval` argument in the `staggregate_*()` functions.  
   - in order for the temporal aggregation to happen properly, `stagg` must have a way of knowing the temporal information associated with the raster stack being aggregated. This can be achieved one of two ways: 
