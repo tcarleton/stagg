@@ -43,11 +43,15 @@ scale
 }
 \examples{
 degree_days_output <- staggregate_degree_days(
-  data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and aggregate
+  data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and
+                                         # aggregate
   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
   time_agg = "month", # Sum the transformed daily values across months
-  start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
-  time_interval = "1 hour", # The temporal interval of the supplied data, only required if the start_date is not NA
+  start_date = "2020-01-01 00:00:00", # The start date of the supplied data,
+                                      # only required if the layer name
+                                      # format is not compatible with stagg
+  time_interval = "1 hour", # The temporal interval of the supplied data,
+                            # only required if the start_date is not NA
   thresholds = c(0, 10, 20) # Calculate degree days above 0, 10, and 20
                             # degrees Celsius
   )

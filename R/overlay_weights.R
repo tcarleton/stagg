@@ -15,16 +15,16 @@
 #'   cell within each polygon
 #'
 #' @examples
-#'
 #' overlay_output_with_secondary_weights <- overlay_weights(
 #'   polygons = nj_counties, # Polygons outlining the 21 counties of New Jersey
 #'   polygon_id_col = "COUNTYFP", # The name of the column with the unique
 #'                                # county identifiers
 #'   grid = era5_grid, # The grid to use when extracting area weights (era5_grid is the
 #'                     # default)
-#'   cropland_world_2015_era5 # Output from secondary_weights
-#'                            # (cropland_world_2015_era5 is available to the
-#'                            # user)
+#'   secondary_weights = cropland_world_2015_era5 # Output from
+#'                                                # secondary_weights
+#'                                                # (cropland_world_2015_era5 is
+#'                                                # available to the# user)
 #'   )
 #'
 #' head(overlay_output_with_secondary_weights)
@@ -43,8 +43,9 @@
 #' @export
 overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondary_weights = NULL){
 
-  # Create raster
-  clim_raster <- terra::rast(grid) # only reads the first band
+  # Create raster (Putting terra::rast() here creates, for unknown reasons,
+  # issues with devtools::check())
+  clim_raster <- as(grid, "SpatRaster") # only reads the first band
 
 
   ## Raster cell area

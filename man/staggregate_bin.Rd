@@ -49,15 +49,21 @@ values to the polygon level and desired temporal scale.
 }
 \examples{
 bin_output <- staggregate_bin(
-  data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and aggregate
+  data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and
+                                         # aggregate
   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
   daily_agg = "average", # Average hourly values to produce daily values
                          # before transformation
   time_agg = "month", # Sum the transformed daily values across months
-  start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
-  time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the start_date argument is not NA
+  start_date = "2020-01-01 00:00:00", # The start date of the supplied data,
+                                      # only required if the layer name
+                                      # format is not compatible with stagg
+  time_interval = "1 hour", # The temporal interval of the supplied data,
+                            # required if daily_agg is not "none" or if the
+                            # start_date argument is not NA
   bin_breaks = c(0, 2.5, 5, 7.5, 10) # Draw 6 bins from ninf to 0, 0 to 2.5,
-                                     # 2.5 to 5, 5 to 7.5, 7.5 to 10, 10 to inf
+                                     # 2.5 to 5, 5 to 7.5, 7.5 to 10, 10 to
+                                     # inf
   )
 
 head(bin_output)

@@ -11,7 +11,8 @@ testthat::test_that("as.data.table.raster works", {
   ) %>%
     dplyr::arrange(x,y)
 
-  expect_equal(as_data_table_raster_output, as_data_table_raster_key)
+  expect_true(all.equal(as_data_table_raster_output, as_data_table_raster_key))
+
 
 })
 

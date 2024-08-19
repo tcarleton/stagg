@@ -32,16 +32,16 @@ each grid cell to its respective polygon(s) for use in the \verb{staggregate_*()
 family of functions.
 }
 \examples{
-
 overlay_output_with_secondary_weights <- overlay_weights(
   polygons = nj_counties, # Polygons outlining the 21 counties of New Jersey
   polygon_id_col = "COUNTYFP", # The name of the column with the unique
                                # county identifiers
   grid = era5_grid, # The grid to use when extracting area weights (era5_grid is the
                     # default)
-  cropland_world_2015_era5 # Output from secondary_weights
-                           # (cropland_world_2015_era5 is available to the
-                           # user)
+  secondary_weights = cropland_world_2015_era5 # Output from
+                                               # secondary_weights
+                                               # (cropland_world_2015_era5 is
+                                               # available to the# user)
   )
 
 head(overlay_output_with_secondary_weights)

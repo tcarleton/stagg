@@ -1,31 +1,21 @@
 # Function to convert raster to data.table from https://gist.github.com/etiennebr/9515738
-as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE, inmem = terra::inMemory(x), ...) {
+as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE, inmem = raster::canProcessInMemory(x, 2), ...) {
   if(inmem) {
-    v <- data.table::as.data.table(terra::as.data.frame(x, row.names=row.names, optional=optional, xy=xy, ...))
-    coln <- names(x)
-    if(xy) coln <- c("x", "y", coln)
-    data.table::setnames(v, coln)
+    v <- data.table::as.data.table(raster::as.data.frame(x, row.names=row.names, optional=optional, xy=xy, ...))
   } else {
-    tr <- terra::blocks(x)
-    l <- lapply(1:tr$n, function(i) {
-      DT <- data.table::as.data.table(terra::as.data.frame(terra::values(x, row = tr$row[i], nrows = tr$nrows[i]), ...))
-      if(xy == TRUE) {
-        cells <- terra::cellFromRowCol(x, c(tr$row[i], tr$row[i] + tr$nrows[i] - 1), c(1, ncol(x)))
-        coords <- terra::xyFromCell(x, cell = cells[1]:cells[2])
-        DT[, c("x", "y") := data.frame(terra::xyFromCell(x, cell = cells[1]:cells[2]))]
-      }
-      DT
-    })
+    tr <- raster::blockSize(x, n=2)
+    l <- lapply(1:tr$n, function(i)
+      data.table::as.data.table(raster::as.data.frame(raster::getValues(x,
+                                                                        row=tr$row[i],
+                                                                        nrows=tr$nrows[i]),
+                                                      row.names=row.names, optional=optional, xy=xy, ...)))
     v <- data.table::rbindlist(l)
-    coln <- names(x)
-    if(xy) {
-      coln <- c("x", "y", coln)
-      data.table::setcolorder(v, coln)
-    }
   }
+  coln <- names(x)
+  if(xy) coln <- c("x", "y", coln)
+  data.table::setnames(v, coln)
   v
 }
-
 
 # Function to convert raster to data.table and aggregate to daily values before transformation
 daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1 hour'){
@@ -48,15 +38,15 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
   }
 
   ## read in climate data
-  clim_raster <- c(data)
+  clim_raster <- raster::stack(data)
 
   ## shift into 0 to 360 if not already in that format
-  if(terra::extent(clim_raster)$xmin < 0 - terra::xres(clim_raster) / 2) {
+  if(raster::extent(clim_raster)@xmin < 0 - raster::xres(clim_raster) / 2) {
 
-    clim_raster_xmin <- terra::ext(clim_raster)$xmin - terra::xres(clim_raster) / 2
-    clim_raster_xmax <- terra::ext(clim_raster)$xmax + terra::xres(clim_raster) / 2
-    clim_raster_ymin <- terra::ext(clim_raster)$ymin - terra::yres(clim_raster) / 2
-    clim_raster_ymax <- terra::ext(clim_raster)$ymax + terra::yres(clim_raster) / 2
+    clim_raster_xmin <- raster::extent(clim_raster)@xmin - raster::xres(clim_raster) / 2
+    clim_raster_xmax <- raster::extent(clim_raster)@xmax + raster::xres(clim_raster) / 2
+    clim_raster_ymin <- raster::extent(clim_raster)@ymin - raster::yres(clim_raster) / 2
+    clim_raster_ymax <- raster::extent(clim_raster)@ymax + raster::yres(clim_raster) / 2
 
     clim_raster1 <- raster::crop(clim_raster, c(clim_raster_xmin, min(clim_raster_xmax, 0), clim_raster_ymin, clim_raster_ymax))
 
@@ -323,13 +313,18 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #'
 #' @examples
 #' polynomial_output <- staggregate_polynomial(
-#'   data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and aggregate
+#'   data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and
+#'                                          # aggregate
 #'   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 #'   daily_agg = "average", # Average hourly values to produce daily values
 #'                          # before transformation
 #'   time_agg = "month", # Sum the transformed daily values across months
-#'   start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
-#'   time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the start_date argument is not NA
+#'   start_date = "2020-01-01 00:00:00", # The start date of the supplied data,
+#'                                       # only required if the layer name
+#'                                       # format is not compatible with stagg
+#'   time_interval = "1 hour", # The temporal interval of the supplied data,
+#'                             # required if daily_agg is not "none" or if the
+#'                             # start_date argument is not NA
 #'   degree = 4 # Highest order
 #'   )
 #'
@@ -444,13 +439,18 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #'
 #' @examples
 #' spline_output <- staggregate_spline(
-#' data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and aggregate
+#' data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and
+#'                                        # aggregate
 #' overlay_weights = overlay_weights_nj, # Output from overlay_weights()
-#' daily_agg = "average", # Average hourly values to produce daily values before
-#'                        # transformation
+#' daily_agg = "average", # Average hourly values to produce daily values
+#'                        # before transformation
 #' time_agg = "month", # Sum the transformed daily values across months
-#' start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
-#' time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the start_date argument is not NA
+#' start_date = "2020-01-01 00:00:00", # The start date of the supplied data,
+#'                                     # only required if the layer name format
+#'                                     # is not compatible with stagg
+#' time_interval = "1 hour", # The temporal interval of the supplied data,
+#'                           # required if daily_agg is not "none" or if the
+#'                           # start_date argument is not NA
 #' knot_locs = c(0, 7.5, 12.5, 20) # Where to place knots
 #' )
 #'
@@ -593,15 +593,21 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'
 #' @examples
 #' bin_output <- staggregate_bin(
-#'   data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and aggregate
+#'   data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and
+#'                                          # aggregate
 #'   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 #'   daily_agg = "average", # Average hourly values to produce daily values
 #'                          # before transformation
 #'   time_agg = "month", # Sum the transformed daily values across months
-#'   start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
-#'   time_interval = "1 hour", # The temporal interval of the supplied data, required if daily_agg is not "none" or if the start_date argument is not NA
+#'   start_date = "2020-01-01 00:00:00", # The start date of the supplied data,
+#'                                       # only required if the layer name
+#'                                       # format is not compatible with stagg
+#'   time_interval = "1 hour", # The temporal interval of the supplied data,
+#'                             # required if daily_agg is not "none" or if the
+#'                             # start_date argument is not NA
 #'   bin_breaks = c(0, 2.5, 5, 7.5, 10) # Draw 6 bins from ninf to 0, 0 to 2.5,
-#'                                      # 2.5 to 5, 5 to 7.5, 7.5 to 10, 10 to inf
+#'                                      # 2.5 to 5, 5 to 7.5, 7.5 to 10, 10 to
+#'                                      # inf
 #'   )
 #'
 #' head(bin_output)
@@ -739,11 +745,15 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 #'
 #' @examples
 #' degree_days_output <- staggregate_degree_days(
-#'   data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and aggregate
+#'   data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and
+#'                                          # aggregate
 #'   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 #'   time_agg = "month", # Sum the transformed daily values across months
-#'   start_date = "2020-01-01 00:00:00", # The start date of the supplied data, only required if the layer name format is not compatible with stagg
-#'   time_interval = "1 hour", # The temporal interval of the supplied data, only required if the start_date is not NA
+#'   start_date = "2020-01-01 00:00:00", # The start date of the supplied data,
+#'                                       # only required if the layer name
+#'                                       # format is not compatible with stagg
+#'   time_interval = "1 hour", # The temporal interval of the supplied data,
+#'                             # only required if the start_date is not NA
 #'   thresholds = c(0, 10, 20) # Calculate degree days above 0, 10, and 20
 #'                             # degrees Celsius
 #'   )
