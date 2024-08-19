@@ -88,8 +88,8 @@ test_that("secondary_weights warnings", {
 test_that("secondary_weights errors", {
 
   # Extent type that is not compatible
-  nj <- tigris::counties(state="New Jersey")
-  extent_poly <- sf::st_as_sfc(sf::st_bbox(nj))
+  nj_counties
+  extent_poly <- sf::st_as_sfc(sf::st_bbox(nj_counties))
 
   # Expect error when extent cannot be used with raster::crop()
   expect_error(secondary_weights(secondary_raster = crop_na,

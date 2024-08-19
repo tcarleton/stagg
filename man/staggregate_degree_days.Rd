@@ -47,7 +47,7 @@ degree_days_output <- staggregate_degree_days(
                                          # aggregate
   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
   time_agg = "month", # Sum the transformed daily values across months
-  start_date = "2020-01-01 00:00:00", # The start date of the supplied data,
+  start_date = "2024-06-01 00:00:00", # The start date of the supplied data,
                                       # only required if the layer name
                                       # format is not compatible with stagg
   time_interval = "1 hour", # The temporal interval of the supplied data,

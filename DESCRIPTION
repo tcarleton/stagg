@@ -29,6 +29,7 @@ Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
+    tidyr,
     tigris,
     usethis
 Config/testthat/edition: 3
