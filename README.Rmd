@@ -100,7 +100,7 @@ cropland_weights <- secondary_weights(
 cropland_weights
 ```
 
-As you can see from the output, `secondary_weights()` checks for alignment, and rotates the `secondary_raster` coordinates if necessary. It also resamples the data to the spatial resolution of the cliamte grid using bilinear interpolation, and returns a `data.table` with latitudes, longitudes, and cropland weights.
+As you can see from the output, `secondary_weights()` checks for alignment, and rotates the `secondary_raster` coordinates if necessary. It also resamples the data to the spatial resolution of the climate grid using bilinear interpolation, and returns a `data.table` with latitudes, longitudes, and cropland weights.
 
 ### Step 2: Overlay administrative regions onto the data's grid
 
