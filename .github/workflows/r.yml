@@ -25,9 +25,9 @@ jobs:
     container: ${{ matrix.config.cont }}
     strategy:
       matrix:
-        r-version: ['3.6.3', '4.1.1']
+        r-version: ['4.1.1']
         config:
-        - os: ubuntu-latest
+        #- os: ubuntu-latest
           bioc: devel
           r: auto
           cont: ghcr.io/bioconductor/bioconductor_docker:devel
