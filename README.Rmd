@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 
 The R Package `stagg` aims to harmonize the preparation of spatiotemporal raster data, in particular climate observations, for use in statistical analyses. This allows for more efficient use of researchers' time, and avoids common missteps. The end goal is a greater quantity of quality research into the study of coupled human-geophysical systems. 
 
-Further documentation, including the working paper, AGU conference poster, and cheat sheet are available [here](https://www.tammacarleton.com/projects-6)
+Further documentation, including the working paper, AGU conference poster, and cheat sheet are available [here](https://www.tammacarleton.com/projects-6).
 
 ## Installation
 
@@ -41,7 +41,7 @@ Below is example code and commentary aimed at demonstrating expected typical usa
 
 **Important**
 
-The `stagg` package currently does not included functions to download climate data. There are many packages that can be used to download climate data. For example, [`climateR`](https://github.com/mikejohnson51/climateR) provides access to climate datasets from over 2000 different data providers. ERA5 climate data can be download through [`ecmwfr`](https://github.com/bluegreen-labs/ecmwfr), which provides an interface to two European Centre for Medium-Range Weather Forecast APIs. The [`KrigR`](https://github.com/ErikKusch/KrigR) package provides a helpful wrapper function for the `ecmwfr` package to enable direct downloading of ERA5 climate data in R. ECMWF also provides a general [guide to downloading ERA5 data](https://confluence.ecmwf.int/display/CKB/How+to+download+ERA5). 
+The `stagg` package currently does not include functions to download climate data. There are many packages that can be used to download climate data. For example, [`climateR`](https://github.com/mikejohnson51/climateR) provides access to climate datasets from over 2000 different data providers. ERA5 climate data can be download through [`ecmwfr`](https://github.com/bluegreen-labs/ecmwfr), which provides an interface to two European Centre for Medium-Range Weather Forecast APIs. The [`KrigR`](https://github.com/ErikKusch/KrigR) package provides a helpful wrapper function for the `ecmwfr` package to enable direct downloading of ERA5 climate data in R. ECMWF also provides a general [guide to downloading ERA5 data](https://confluence.ecmwf.int/display/CKB/How+to+download+ERA5). 
 
 In this example we use ERA5 climate data, and the package includes a global raster layer of ERA5 climate data which can be used in the `secondary_weights()` and `overlay_weights()` functions. However, other types of climate data can be used. 
 

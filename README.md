@@ -7,16 +7,15 @@
 <!-- badges: end -->
 
 The R Package `stagg` aims to harmonize the preparation of
-spatiotemporal data obtained from the [ERA5
-project](https://www.ecmwf.int/en/forecasts/datasets/reanalysis-datasets/era5)
-for use in statistical analyses. This allows for more efficient useof
+spatiotemporal raster data, in particular climate observations, for use
+in statistical analyses. This allows for more efficient use of
 researchers’ time, and avoids common missteps. The end goal is a greater
 quantity of quality research into the study of coupled human-geophysical
 systems.
 
 Further documentation, including the working paper, AGU conference
 poster, and cheat sheet are available
-[here](https://www.tammacarleton.com/projects-6)
+[here](https://www.tammacarleton.com/projects-6).
 
 ## Installation
 
@@ -59,7 +58,7 @@ step is used in the one that follows it.
 
 **Important**
 
-The `stagg` package currently does not included functions to download
+The `stagg` package currently does not include functions to download
 climate data. There are many packages that can be used to download
 climate data. For example,
 [`climateR`](https://github.com/mikejohnson51/climateR) provides access
@@ -69,17 +68,35 @@ climate data can be download through
 interface to two European Centre for Medium-Range Weather Forecast APIs.
 The [`KrigR`](https://github.com/ErikKusch/KrigR) package provides a
 helpful wrapper function for the `ecmwfr` package to enable direct
-downloading of ERA5 climate data in R.
+downloading of ERA5 climate data in R. ECMWF also provides a general
+[guide to downloading ERA5
+data](https://confluence.ecmwf.int/display/CKB/How+to+download+ERA5).
 
-While the package is designed to be used with ERA5 climate data, other
-types of climate data can be used. For compatibility with `stagg`
-climate data should be:  
-- a raster or raster stack (netCDF, .tif or other format compatible with
-`raster::raster()`) - hourly or daily temporal resolution  
-- if hourly, number of layers should be a multiple of 24 (i.e.,
-represent whole days)  
-- layer names use a character-date-time or character-date format (e.g.,
-x2021.01.01.00.00.00; x2021.01.01)
+In this example we use ERA5 climate data, and the package includes a
+global raster layer of ERA5 climate data which can be used in the
+`secondary_weights()` and `overlay_weights()` functions. However, other
+types of climate data can be used.
+
+For compatibility with `stagg` climate data should be:  
+- a raster or raster stack (e.g., `raster::raster()` or
+`raster::stack()`; can originally be stored in formats such as netCDF or
+.tif) - at least yearly temporal resolution, since the most coarse
+temporal aggregation offered by `stagg` is yearly. - if sub-daily,
+number of layers per day should be consistent. By default, hourly time
+steps are assumed (i.e. 24 time steps per day), though a different
+number can be specified using the `time_interval` argument in the
+`staggregate_*()` functions.  
+- in order for the temporal aggregation to happen properly, `stagg` must
+have a way of knowing the temporal information associated with the
+raster stack being aggregated. This can be achieved one of two ways: -
+the layer names use a character-date-time or character-date format
+following a string header, or the start date-time and temporal time
+steps of the raster stack must be specified in `staggregate_*()`. For
+example, ERA5 uses the format x2021.01.01.00.00.00 or x2021.01.01, and
+data retrieved using `climateR` uses the format variable_2021-01-01,
+both of which are compatible with `stagg`. - specify the start datetime
+and temporal interval of your data in the `staggregate_*()` functions
+using the `start_date` and `time_interval` arguments.
 
 ``` r
 library(stagg)
@@ -119,13 +136,23 @@ cropland_weights <- secondary_weights(
                                            # data and the grid will be taken 
                                            # from its first layer
   
-  extent = "full"                          # The extent to crop the  
-                                           # secondary_raster to, use whenever  
-                                           # possible to save time (default is 
-                                           # "full"). Format must be compatible
-                                           # with raster::crop()
+  extent = "full"                          # The default is "full", which 
+                                           # generates weights for entire 
+                                           # secondary data raster. User has the 
+                                           # option to define an extent for 
+                                           # cropping the secondary_raster, 
+                                           # which saves compute time. Input 
+                                           # format must be compatible with 
+                                           # raster::crop(), such as:
+                                           #    nj_extent <- sf::st_bbox(nj_counties)
+                                           #    nj_extent <- raster::extent(nj_counties)
+                                           #    nj_extent <- c(-76, -73, 38, 42)
 )
 ```
+
+    #> Loading required package: raster
+
+    #> Loading required package: sp
 
     #> Checking for raster alignment
 
@@ -140,25 +167,25 @@ cropland_weights <- secondary_weights(
 cropland_weights
 ```
 
-    #>           x     y        weight
-    #>       <num> <num>         <num>
-    #>   1: -75.75 41.50  0.0944147354
-    #>   2: -75.50 41.50  0.0796618272
-    #>   3: -75.25 41.50  0.0346200160
-    #>   4: -75.00 41.50 -0.0006449262
-    #>   5: -74.75 41.50 -0.0137744415
-    #>  ---                           
-    #> 116: -74.50 38.75  0.0000000000
-    #> 117: -74.25 38.75  0.0000000000
-    #> 118: -74.00 38.75  0.0000000000
-    #> 119: -73.75 38.75  0.0000000000
-    #> 120: -73.50 38.75  0.0000000000
+    #>           x     y    weight
+    #>       <num> <num>     <num>
+    #>   1: -76.25 41.75 0.2294976
+    #>   2: -76.00 41.75 0.2198315
+    #>   3: -75.75 41.75 0.1777267
+    #>   4: -75.50 41.75 0.1362904
+    #>   5: -75.25 41.75 0.1061073
+    #>  ---                       
+    #> 178: -74.25 38.50 0.0000000
+    #> 179: -74.00 38.50 0.0000000
+    #> 180: -73.75 38.50 0.0000000
+    #> 181: -73.50 38.50 0.0000000
+    #> 182: -73.25 38.50 0.0000000
 
 As you can see from the output, `secondary_weights()` checks for
 alignment, and rotates the `secondary_raster` coordinates if necessary.
-It also resamples the data to the spatial resolution of the grid, before
-outputting a data.table with latitudes, longitudes, and cropland
-weights.
+It also resamples the data to the spatial resolution of the climate grid
+using bilinear interpolation, and returns a `data.table` with latitudes,
+longitudes, and cropland weights.
 
 ### Step 2: Overlay administrative regions onto the data’s grid
 
@@ -198,6 +225,8 @@ county_weights <- overlay_weights(
 
     #> Extracting raster polygon overlap
 
+    #> Secondary weights fully overlap with the administrative regions.
+
     #> Checking sum of weights within polygons
 
     #> All weights sum to 1.
@@ -209,17 +238,17 @@ print(county_weights, digits = 4)
 
     #>          x     y poly_id    w_area    weight
     #>      <num> <num>  <char>     <num>     <num>
-    #>   1: 284.5 39.25     011 0.0172214 0.0313069
-    #>   2: 284.5 39.25     033 0.0058167 0.0055363
-    #>   3: 284.5 39.50     011 0.0170326 0.0332240
-    #>   4: 284.5 39.50     033 0.3550772 0.3626242
-    #>   5: 284.5 39.75     015 0.0219315 0.0245433
+    #>   1: 284.5 39.25     011 0.0172211 0.0360401
+    #>   2: 284.5 39.25     033 0.0058164 0.0060266
+    #>   3: 284.5 39.50     011 0.0170331 0.0307720
+    #>   4: 284.5 39.50     033 0.3550727 0.3175946
+    #>   5: 284.5 39.75     015 0.0219317 0.0193611
     #>  ---                                        
-    #> 137: 286.0 40.75     013 0.0095999 0.0065357
-    #> 138: 286.0 40.75     003 0.1828317 0.1316480
-    #> 139: 286.0 40.75     031 0.0065826 0.0027441
-    #> 140: 286.0 41.00     003 0.5410404 0.5931713
-    #> 141: 286.0 41.00     031 0.0007093 0.0004502
+    #> 137: 286.0 40.75     013 0.0095999 0.0057512
+    #> 138: 286.0 40.75     003 0.1828252 0.1307450
+    #> 139: 286.0 40.75     031 0.0065823 0.0028849
+    #> 140: 286.0 41.00     003 0.5410449 0.6773374
+    #> 141: 286.0 41.00     031 0.0007093 0.0005442
 
 You can see that the function outputs multiple rows for each polygon,
 one for every grid cell it overlaps. The column `w_area` represents the
@@ -295,11 +324,9 @@ polynomial_output <- staggregate_polynomial(
   )
 ```
 
-    #> Averaging hourly values to get daily values
+    #> Averaging over 24 layers per day to get daily values
 
     #> Executing polynomial transformation
-
-    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()
 
     #> Aggregating by polygon and month
 
@@ -310,27 +337,27 @@ polynomial_output
 
     #>      year month poly_id  order_1  order_2  order_3
     #>     <num> <num>  <char>    <num>    <num>    <num>
-    #>  1:  2024     6     011 727.4672 17794.91 439122.3
-    #>  2:  2024     6     033 734.1446 18138.95 452446.7
-    #>  3:  2024     6     015 729.0135 17892.22 443428.8
-    #>  4:  2024     6     009 686.5504 15818.35 366967.2
-    #>  5:  2024     6     007 730.9461 17986.23 446917.4
-    #>  6:  2024     6     041 683.8770 15894.08 376303.5
-    #>  7:  2024     6     019 706.1414 16895.95 410720.8
-    #>  8:  2024     6     001 724.3873 17655.14 434329.6
-    #>  9:  2024     6     005 726.9416 17800.11 440367.0
-    #> 10:  2024     6     021 721.1470 17550.20 432291.7
-    #> 11:  2024     6     027 686.6788 16005.44 379638.7
-    #> 12:  2024     6     037 663.4873 14991.05 345698.7
-    #> 13:  2024     6     023 718.8042 17434.85 428000.8
-    #> 14:  2024     6     035 709.9632 17060.85 416117.7
-    #> 15:  2024     6     029 720.6260 17498.11 429445.2
-    #> 16:  2024     6     025 709.4887 16969.68 410464.1
-    #> 17:  2024     6     039 702.8470 16685.24 401235.7
-    #> 18:  2024     6     013 698.1990 16454.86 392588.5
-    #> 19:  2024     6     031 672.3034 15344.78 356438.4
-    #> 20:  2024     6     017 705.0655 16740.65 401508.9
-    #> 21:  2024     6     003 688.3550 16002.56 376794.2
+    #>  1:  2024     6     011 729.4373 17894.66 442930.1
+    #>  2:  2024     6     033 733.7415 18118.51 451662.6
+    #>  3:  2024     6     015 729.0098 17892.01 443419.8
+    #>  4:  2024     6     009 686.3300 15807.50 366563.4
+    #>  5:  2024     6     007 730.9659 17987.04 446942.1
+    #>  6:  2024     6     041 684.4207 15918.44 377139.5
+    #>  7:  2024     6     019 705.7509 16878.38 410117.8
+    #>  8:  2024     6     001 724.9572 17682.29 435310.3
+    #>  9:  2024     6     005 726.9852 17802.18 440440.8
+    #> 10:  2024     6     021 721.3909 17561.50 432688.6
+    #> 11:  2024     6     027 687.8298 16056.75 381384.9
+    #> 12:  2024     6     037 663.3331 14985.01 345520.2
+    #> 13:  2024     6     023 718.5814 17424.03 427602.5
+    #> 14:  2024     6     035 710.1241 17067.68 416336.7
+    #> 15:  2024     6     029 720.6808 17499.87 429477.7
+    #> 16:  2024     6     025 711.0168 17042.99 413123.1
+    #> 17:  2024     6     039 702.9569 16690.27 401409.4
+    #> 18:  2024     6     013 698.6268 16473.52 393206.4
+    #> 19:  2024     6     031 670.6923 15279.34 354421.3
+    #> 20:  2024     6     017 704.8867 16733.28 401281.4
+    #> 21:  2024     6     003 688.9643 16026.13 377468.5
     #>      year month poly_id  order_1  order_2  order_3
 
 You can see that 3 variables are created. `order_1` represents the
@@ -391,11 +418,9 @@ spline_output <- staggregate_spline(
 )
 ```
 
-    #> Averaging hourly values to get daily values
+    #> Averaging over 24 layers per day to get daily values
 
     #> Executing spline transformation
-
-    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()
 
     #> Aggregating by polygon and month
 
@@ -406,27 +431,27 @@ spline_output
 
     #>      year month poly_id    value   term_1   term_2
     #>     <num> <num>  <char>    <num>    <num>    <num>
-    #>  1:  2024     6     011 727.4672 301850.4 61400.11
-    #>  2:  2024     6     033 734.1446 306858.5 62652.14
-    #>  3:  2024     6     015 729.0135 303010.3 61690.09
-    #>  4:  2024     6     009 686.5504 271163.1 53728.30
-    #>  5:  2024     6     007 730.9461 304459.7 62052.45
-    #>  6:  2024     6     041 683.8770 269228.9 53255.37
-    #>  7:  2024     6     019 706.1414 285873.0 57408.31
-    #>  8:  2024     6     001 724.3873 299540.5 60822.64
-    #>  9:  2024     6     005 726.9416 301456.6 61301.70
-    #> 10:  2024     6     021 721.1470 297111.6 60215.60
-    #> 11:  2024     6     027 686.6788 271308.0 53771.83
-    #> 12:  2024     6     037 663.4873 254033.6 49471.12
-    #> 13:  2024     6     023 718.8042 295354.0 59776.14
-    #> 14:  2024     6     035 709.9632 288731.9 58121.89
-    #> 15:  2024     6     029 720.6260 296720.0 60117.58
-    #> 16:  2024     6     025 709.4887 288367.4 58029.49
-    #> 17:  2024     6     039 702.8470 283391.0 56786.11
-    #> 18:  2024     6     013 698.1990 279904.4 55914.35
-    #> 19:  2024     6     031 672.3034 260561.3 51090.41
-    #> 20:  2024     6     017 705.0655 285049.9 57200.08
-    #> 21:  2024     6     003 688.3550 272528.3 54071.38
+    #>  1:  2024     6     011 729.4373 303327.9 61769.48
+    #>  2:  2024     6     033 733.7415 306556.2 62576.55
+    #>  3:  2024     6     015 729.0098 303007.5 61689.39
+    #>  4:  2024     6     009 686.3300 270997.7 53686.97
+    #>  5:  2024     6     007 730.9659 304474.5 62056.15
+    #>  6:  2024     6     041 684.4207 269634.4 53356.41
+    #>  7:  2024     6     019 705.7509 285580.9 57335.39
+    #>  8:  2024     6     001 724.9572 299967.9 60929.49
+    #>  9:  2024     6     005 726.9852 301489.3 61309.89
+    #> 10:  2024     6     021 721.3909 297294.5 60261.31
+    #> 11:  2024     6     027 687.8298 272168.1 53986.38
+    #> 12:  2024     6     037 663.3331 253919.2 49442.69
+    #> 13:  2024     6     023 718.5814 295187.0 59734.38
+    #> 14:  2024     6     035 710.1241 288852.2 58151.92
+    #> 15:  2024     6     029 720.6808 296761.1 60127.84
+    #> 16:  2024     6     025 711.0168 289513.4 58315.97
+    #> 17:  2024     6     039 702.9569 283473.5 56806.76
+    #> 18:  2024     6     013 698.6268 280224.5 55994.31
+    #> 19:  2024     6     031 670.6923 259366.5 50793.73
+    #> 20:  2024     6     017 704.8867 284915.9 57166.60
+    #> 21:  2024     6     003 688.9643 272983.2 54184.80
     #>      year month poly_id    value   term_1   term_2
 
 You can see that your output looks very similar to the table from the
@@ -469,11 +494,9 @@ bin_output <- staggregate_bin(
 )
 ```
 
-    #> Averaging hourly values to get daily values
+    #> Averaging over 24 layers per day to get daily values
 
     #> Executing binning transformation
-
-    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()
 
     #> Aggregating by polygon and month
 
@@ -580,8 +603,6 @@ staggregate_degree_days(
 
     #> Executing degree days transformation
 
-    #> Assuming layer name format which after removal of the first character is compatible with lubridate::as_datetime()
-
     #> Aggregating by polygon and month
 
     #>      year month poly_id threshold_ninf_to_0 threshold_0_to_10
@@ -610,27 +631,27 @@ staggregate_degree_days(
     #>      year month poly_id threshold_ninf_to_0 threshold_0_to_10
     #>     threshold_10_to_20 threshold_20_to_inf
     #>                  <num>               <num>
-    #>  1:           7052.015            3207.199
-    #>  2:           6998.201            3421.270
-    #>  3:           6929.917            3366.407
-    #>  4:           7133.817            2143.393
-    #>  5:           6935.154            3407.553
-    #>  6:           6482.774            2730.275
-    #>  7:           6664.668            3082.725
-    #>  8:           6964.307            3220.987
-    #>  9:           6901.680            3344.918
-    #> 10:           6821.689            3285.840
-    #> 11:           6539.259            2741.031
-    #> 12:           6339.128            2384.568
-    #> 13:           6833.017            3218.283
-    #> 14:           6709.898            3129.220
-    #> 15:           6893.267            3201.758
-    #> 16:           6889.351            2938.378
-    #> 17:           6793.669            2874.659
-    #> 18:           6806.230            2750.546
-    #> 19:           6458.801            2476.480
-    #> 20:           6951.579            2769.992
-    #> 21:           6738.039            2582.482
+    #>  1:           7033.869            3272.625
+    #>  2:           6996.451            3413.344
+    #>  3:           6929.859            3366.375
+    #>  4:           7129.929            2141.990
+    #>  5:           6935.451            3407.730
+    #>  6:           6486.642            2739.455
+    #>  7:           6661.205            3076.817
+    #>  8:           6965.391            3233.581
+    #>  9:           6902.068            3345.578
+    #> 10:           6822.985            3290.398
+    #> 11:           6549.322            2758.592
+    #> 12:           6336.398            2383.596
+    #> 13:           6834.659            3211.294
+    #> 14:           6712.329            3130.650
+    #> 15:           6894.822            3201.517
+    #> 16:           6886.335            2978.067
+    #> 17:           6794.598            2876.367
+    #> 18:           6812.126            2754.916
+    #> 19:           6437.996            2458.619
+    #> 20:           6947.556            2769.725
+    #> 21:           6755.068            2580.074
     #>     threshold_10_to_20 threshold_20_to_inf
 
 `staggregate_degree_days()` operates directly on the hourly values.
