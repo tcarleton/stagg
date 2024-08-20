@@ -48,7 +48,7 @@ gridmet_pr <- climateR::getGridMET(
   varname = "pr",
   startDate = "2010-01-01",
   endDate  = "2010-12-31"
-)[[1]] %>% 
+)[[1]] |>  
   raster::stack()
 ```
 
