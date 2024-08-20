@@ -15,17 +15,16 @@
 #'   cell within each polygon
 #'
 #' @examples
-#' nj_counties <- tigris::counties("nj")
-#'
 #' overlay_output_with_secondary_weights <- overlay_weights(
 #'   polygons = nj_counties, # Polygons outlining the 21 counties of New Jersey
 #'   polygon_id_col = "COUNTYFP", # The name of the column with the unique
 #'                                # county identifiers
-#'   era5_grid, # The grid to use when extracting area weights (era5_grid is the
-#'              # default)
-#'   cropland_world_2015_era5 # Output from secondary_weights
-#'                            # (cropland_world_2015_era5 is available to the
-#'                            # user)
+#'   grid = era5_grid, # The grid to use when extracting area weights (era5_grid is the
+#'                     # default)
+#'   secondary_weights = cropland_world_2015_era5 # Output from
+#'                                                # secondary_weights
+#'                                                # (cropland_world_2015_era5 is
+#'                                                # available to the# user)
 #'   )
 #'
 #' head(overlay_output_with_secondary_weights)
@@ -44,15 +43,14 @@
 #' @export
 overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondary_weights = NULL){
 
-  # Create raster
-  clim_raster <- raster::raster(grid) # only reads the first band
+  # Create raster (Putting terra::rast() here creates, for unknown reasons,
+  # issues with devtools::check())
+  clim_raster <- as(grid, "SpatRaster") # only reads the first band
 
 
   ## Raster cell area
   ## -----------------------------------------------
-  clim_area_raster <- suppressWarnings(raster::area(clim_raster)) # Suppressing warning that is
-                                                                  # thrown because era5_grid has
-                                                                  # lat extent <-90.1 and >90.1
+  clim_area_raster <- terra::cellSize(clim_raster, unit = "km")
 
   ## Raster/polygon alignment
   ## -----------------------------------------------
@@ -60,9 +58,9 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
   message(crayon::yellow('Checking for raster/polygon alignment'))
 
   ## polygon and raster xmin and xmax values
-  poly_xmax <- raster::extent(polygons)@xmax
-  rast_xmax <- raster::extent(clim_area_raster)@xmax
-  rast_res <-  raster::xres(clim_area_raster)
+  poly_xmax <- terra::ext(polygons)$xmax
+  rast_xmax <- terra::ext(clim_area_raster)$xmax
+  rast_res <-  terra::xres(clim_area_raster)
 
  ## stop if polygons are not in standard coordinate system
  if(poly_xmax > 180) {
@@ -77,27 +75,27 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     message(crayon::yellow('Aligning longitudes to standard coordinates.'))
 
     ## xmin for climate raster
-    rast_xmin <- raster::extent(clim_area_raster)@xmin
+    rast_xmin <- terra::ext(clim_area_raster)$xmin
 
     ## check if raster needs to be padded, extend if needed
     if(!dplyr::near(rast_xmin, 0, tol = rast_res) | !dplyr::near(rast_xmax, 360, tol = rast_res)) {
 
       ## create global extent for padding so rotate function can be used
-      global_extent <- c(0, 360, -90, 90)
+      global_extent <- terra::ext(0, 360, -90, 90)
 
       ## pad
-      clim_area_raster <- raster::extend(clim_area_raster, global_extent)
+      clim_area_raster <- terra::extend(clim_area_raster, global_extent)
 
     }
 
     ## rotate
-    clim_area_raster <- raster::rotate(clim_area_raster)
+    clim_area_raster <- terra::rotate(clim_area_raster)
 
     }
 
 
   ## Match raster and polygon crs
-  crs_raster <- raster::crs(clim_area_raster)
+  crs_raster <- terra::crs(clim_area_raster)
   polygons_reproj <- sf::st_transform(polygons, crs = crs_raster)
 
   ## Raster / Polygon overlap (using data.table)
@@ -117,7 +115,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
   # IF weights = TRUE, merge secondary weights with area weights
   if(!is.null(secondary_weights)){
 
-    # Data.table of secondary weights
+    # data.table of secondary weights
     weights_dt <- data.table::as.data.table(secondary_weights)
 
     ## make sure secondary_weights is not in climate 0-360 coordinates
@@ -132,26 +130,47 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
 
     }
 
+    ## check if secondary weights fully overlaps with area_weight df
+    covers <- min(weights_dt$x) <= min(area_weight$x) &&
+              max(weights_dt$x) >= max(area_weight$x) &&
+              min(weights_dt$y) <= min(area_weight$y) &&
+              max(weights_dt$y) >= max(area_weight$y)
+
+    if (covers) {
+      message(crayon::green('Secondary weights fully overlap with the administrative regions.'))
+    } else {
+      warning(crayon::red('Warning: secondary weights do not fully overlap with the administrative regions. Resulting weights will contain NAs.'))
+    }
+
+
+  ## check if secondary weights table contains NA values
+  if(isTRUE(any(is.na(weights_dt[["weight"]])))) {
+
+    ## print warning if there are NAs in the secondary weights
+    warning(crayon::red("Warning: secondary weight values contain one or more NAs. The resulting weights for x,y coordinates with NA secondary weight values will be NAs."))
+
+  }
+
     # Set key column in the merged dt table
     keycols = c("x", "y")
     data.table::setkeyv(area_weight, keycols)
-
 
     # Merge with secondary weights, NA for missing values
     w_merged <- merge(area_weight, weights_dt,
                       by = c('x', 'y'),
                       all.x = T)
 
+
     # Weight in pixel = w_area * weight
     w_merged[, weight := weight * w_area]
 
     # Create column that determines if entire polygon has a weight == 0
-    zero_polys <- data.frame(w_merged) %>%
-      dplyr::group_by(poly_id) %>%
-      dplyr::summarise(sum_weight = sum(weight)) %>%
-      dplyr::ungroup() %>%
-      dplyr::filter(sum_weight == 0) %>%
-      dplyr::select(poly_id) %>%
+    zero_polys <- data.frame(w_merged) |>
+      dplyr::group_by(poly_id) |>
+      dplyr::summarise(sum_weight = sum(weight)) |>
+      dplyr::ungroup() |>
+      dplyr::filter(sum_weight == 0) |>
+      dplyr::select(poly_id) |>
       dplyr::distinct()
 
     if(nrow(zero_polys > 0)) {
@@ -161,22 +180,21 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
     }
 
     # List any polygons with NA values in 1 or more grid cells
-    na_polys <- data.frame(w_merged) %>%
-      dplyr::filter(is.na(weight)) %>%
-      dplyr::select(poly_id) %>%
+    na_polys <- data.frame(w_merged) |>
+      dplyr::filter(is.na(weight)) |>
+      dplyr::select(poly_id) |>
       dplyr::distinct()
 
+    # # Warning if there are polygons with NA weight values
+    # if(nrow(na_polys > 0)) {
+    #
+    #   warning(crayon::red("Warning: some of the secondary weights are NA, meaning weights cannot be calculated. NAs will be returned for weights."))
+    #
+    # }
 
-    # Warning if there are polygons with NA weight values
-    if(nrow(na_polys > 0)) {
-
-      warning(crayon::red("Warning: some of the secondary weights are NA, meaning weights cannot be calculated. NAs will be returned for weights."))
-
-    }
-
-    # Update the weight to equal w_area for all grid cells in na_polys
-    w_merged <- w_merged %>%
-      dplyr::mutate(weight = ifelse(poly_id %in% c(na_polys$poly_id, zero_polys$poly_id), NA, weight)) %>%
+    # Update the weight to NA for all grid cells in na_polys
+    w_merged <- w_merged |>
+      dplyr::mutate(weight = ifelse(poly_id %in% c(na_polys$poly_id, zero_polys$poly_id), NA, weight)) |>
       data.table::as.data.table()
 
     ## this doesn't work with dt... figure out or delete and use above
@@ -222,12 +240,6 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
         if(!check_weights$poly_id[i] %in% c(na_polys$poly_id, zero_polys$poly_id) & !dplyr::near(check_weights$weight[i], 1, tol=0.001)) {
 
           stop(crayon::red('Weights for polygon', check_weights$poly_id[i], 'do not sum to 1')) }
-
-           if(is.na(check_weights$weight[i] & !check_weights$poly_id[i] %in% c(na_polys$poly_id, zero_polys$poly_id))) {
-
-             stop(crayon::red('Some weights for polygon', check_weights$poly_id[i], 'are NA. Should sum to 1 or all be NA.'))
-
-           }
 
      }
 

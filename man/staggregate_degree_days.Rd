@@ -4,7 +4,14 @@
 \alias{staggregate_degree_days}
 \title{Degree days transformation and aggregation of climate data}
 \usage{
-staggregate_degree_days(data, overlay_weights, time_agg = "month", thresholds)
+staggregate_degree_days(
+  data,
+  overlay_weights,
+  time_agg = "month",
+  start_date = NA,
+  time_interval = "1 hour",
+  thresholds
+)
 }
 \arguments{
 \item{data}{The raster brick with the data to be transformed and aggregated}
@@ -14,6 +21,17 @@ function \code{overlay_weights()}}
 
 \item{time_agg}{the temporal scale to aggregate data to. Options are \code{'day'},
 \code{'month'}, or \code{'year'}}
+
+\item{start_date}{the date (and time, if applicable) of the first layer in
+the raster. To be input in a format compatible with
+lubridate::as_datetime(), e.g. \code{"1991-10-29"} or \code{"1991-10-29 00:00:00"}.
+The default is \code{NA} since the rasters usually already contain temporal
+information in the layer names and they do not need to be manually supplied.}
+
+\item{time_interval}{the time interval between layers in the raster to be
+aggregated. To be input in a format compatible with seq(), e.g.
+\code{'1 day'} or \code{'3 months'}. The default is \code{'1 hour'} and this argument is
+required if the \code{start_date} argument is not \code{NA}.}
 
 \item{thresholds}{A vector of temperature thresholds critical to a crop}
 }
@@ -25,9 +43,15 @@ scale
 }
 \examples{
 degree_days_output <- staggregate_degree_days(
-  data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and aggregate
+  data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and
+                                         # aggregate
   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
   time_agg = "month", # Sum the transformed daily values across months
+  start_date = "2024-06-01 00:00:00", # The start date of the supplied data,
+                                      # only required if the layer name
+                                      # format is not compatible with stagg
+  time_interval = "1 hour", # The temporal interval of the supplied data,
+                            # only required if the start_date is not NA
   thresholds = c(0, 10, 20) # Calculate degree days above 0, 10, and 20
                             # degrees Celsius
   )

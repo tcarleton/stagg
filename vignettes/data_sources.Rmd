@@ -4,7 +4,7 @@ author: "Tyler Liddell, Anna Boser, Sara Orofino, Tracey Mangin, and Tamma Carle
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Using data from climateR or other sources with stagg}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -45,7 +45,8 @@ gridmet_pr <- climateR::getGridMET(
   varname = "pr",
   startDate = "2010-01-01",
   endDate  = "2010-12-31"
-)[[1]]
+)[[1]] %>% 
+  raster::stack()
 ```
 
 We can print the layer names to ensure their compatibility with `stagg`. 
