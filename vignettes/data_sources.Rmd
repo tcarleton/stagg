@@ -16,18 +16,21 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r}
-library(stagg)
-library(climateR)
-library(tigris)
-```
-
 # Introduction
 This vignette demonstrates how to use the `stagg` package with data from `climateR`, as well as other data sources that do not have temporal metadata in a format that `stagg` accepts in the layer names. 
 
+First, we load the packages used in this vignette. 
+```{r eval=FALSE}
+library(climateR) # Obtain climate data
+library(tigris) # Polygons to request and aggregate climate data over
+library(stagg) # Aggregate the climate data
+```
+
 # climateR example: Working with GridMET Data
 
-The `climateR` package provides access to data from various sources, such as GridMET or CHIRPS. The raster layer names for data retrieved from `climateR`, like that of `ERA5` data, are compatible with `stagg` and therefore can be used without any additional steps. Specifically, the layer name format compatible with `stagg` uses a character-date-time or character-date format following a string header, or the start date-time and temporal time steps of the raster stack must be specified in `staggregate_*()`. For example, `ERA5` uses the format x2021.01.01.00.00.00 or x2021.01.01, and data retrieved using `climateR` uses the format variable_2021-01-01. 
+The `climateR` package provides access to data from various sources, such as `GridMET` or `CHIRPS`. 
+
+The raster layer names for data retrieved from `climateR`, like that of `ERA5` data, are compatible with `stagg` and therefore can be used without any additional steps. Specifically, the layer name format compatible with `stagg` uses a `character-date-time` or `character-date format` following a string header, or the start date-time and temporal time steps of the raster stack must be specified in `staggregate_*()`. For example, `ERA5` uses the format `x2021.01.01.00.00.00` `or x2021.01.01`, and data retrieved using `climateR` uses the format `variable_2021-01-01`. 
 
 ## Load New Jersey Counties
 First, we load the county boundaries for New Jersey using the `tigris` package.
@@ -37,7 +40,7 @@ nj_counties <- tigris::counties("NJ")
 ```
 
 ## Retrieve GridMET Data
-Next, we use the `climateR` package to retrieve precipitation data from GridMET for New Jersey counties for the year 2010.
+Next, we use the `climateR` package to retrieve precipitation data from `GridMET` for New Jersey counties for the year 2010.
 
 ```{r}
 gridmet_pr <- climateR::getGridMET(
@@ -52,7 +55,7 @@ gridmet_pr <- climateR::getGridMET(
 We can print the layer names to ensure their compatibility with `stagg`. 
 
 ```{r}
-names(gridmet_pr[[1:3]])
+names(gridmet_pr[[1:3]]) # Print the first three layer names
 ```
 
 
@@ -60,7 +63,7 @@ names(gridmet_pr[[1:3]])
 We calculate overlay weights for the New Jersey counties using the retrieved GridMET data.
 
 ```{r}
-county_weights <- overlay_weights(
+county_weights <- stagg::overlay_weights(
   polygons = nj_counties,       # Simple features object with the desired polygons
   polygon_id_col = "COUNTYFP",  # Column name containing polygon identifiers
   grid = gridmet_pr             # Raster layer with the same coordinate system and spatial resolution as the climate data
@@ -73,7 +76,7 @@ print(county_weights, digits = 4)
 We perform polynomial aggregation on the GridMET data using the calculated overlay weights.
 
 ```{r}
-polynomial_output <- staggregate_polynomial(
+polynomial_output <- stagg::staggregate_polynomial(
   
   data = gridmet_pr,                # The GridMET data retrived from ClimateR
   
@@ -102,48 +105,40 @@ polynomial_output <- staggregate_polynomial(
 polynomial_output
 ```
 
-# Using data from any source through manual time specification
+# Using data from any source using manual time specification
 
 Other data types with layer names that do not follow the `stagg` naming convention can also be used with stagg by specifying the start date and time interval of the data when calling `staggregate_*()`. 
 
 First, we rename all the layers to a format not compatible with `stagg`.
 ```{r}
 names(gridmet_pr) <- rep(NA, length(names(gridmet_pr)))
-names(gridmet_pr[[1:3]])
+names(gridmet_pr[[1:3]]) # Print the first three layer names
 ```
 
 We can still use staggregate in the same way as above and get the same output, but simply have to manually specify the `start_date` and `time_interval` of the data we are using. 
 ```{r}
-polynomial_output <- staggregate_polynomial(
+polynomial_output <- stagg::staggregate_polynomial(
   
-  data = gridmet_pr,                # The GridMET data retrived from ClimateR
+  data = gridmet_pr,                # The GridMET data retrived from ClimateR, 
+                                    # but with NA layer names
   
-  overlay_weights = county_weights, # Weights for grid cells within each county 
-                                    # in New Jersey
+  overlay_weights = county_weights, 
   
-  daily_agg = "none",               # Because climateR provides data at the 
-                                    # daily level already, it is not necessary
-                                    # to aggregate it up. If it were finer and
-                                    # we did want to aggregate it, we would 
-                                    # choose "sum" since we would want the sum 
-                                    # of precipitation over the time_agg of 
-                                    # choice. 
+  daily_agg = "none",           
   
-  time_agg = "month",               # The temporal level to aggregate daily 
-                                    # transformed values to. Current options are 
-                                    # "hour", day", "month", and "year". Note 
-                                    # that "hour" is only available if daily_agg
-                                    # is set to "none"
+  time_agg = "month",       
   
   start_date = "2010-01-01",        # Our data starts on January 1, 2010
   
   time_interval = "1 day",          # Our data has a time interval of one day
   
-  degree = 3                        # The highest order of the polynomial. Here 
-                                    # this will create variable 3 columns: 
-                                    # order_1, order_2, and order_3
+  degree = 3
   )
+```
 
-# The two outputs are identical
+The new output is identical to the one obtained above. 
+
+```{r}
 polynomial_output
 ```
+
