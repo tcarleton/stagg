@@ -25,7 +25,6 @@ Imports:
     stringr,
     terra
 Suggests: 
-    climateR,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
