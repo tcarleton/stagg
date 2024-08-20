@@ -4,6 +4,7 @@ Version: 0.0.0.9000
 Authors@R: 
     c(person("Tyler", "Liddell", , "ttliddell4@gmail.com", role = c("aut", "cre")), person("Anna", "Boser", , "boseranna@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-7336-0117")), person("Sara", "Orofino", , "slorofino@gmail.com", role = c("aut", "cre")), person("Tracey", "Mangin", , "tmangin@ucsb.edu", role = c("aut", "cre")), person("Tamma", "Carleton", , "tcarleton@ucsb.edu", role = c("aut", "cre")))
+Maintainer: Anna Boser <annaboser@ucsb.edu>
 Description: The R Package `stagg` aims to harmonize the preparation of spatiotemporal raster data, in particular climate observations, for use in statistical analyses. This allows for more efficient use of researchers' time, and avoids common missteps. The end goal is a greater quantity of quality research into the study of coupled human-geophysical systems. 
 URL: https://tcarleton.github.io/stagg, https://github.com/tcarleton/stagg
 BugReports: https://github.com/tcarleton/stagg/issues
