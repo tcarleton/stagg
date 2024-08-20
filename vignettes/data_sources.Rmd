@@ -21,7 +21,7 @@ remotes::install_github("mikejohnson51/climateR")
 This vignette demonstrates how to use the `stagg` package with data from `climateR`, as well as other data sources that do not have temporal metadata in a format that `stagg` accepts in the layer names. 
 
 First, we load the packages used in this vignette. 
-```{r eval=FALSE}
+```{r message=FALSE, warning=FALSE, results="hide"}
 library(climateR) # Obtain climate data
 library(tigris) # Polygons to request and aggregate climate data over
 library(stagg) # Aggregate the climate data
@@ -36,7 +36,7 @@ The raster layer names for data retrieved from `climateR`, like that of `ERA5` d
 ## Load New Jersey Counties
 First, we load the county boundaries for New Jersey using the `tigris` package.
 
-```{r}
+```{r message=FALSE, warning=FALSE, results="hide"}
 nj_counties <- tigris::counties("NJ")
 ```
 
