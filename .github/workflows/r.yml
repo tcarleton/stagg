@@ -28,10 +28,10 @@ jobs:
         r-version: ['4.1.1']
         config:
         #- os: ubuntu-latest
-          bioc: devel
-          r: auto
-          cont: ghcr.io/bioconductor/bioconductor_docker:devel
-          rspm: ~
+        #  bioc: devel
+        #  r: auto
+        #  cont: ghcr.io/bioconductor/bioconductor_docker:devel
+        #  rspm: ~
         - os: macOS-latest
           bioc: release
           r: auto
