@@ -82,7 +82,7 @@
 - a raster or raster stack (e.g., <code><a href="https://rdrr.io/pkg/raster/man/raster.html" class="external-link">raster::raster()</a></code> or <code><a href="https://rdrr.io/pkg/raster/man/stack.html" class="external-link">raster::stack()</a></code>; can originally be stored in formats such as netCDF or .tif) - at least yearly temporal resolution, since the most coarse temporal aggregation offered by <code>stagg</code> is yearly. - if sub-daily, number of layers per day should be consistent. By default, hourly time steps are assumed (i.e. 24 time steps per day), though a different number can be specified using the <code>time_interval</code> argument in the <code>staggregate_*()</code> functions.<br>
 - in order for the temporal aggregation to happen properly, <code>stagg</code> must have a way of knowing the temporal information associated with the raster stack being aggregated. This can be achieved one of two ways: - the layer names use a character-date-time or character-date format following a string header, or the start date-time and temporal time steps of the raster stack must be specified in <code>staggregate_*()</code>. For example, ERA5 uses the format x2021.01.01.00.00.00 or x2021.01.01, and data retrieved using <code>climateR</code> uses the format variable_2021-01-01, both of which are compatible with <code>stagg</code>. - specify the start datetime and temporal interval of your data in the <code>staggregate_*()</code> functions using the <code>start_date</code> and <code>time_interval</code> arguments.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tcarleton.github.io/stagg">stagg</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">stagg</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span> <span class="co"># Using polygons outlining counties of New Jersey as administrative regions</span></span>
 <span><span class="va">nj_counties</span> <span class="op">&lt;-</span> <span class="fu">tigris</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tigris/man/counties.html" class="external-link">counties</a></span><span class="op">(</span><span class="st">"NJ"</span><span class="op">)</span></span></code></pre></div>
@@ -538,7 +538,11 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>First Last <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/YOUR-ORCID-ID" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
+<li>Tyler Liddell <br><small class="roles"> Author, maintainer </small>  </li>
+<li>Anna Boser <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-7336-0117" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
+<li>Sara Orofino <br><small class="roles"> Author, maintainer </small>  </li>
+<li>Tracey Mangin <br><small class="roles"> Author, maintainer </small>  </li>
+<li>Tamma Carleton <br><small class="roles"> Author, maintainer </small>  </li>
 </ul>
 </div>
 
@@ -549,7 +553,7 @@
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by First Last.</p>
+  <p>Developed by Tyler Liddell, Anna Boser, Sara Orofino, Tracey Mangin, Tamma Carleton.</p>
 </div>
 
 <div class="pkgdown-footer-right">
