@@ -11,6 +11,9 @@ knitr::opts_chunk$set(
   fig.path = "man/figures/README-",
   out.width = "100%"
 )
+
+set.seed(42)
+
 ```
 
 # stagg
@@ -43,15 +46,12 @@ Below is example code and commentary aimed at demonstrating expected typical usa
 
 The `stagg` package currently does not include functions to download climate data. There are many packages that can be used to download climate data. For example, [`climateR`](https://github.com/mikejohnson51/climateR) provides access to climate datasets from over 2000 different data providers. ERA5 climate data can be download through [`ecmwfr`](https://github.com/bluegreen-labs/ecmwfr), which provides an interface to two European Centre for Medium-Range Weather Forecast APIs. The [`KrigR`](https://github.com/ErikKusch/KrigR) package provides a helpful wrapper function for the `ecmwfr` package to enable direct downloading of ERA5 climate data in R. ECMWF also provides a general [guide to downloading ERA5 data](https://confluence.ecmwf.int/display/CKB/How+to+download+ERA5). 
 
-In this example we use ERA5 climate data, and the package includes a global raster layer of ERA5 climate data which can be used in the `secondary_weights()` and `overlay_weights()` functions. However, other types of climate data can be used. 
+In this example we use ERA5 climate data, and the package includes a global raster layer of ERA5 climate data which can be used in the `secondary_weights()` and `overlay_weights()` functions. 
 
-For compatibility with `stagg` climate data should be:  
-  - a raster or raster stack (e.g., `raster::raster()` or `raster::stack()`; can originally be stored in formats such as netCDF or .tif) 
-  - at least yearly temporal resolution, since the most coarse temporal aggregation offered by `stagg` is yearly. 
-    - if sub-daily, number of layers per day should be consistent. By default, hourly time steps are assumed (i.e. 24 time steps per day), though  a different number can be specified using the `time_interval` argument in the `staggregate_*()` functions.  
-  - in order for the temporal aggregation to happen properly, `stagg` must have a way of knowing the temporal information associated with the raster stack being aggregated. This can be achieved one of two ways: 
-    - the layer names use a character-date-time or character-date format following a string header, or the start date-time and temporal time steps of the raster stack must be specified in `staggregate_*()`. For example, ERA5 uses the format x2021.01.01.00.00.00 or x2021.01.01, and data retrieved using `climateR` uses the format variable_2021-01-01, both of which are compatible with `stagg`. 
-    - specify the start datetime and temporal interval of your data in the `staggregate_*()` functions using the `start_date` and `time_interval` arguments. 
+For compatibility with `stagg`, climate data should be a raster or raster stack (read in using `raster::raster()` or `raster::stack()`; can originally be stored in formats such as netCDF or .tif) with at least a yearly temporal resolution, since the most coarse temporal aggregation offered by `stagg` is yearly. If the temporal resolution is sub-daily, the number of layers per day should be consistent. By default, hourly time steps are assumed (i.e. 24 time steps per day), though  a different number can be specified using the time_interval argument in the `staggregate_*()` functions.  
+
+In order for the temporal aggregation to happen properly, `stagg` must have a way of knowing the temporal information associated with the raster stack being aggregated. This can be achieved one of two ways: 1) the layer names use a character-date-time  or character-date format following a string header; or 2) the start date-time and temporal time steps of the raster stack must be specified in `staggregate_*()`. For example, ERA5 uses the format x2021.01.01.00.00.00 or x2021.01.01, and data retrieved using `climateR` uses the format variable_2021-01-01, both of which are compatible with `stagg`. Alternatively, the user can specify the start datetime and temporal interval of the data in the `staggregate_*()` functions using the `start_date` and `time_interval` arguments. 
+ 
 
 ```{r}
 library(stagg)
@@ -89,8 +89,8 @@ cropland_weights <- secondary_weights(
                                            # option to define an extent for 
                                            # cropping the secondary_raster, 
                                            # which saves compute time. Input 
-                                           # format must be compatible with 
-                                           # raster::crop(), such as:
+                                           # must be in a compatible format, such as:
+                                           #    nj_extent <- terra::ext(nj_counties)
                                            #    nj_extent <- sf::st_bbox(nj_counties)
                                            #    nj_extent <- raster::extent(nj_counties)
                                            #    nj_extent <- c(-76, -73, 38, 42)
@@ -295,4 +295,15 @@ staggregate_degree_days(
 
 `staggregate_degree_days()` operates directly on the hourly values. Passing a vector of length `n` to `thresholds` creates `n + 1` columns, similar to how `staggregate_bin()` operates. For each value in the climate raster brick (or stack), the function determines which thresholds the value falls between. For example, a value of 15 falls between 10 and 20. All the variables corresponding to threshold pairs below these receive the difference between the two thresholds (`threshold_0_to_10` gets 10) and all variables above (`threshold_20_to_inf`) get 0. The variable in which the value falls gets the difference between the lower threshold and the value (`threshold_10_to20` gets 5). The low edge variable (`threshold_ninf_to_0`) is unique in that it measures how far below the smallest threshold a value falls. A value of -3 would get 3 for this variable, while any value above 0 would receive 0 here. Once all values are transformed in this way the hourly values are then aggregated to the polygon level and temporal scale desired as with all other `staggregate_*()` functions. 
 
+#### A note on spatiotemporally aggregated climate data without further transformations
+
+If desired, a user can use stagg to return spatiotemporally aggregated climate data without further transformations using the `staggregate_polynomial()` function. The column `order_1` represents the first order polynomial, i.e., merely spatiotemporally aggregated data. The temporal aggregation is dictated by the user-defined arguments `daily_agg` (options are “sum” “average”, and “none”) and `time_agg` (options are “hour”, “day”, “month”, and “year”). The spatial aggregation occurs for the user-defined administrative areas of interests (e.g., counties), which is incorporated through the `overlay_weights` input generated by the `overlay_weights()` function. The user can set the argument `degree = 1` if this is the only desired output. However, it is important to note that the user should not perform transformations after aggregating across space because this can introduce aggregation bias. Indeed, a main feature of the `stagg` package is that it performs the transformations and aggregations in a sequence that avoids aggregation bias. Thus users are cautioned against performing transformations after aggregation. Users who wish to use other transformations are encouraged to submit them to the package via an issue or pull request on GitHub for future package integration.
+
+
 ## Additional resources
+Below are some helpful resources on climate data and the analysis of climate impacts on socioeconomic outcomes:
+-[Climate Data Guide](https://climatedataguide.ucar.edu/)
+-[Practical Guide to Climate Econometrics](https://climateestimate.net/content/getting-started.html)
+-[Using Weather Data and Climate Model Output in Economic Analyses of Climate Change](https://www.journals.uchicago.edu/doi/full/10.1093/reep/ret016)
+-[On the use and misuse of climate change projections in international development](https://wires.onlinelibrary.wiley.com/doi/10.1002/wcc.579)
+
