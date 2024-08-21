@@ -294,3 +294,5 @@ staggregate_degree_days(
 ```
 
 `staggregate_degree_days()` operates directly on the hourly values. Passing a vector of length `n` to `thresholds` creates `n + 1` columns, similar to how `staggregate_bin()` operates. For each value in the climate raster brick (or stack), the function determines which thresholds the value falls between. For example, a value of 15 falls between 10 and 20. All the variables corresponding to threshold pairs below these receive the difference between the two thresholds (`threshold_0_to_10` gets 10) and all variables above (`threshold_20_to_inf`) get 0. The variable in which the value falls gets the difference between the lower threshold and the value (`threshold_10_to20` gets 5). The low edge variable (`threshold_ninf_to_0`) is unique in that it measures how far below the smallest threshold a value falls. A value of -3 would get 3 for this variable, while any value above 0 would receive 0 here. Once all values are transformed in this way the hourly values are then aggregated to the polygon level and temporal scale desired as with all other `staggregate_*()` functions. 
+
+## Additional resources
