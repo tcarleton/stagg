@@ -302,6 +302,7 @@ If desired, a user can use stagg to return spatiotemporally aggregated climate d
 
 ## Additional resources
 Below are some helpful resources on climate data and the analysis of climate impacts on socioeconomic outcomes:
+
  * [Climate Data Guide](https://climatedataguide.ucar.edu/)
  * [Practical Guide to Climate Econometrics](https://climateestimate.net/content/getting-started.html)
  * [Using Weather Data and Climate Model Output in Economic Analyses of Climate Change](https://www.journals.uchicago.edu/doi/full/10.1093/reep/ret016)
