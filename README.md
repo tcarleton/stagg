@@ -665,7 +665,7 @@ are transformed in this way the hourly values are then aggregated to the
 polygon level and temporal scale desired as with all other
 `staggregate_*()` functions.
 
-#### A note on spatiotemporally aggregated climate data without further transformations
+### A note on spatiotemporally aggregated climate data without further transformations
 
 If desired, a user can use stagg to return spatiotemporally aggregated
 climate data without further transformations using the
@@ -690,11 +690,11 @@ an issue or pull request on GitHub for future package integration.
 ## Additional resources
 
 Below are some helpful resources on climate data and the analysis of
-climate impacts on socioeconomic outcomes: -[Climate Data
-Guide](https://climatedataguide.ucar.edu/) -[Practical Guide to Climate
-Econometrics](https://climateestimate.net/content/getting-started.html)
--[Using Weather Data and Climate Model Output in Economic Analyses of
+climate impacts on socioeconomic outcomes: - [Climate Data
+Guide](https://climatedataguide.ucar.edu/) - [Practical Guide to Climate
+Econometrics](https://climateestimate.net/content/getting-started.html) -
+[Using Weather Data and Climate Model Output in Economic Analyses of
 Climate
-Change](https://www.journals.uchicago.edu/doi/full/10.1093/reep/ret016)
--[On the use and misuse of climate change projections in international
+Change](https://www.journals.uchicago.edu/doi/full/10.1093/reep/ret016) -
+[On the use and misuse of climate change projections in international
 development](https://wires.onlinelibrary.wiley.com/doi/10.1002/wcc.579)
