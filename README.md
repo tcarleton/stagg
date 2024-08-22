@@ -77,28 +77,27 @@ global raster layer of ERA5 climate data which can be used as a default
 in the `secondary_weights()` and `overlay_weights()` functions. However,
 other climate datasets can easily be accommodated.
 
-For compatibility with `stagg`, climate input data should be a raster or
-raster stack (read in using `raster::raster()` or `raster::stack()`;
-data can originally be stored in formats such as netCDF or .tif) with at
-least an annual temporal resolution, since the most coarse temporal
-aggregation offered by `stagg` is annual. If the temporal resolution is
-sub-daily, the number of layers per day should be consistent. By
-default, hourly time steps are assumed (i.e., 24 time steps per day),
-though a different number can be specified using the time_interval
-argument in the `staggregate_*()` functions.
+For compatibility with `stagg`, input climate data should be a raster or
+layered raster (read in using `raster::raster()`/`terra::rast()` or
+`raster::stack()`/`terra::c()`; data can originally be stored in formats
+such as netCDF or .tif) with at least an annual temporal resolution,
+since the most coarse temporal aggregation offered by stagg is annual.
+If the temporal resolution is sub-daily, the number of layers per day
+should be consistent. By default, hourly time steps are assumed (i.e.,
+24 time steps per day), though a different number can be specified using
+the time_interval argument in the `staggregate_*()` functions.
 
-In order for the temporal aggregation to happen properly, `stagg` must
+In order for the temporal aggregation to happen properly, stagg must
 have a way of knowing the temporal information associated with the
 raster stack being aggregated. This can be achieved one of two ways: 1)
-the layer names use a character-date-time or character-date format
-following a string header; or 2) the start date-time and temporal time
-steps of the raster stack must be specified in `staggregate_*()`. For
-example, ERA5 uses the format x2021.01.01.00.00.00 or x2021.01.01, and
-data retrieved using `climateR` uses the format variable_2021-01-01,
-both of which are compatible with `stagg`. Alternatively, the user can
-specify the start datetime and temporal interval of the data in the
-`staggregate_*()` functions using the `start_date` and `time_interval`
-arguments.
+the layer names use a string-date-time or string-date format; or 2) the
+start date-time and temporal time steps of the raster stack must be
+specified in `staggregate_*()`. For example, layer names for ERA5 and
+data retrieved using `climateR` uses the format x2021.01.01.00.00.00 or
+x2021.01.01 and variable_2021-01-01 respectively, both of which are
+compatible with `stagg`. Alternatively, the user can specify the start
+datetime and temporal interval of the data in the `staggregate_*()`
+functions using the `start_date` and `time_interval` arguments.
 
 ``` r
 library(stagg)
