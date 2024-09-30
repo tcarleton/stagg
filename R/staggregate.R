@@ -31,7 +31,7 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
   # Check if raster overlay_weights span prime meridian
   is_pm <- FALSE
   for(i in length(weights_dt$x)){
-    if(weights_dt[i,x] < .5 | weights_dt[i,x] > 359.5){
+    if(weights_dt[i,x] < 2*raster::xres(clim_raster) | weights_dt[i,x] > 360 - 2*raster::xres(clim_raster)){
       is_pm = TRUE # Check each x value
       break # If near 0 value found exit loop
     }
@@ -48,13 +48,21 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
     clim_raster_ymin <- raster::extent(clim_raster)@ymin - raster::yres(clim_raster) / 2
     clim_raster_ymax <- raster::extent(clim_raster)@ymax + raster::yres(clim_raster) / 2
 
-    clim_raster1 <- raster::crop(clim_raster, c(clim_raster_xmin, min(clim_raster_xmax, 0), clim_raster_ymin, clim_raster_ymax))
+    clim_raster1 <- raster::crop(clim_raster,
+                                 c(clim_raster_xmin,
+                                   min(clim_raster_xmax, 0 - raster::xres(clim_raster) / 2),
+                                   clim_raster_ymin,
+                                   clim_raster_ymax))
 
     clim_raster1 <- raster::shift(clim_raster1, dx = 360)
 
     if(raster::extent(clim_raster)@xmax > 0) {
 
-      clim_raster2 <- raster::crop(clim_raster, c(0, clim_raster_xmax, clim_raster_ymin, clim_raster_ymax))
+      clim_raster2 <- raster::crop(clim_raster,
+                                   c(0 - raster::xres(clim_raster) / 2,
+                                     clim_raster_xmax,
+                                     clim_raster_ymin,
+                                     clim_raster_ymax))
 
       clim_raster <- raster::merge(clim_raster1, clim_raster2)
 
