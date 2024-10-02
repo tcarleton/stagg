@@ -20,6 +20,9 @@ as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE
 # Function to convert raster to data.table and aggregate to daily values before transformation
 daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1 hour'){
 
+  # Input validation and read in data
+  # ----------------------------------------------------------------------------
+
   if(!daily_agg %in% c('average', 'sum', 'none')){
 
     stop(crayon::red("daily_agg must be 'average', 'sum', or 'none'"))
@@ -28,64 +31,85 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
   # Data.table of weights
   weights_dt <- data.table::as.data.table(overlay_weights)
 
-  # Check if raster overlay_weights span prime meridian
+  ## read in climate data
+  clim_stack <- raster::stack(data)
+
+  # shift into 0 to 360 if not already in that format (inverse of rotate())
+  # ----------------------------------------------------------------------------
+
+  # prime meridian = pm
+
+  # For this section, consider any cell touching the pm (non-inclusive meaning
+  # not if the boarder is right on it) to be part of the right side
+
+  # Check to see if any of the grid cells are fully on the left of the pm, which
+  # indicates -180_180 format
+  if(raster::extent(clim_stack)@xmin < 0 - raster::xres(clim_stack)) {
+
+    # Calculate the minimum and maximum x and y values with half cell buffer
+    clim_stack_xmin <- raster::extent(clim_stack)@xmin - raster::xres(clim_stack) / 2
+    clim_stack_xmax <- raster::extent(clim_stack)@xmax + raster::xres(clim_stack) / 2
+    clim_stack_ymin <- raster::extent(clim_stack)@ymin - raster::yres(clim_stack) / 2
+    clim_stack_ymax <- raster::extent(clim_stack)@ymax + raster::yres(clim_stack) / 2
+
+    # Make clim_stack_left by removing all cells on pm and to the right
+    clim_stack_left <- raster::crop(clim_stack,
+                                 c(clim_stack_xmin,
+                                   # Going at least half a cell to the left of
+                                   # zero guarantees cropping line snaps to cell
+                                   # border to the left
+                                   min(clim_stack_xmax,
+                                       0 - raster::xres(clim_stack) / 2),
+                                   clim_stack_ymin,
+                                   clim_stack_ymax))
+
+    clim_stack_left <- raster::shift(clim_stack_left, dx = 360)
+
+    # If any of our stack is also on the right side of the pm
+    if(raster::extent(clim_stack)@xmax > 0) {
+
+      # Make clim_stack_right only the cells on and to the right of the pm
+      clim_stack_right <- raster::crop(clim_stack,
+                                       # We already know there's cells to the
+                                       # left. Half cell to the left of pm
+                                       # guarantees any on pm are included
+                                       c(0 - raster::xres(clim_stack) / 2,
+                                         clim_stack_xmax,
+                                         clim_stack_ymin,
+                                         clim_stack_ymax))
+
+      # Stitch the two together such that we have 0_360 formate
+      clim_stack <- raster::merge(clim_stack_left, clim_stack_right)
+
+    } else {
+
+      clim_stack <- clim_stack_left
+    }
+
+  }
+
+  # Check if overlay_weights span prime meridian
   is_pm <- FALSE
   for(i in length(weights_dt$x)){
-    if(weights_dt[i,x] < 2*raster::xres(clim_raster) | weights_dt[i,x] > 360 - 2*raster::xres(clim_raster)){
+    if(weights_dt[i,x] < 2*raster::xres(clim_stack) | weights_dt[i,x] > 360 - 2*raster::xres(clim_stack)){
       is_pm = TRUE # Check each x value
       break # If near 0 value found exit loop
     }
   }
 
-  ## read in climate data
-  clim_raster <- raster::stack(data)
-
-  ## shift into 0 to 360 if not already in that format
-  if(raster::extent(clim_raster)@xmin < 0 - raster::xres(clim_raster) / 2) {
-
-    clim_raster_xmin <- raster::extent(clim_raster)@xmin - raster::xres(clim_raster) / 2
-    clim_raster_xmax <- raster::extent(clim_raster)@xmax + raster::xres(clim_raster) / 2
-    clim_raster_ymin <- raster::extent(clim_raster)@ymin - raster::yres(clim_raster) / 2
-    clim_raster_ymax <- raster::extent(clim_raster)@ymax + raster::yres(clim_raster) / 2
-
-    clim_raster1 <- raster::crop(clim_raster,
-                                 c(clim_raster_xmin,
-                                   min(clim_raster_xmax, 0 - raster::xres(clim_raster) / 2),
-                                   clim_raster_ymin,
-                                   clim_raster_ymax))
-
-    clim_raster1 <- raster::shift(clim_raster1, dx = 360)
-
-    if(raster::extent(clim_raster)@xmax > 0) {
-
-      clim_raster2 <- raster::crop(clim_raster,
-                                   c(0 - raster::xres(clim_raster) / 2,
-                                     clim_raster_xmax,
-                                     clim_raster_ymin,
-                                     clim_raster_ymax))
-
-      clim_raster <- raster::merge(clim_raster1, clim_raster2)
-
-    } else {
-
-      clim_raster <- clim_raster1
-    }
-
-  }
-
   # If raster overlay_weights does not span prime meridian, crop as usual
   if(is_pm == FALSE){
     # Extent of area weights with 2 cell buffer to make sure all cells are included
-    min_x <- min(weights_dt$x) - 2*raster::xres(clim_raster)
-    max_x <- max(weights_dt$x) + 2*raster::xres(clim_raster)
-    min_y <- min(weights_dt$y) - 2*raster::yres(clim_raster)
-    max_y <- max(weights_dt$y) + 2*raster::yres(clim_raster)
+    min_x <- min(weights_dt$x) - 2*raster::xres(clim_stack)
+    max_x <- max(weights_dt$x) + 2*raster::xres(clim_stack)
+    min_y <- min(weights_dt$y) - 2*raster::yres(clim_stack)
+    max_y <- max(weights_dt$y) + 2*raster::yres(clim_stack)
 
     weights_ext <- raster::extent(min_x, max_x, min_y, max_y)
 
-    clim_raster <- raster::crop(clim_raster, weights_ext)
+    clim_stack <- raster::crop(clim_stack, weights_ext)
 
-    all_layers <- names(clim_raster)
+    all_layers <- names(clim_stack)
 
   }
 
@@ -102,14 +126,14 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
     weights_ext_left <- raster::extent(min_x_left, max_x_left, min_y, max_y)
     weights_ext_right <- raster::extent(min_x_right, max_x_right, min_y, max_y)
 
-    clim_raster_left <- raster::crop(clim_raster, weights_ext_left)
-    clim_raster_right <- raster::crop(clim_raster, weights_ext_right)
+    clim_stack_left <- raster::crop(clim_stack, weights_ext_left)
+    clim_stack_right <- raster::crop(clim_stack, weights_ext_right)
 
 
-    clim_raster <- raster::stack(raster::merge(clim_raster_left, clim_raster_right)) # Merge creates raster bricks without proper layer names
+    clim_stack <- raster::stack(raster::merge(clim_stack_left, clim_stack_right)) # Merge creates raster bricks without proper layer names
 
-    # Get layer names (dates) from clim_raster_left
-    all_layers <- names(clim_raster_left)
+    # Get layer names (dates) from clim_stack_left
+    all_layers <- names(clim_stack_left)
   }
 
 
@@ -119,8 +143,8 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
   # Pass all layers through if not aggregating to daily level
   if(daily_agg == "none"){
     message(crayon::yellow("Skipping pre-transformation aggregation to daily level"))
-    all_names <- names(clim_raster)
-    clim_hourly <- clim_raster
+    all_names <- names(clim_stack)
+    clim_hourly <- clim_stack
 
     return(list(clim_hourly, all_names))
   }
@@ -145,7 +169,7 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
   }
 
   # Check that you have a dataset with a number of layers that is divisible by the number of timesteps in a day
-  if(!(raster::nlayers(clim_raster)%%timesteps_per_day == 0)){
+  if(!(raster::nlayers(clim_stack)%%timesteps_per_day == 0)){
     stop(crayon::red(sprintf("The data does not contain a number of layers that is a multiple of %d (the number of timesteps in a day calculated using the `time_interval` argument, currently set to %s). Please use complete data with all timesteps available for each day.", timesteps_per_day, time_interval)))
   }
 
@@ -160,8 +184,8 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
     message(crayon::green(sprintf("Averaging over %d layers per day to get daily values", timesteps_per_day)))
 
     # Average over each set of layers representing one day
-    indices<-rep(1:(raster::nlayers(clim_raster)/timesteps_per_day),each=timesteps_per_day)
-    clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=mean)
+    indices<-rep(1:(raster::nlayers(clim_stack)/timesteps_per_day),each=timesteps_per_day)
+    clim_daily <- raster::stackApply(clim_stack, indices = indices, fun=mean)
   }
 
   ## Sum
@@ -170,8 +194,8 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
     message(crayon::green(sprintf("Summing over %d layers per day to get daily values", timesteps_per_day)))
 
     # Sum over each set of layers representing one day
-    indices<-rep(1:(raster::nlayers(clim_raster)/timesteps_per_day),each=timesteps_per_day)
-    clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=sum)
+    indices<-rep(1:(raster::nlayers(clim_stack)/timesteps_per_day),each=timesteps_per_day)
+    clim_daily <- raster::stackApply(clim_stack, indices = indices, fun=sum)
   }
 
 
