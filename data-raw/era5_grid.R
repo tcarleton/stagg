@@ -38,10 +38,11 @@ library(magrittr)
 
 era5_grid <- raster::raster("data-raw/ERA5_one_hour.nc") %>%
   raster::readAll() %>%
-  terra::rast()
+  raster::setValues(values = 0)
 
-terra::set.names(era5_grid, "X")
-era5_grid <- terra::setValues(era5_grid, 0)
+names(era5_grid) <- "X"
+
+
 
 # Use in package
 usethis::use_data(era5_grid, overwrite = TRUE)

@@ -60,8 +60,7 @@
 library(magrittr)
 
 temp_nj_jun_2024_era5 <- raster::brick("data-raw/NJ_temperature_jun_2024.nc") %>%
-  raster::readAll() %>%
-  terra::rast()
+  raster::readAll()
 
 # Use in package
 usethis::use_data(temp_nj_jun_2024_era5, overwrite = TRUE)

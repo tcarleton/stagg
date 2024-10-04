@@ -15,10 +15,8 @@ library(magrittr)
 # Crop
 cropland_nj_2015 <- raster::crop(
   raster::raster("data-raw/Global_cropland_3km_2015.tif"),
-  c(-76.5, -73, 38.25, 42)
-) %>%
-  raster::readAll() %>%
-  terra::rast()
+  c(-76.5, -73, 38.25, 42)) %>%
+  raster::readAll()
 
 # Turn percentage to decimal
 cropland_nj_2015 <- cropland_nj_2015 / 100
