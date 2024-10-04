@@ -8,7 +8,13 @@
 
 # Time of creation:
 # ------------------
-# 2022 (Could have been updated since then, I do not know)
+# 2022 (I believe this was done with the early pipeline code, and that my code
+# below are to give the idea of what was done but may not be exact. That's also
+# the case for the population data, but I think that one was done a little
+# later. See
+# github.com/tcarleton/climate-aggregate/code/0.5_resample_rasters.R).
+
+
 
 # Reason not in data-raw:
 # ------------------------
@@ -33,14 +39,16 @@
      #   extent = full
      # )
 
-# 3: Row bound the results from step 2 by running
+# 3: Row bound the results from step 2 and averaged any overlap by running
 
-     # cropland_world_205_era5 <- rbind(
+     # cropland_world_2015_era5 <- rbind(
      #   quadrant_NW,
      #   quadrant_NE,
      #   quadrant_SW,
      #  quadrant_SE
      # )
+     # keys <- colnames(cropland_world_2015_era5)[!grepl('weight',colnames(full_table))]
+     # full_table <- full_table[,list(weight= mean(weight)),keys]
 
 # 4: Saved output from step 2 as package data by running
 
@@ -52,7 +60,7 @@
 
 # Time of creation:
 # ------------------
-# August 12, 2024
+# 2022 (see comment in cropland time section above)
 
 # Reason not in data-raw:
 # ------------------------
