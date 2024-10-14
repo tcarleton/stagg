@@ -12,6 +12,9 @@ cropland_world_2015_era5
 }
 \description{
 A data.table with ERA5 resolution returned by running secondary_weights() with cropland data from
-2015
+2015 from https://glad.umd.edu/dataset/croplands
+}
+\details{
+Dataset Reference: P. Potapov, S. Turubanova, M.C. Hansen, A. Tyukavina, V.
 }
 \keyword{datasets}

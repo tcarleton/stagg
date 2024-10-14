@@ -23,12 +23,12 @@ Imports:
     lubridate,
     magrittr,
     methods,
-    raster,
     sf,
     stringr,
     terra
 Suggests: 
     knitr,
+    raster,
     rmarkdown,
     testthat (>= 3.0.0),
     tidyr,

@@ -1,9 +1,16 @@
+# Terra conversion tests
+testthat::test_that(
+
+)
+
+
+
 # Test basic elements of output for helper functions
 
-test_that(
+testthat::test_that(
   "as.data.table.raster has correct output type, class, and column names",
   {
-    output <- as.data.table.raster(temp_nj_jun_2024_era5[[1]], xy = TRUE)
+    output <- as.data.table.raster.ter(temp_nj_jun_2024_era5[[1]], xy = TRUE)
 
     expect_type(output, "list")
     expect_is(output, "data.table")
@@ -12,7 +19,7 @@ test_that(
   }
 )
 
-test_that(
+testthat::test_that(
   "daily_aggregation has correct output type and class",
   {
     output <- daily_aggregation(temp_nj_jun_2024_era5,
@@ -29,7 +36,7 @@ test_that(
   }
 )
 
-test_that(
+testthat::test_that(
   "infer_layer_datetimes has correct output type and class",
   {
     output <- infer_layer_datetimes(temp_nj_jun_2024_era5,
@@ -44,7 +51,7 @@ test_that(
 )
 
 
-test_that(
+testthat::test_that(
   "polygon_aggregation has correct output type, class, and column names",
   {
     # Make clim_dt input for polygon_aggregation() (the numbers are nonsensical)
@@ -69,7 +76,7 @@ test_that(
 
 
 # Test basic elements of user-level functions
-test_that(
+testthat::test_that(
   "staggregate_polynomial has correct output type, class, and column names",
   {
     polynomial_output <- staggregate_polynomial(
@@ -97,7 +104,7 @@ test_that(
 )
 
 
-test_that(
+testthat::test_that(
   "staggregate_spline has correct output type, class, and column names",
   {
     spline_output <- staggregate_spline(
@@ -126,7 +133,7 @@ test_that(
 
 
 
-test_that(
+testthat::test_that(
   "staggregate_bin has correct output type, class, and column names",
   {
     bin_output <- staggregate_bin(
@@ -155,7 +162,7 @@ test_that(
 )
 
 
-test_that(
+testthat::test_that(
   "staggregate_degree_days has correct output type, class, and column names",
   {
     degree_days_output <- staggregate_degree_days(
