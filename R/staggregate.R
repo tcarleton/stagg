@@ -75,7 +75,7 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
   }
 
   # Check for the final case in which the polygons just span the entire globe
-  if(length(unique(weights_dt[,x] >= terra::ncol(clim_stack)))){
+  if(length(unique(weights_dt[,x])) >= terra::ncol(clim_stack)){
     polygons_split <- FALSE
   }
 
@@ -506,7 +506,7 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
   layer_names <- setup_list[[2]] # Pulls the saved layer names
 
   # Polynomial transformation
-  poly_orders <- seq(1:degree) # Compute values from 1 to degree
+  poly_orders <- 1:degree # Compute values from 1 to degree
   list_length <- length(poly_orders) # How many lists are in the final object
   list_names <- sapply(1:list_length, FUN=function(x){paste("order", poly_orders[x], sep="_")})
 
