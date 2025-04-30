@@ -17,7 +17,8 @@ overlay_weights(
 \item{polygon_id_col}{the name of a column in the \code{polygons} object with a
 unique identifier for each polygon}
 
-\item{grid}{a raster layer with the same spatial resolution as the data}
+\item{grid}{a raster layer with the same spatial resolution as the data
+(must use geographic coordinates)}
 
 \item{secondary_weights}{an optional table of secondary weights, output from
 the \code{secondary_weights()} function}
