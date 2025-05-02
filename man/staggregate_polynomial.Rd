@@ -11,11 +11,13 @@ staggregate_polynomial(
   time_agg = "month",
   start_date = NA,
   time_interval = "1 hour",
+  weights_join_tolerance = 0,
+  na_rm = FALSE,
   degree
 )
 }
 \arguments{
-\item{data}{The raster brick with the data to be transformed and aggregated}
+\item{data}{The spatRasters with the data to be transformed and aggregated}
 
 \item{overlay_weights}{A table of weights which can be generated using the
 function \code{overlay_weights()}}
@@ -29,16 +31,30 @@ will transform values without first aggregating to the daily level)}
 unless \code{daily_agg = 'none'})}
 
 \item{start_date}{the date (and time, if applicable) of the first layer in
-the raster. To be input in a format compatible with
+the stack. To be input in a format compatible with
 lubridate::as_datetime(), e.g. \code{"1991-10-29"} or \code{"1991-10-29 00:00:00"}.
-The default is \code{NA} since the rasters usually already contain temporal
+The default is \code{NA} since the spatRasters usually already contain temporal
 information in the layer names and they do not need to be manually supplied.}
 
-\item{time_interval}{the time interval between layers in the raster to be
+\item{time_interval}{the time interval between layers in the spatRaster to be
 aggregated. To be input in a format compatible with seq(), e.g.
 \code{'1 day'} or \code{'3 months'}. The default is \code{'1 hour'} and this argument is
 required if daily_agg is not \code{'none'} or if the \code{start_date} argument is not
 \code{NA}.}
+
+\item{weights_join_tolerance}{the tolerance to use when joining
+overlay_weights with the climate data by the x and y columns. This is useful
+when the height/width of your data cells expressed in degrees is a very long
+decimal. The default, \code{0}, performs a keyed equi-join. Anything other than 0
+performs a nonequi-join wherein latitudes/longitudes within the specified
+tolerance (inclusive) are considered a match. Passing a single number results
+in the tolerance being the same for x and y, but you can also pass a vector
+of two numbers to have the first specify the x tolerance and second specify
+the y tolerance.}
+
+\item{na_rm}{whether to remove NAs in the climate data and adjust the
+overlay weights so that the weights of non-na cells sum to 1 across each
+polygon. The default is \code{FALSE}.}
 
 \item{degree}{the highest exponent to raise the data to}
 }
@@ -49,7 +65,7 @@ the transformed values to the polygon level and desired temporal scale.
 }
 \examples{
 polynomial_output <- staggregate_polynomial(
-  data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and
+  data = terra::rast(temp_nj_jun_2024_era5) - 273.15, # Climate data to transform and
                                          # aggregate
   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
   daily_agg = "average", # Average hourly values to produce daily values

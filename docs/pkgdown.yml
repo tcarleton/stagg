@@ -1,9 +1,9 @@
-pandoc: 3.1.1
-pkgdown: 2.1.0
+pandoc: '3.2'
+pkgdown: 2.1.1
 pkgdown_sha: ~
 articles:
   data_sources: data_sources.html
-last_built: 2024-08-20T09:21Z
+last_built: 2024-11-06T07:21Z
 urls:
   reference: https://tcarleton.github.io/stagg/reference
   article: https://tcarleton.github.io/stagg/articles

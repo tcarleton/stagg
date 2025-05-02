@@ -1,7 +1,10 @@
 # code and instructions to prepare `temp_nj_jun_2024_era5` dataset
 
+# Last download: August 14, 2024
+# Last code edit and run: October 4, 2024
+
 # Read in data from
-# https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels?tab=form
+# https://cds.climate.copernicus.eu/datasets/reanalysis-era5-single-levels?tab=download
 
 # Options selected: reanalysis, 2m temperature, for all days and hours in June
 # 2024 for a subregion from 38 S to 42.25 N and -76.5 W to -73 E, as a NetCDF,
@@ -54,8 +57,10 @@
 #     'format': 'netcdf',
 #   },
 #   'download.nc')
+library(magrittr)
 
-temp_nj_jun_2024_era5 <- raster::brick("data-raw/NJ_temperature_jun_2024.nc")
+temp_nj_jun_2024_era5 <- raster::brick("data-raw/NJ_temperature_jun_2024.nc") %>%
+  raster::readAll()
 
 # Use in package
 usethis::use_data(temp_nj_jun_2024_era5, overwrite = TRUE)

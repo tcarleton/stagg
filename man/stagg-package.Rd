@@ -6,10 +6,27 @@
 \alias{stagg-package}
 \title{stagg: Spatiotemporal Aggregation for Climate Data}
 \description{
-What the package does (one paragraph).
+The R Package `stagg` aims to harmonize the preparation of spatiotemporal raster data, in particular climate observations, for use in statistical analyses. This allows for more efficient use of researchers' time, and avoids common missteps. The end goal is a greater quantity of quality research into the study of coupled human-geophysical systems.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://tcarleton.github.io/stagg}
+  \item \url{https://github.com/tcarleton/stagg}
+  \item Report bugs at \url{https://github.com/tcarleton/stagg/issues}
+}
+
 }
 \author{
-\strong{Maintainer}: First Last \email{first.last@example.com} (\href{https://orcid.org/YOUR-ORCID-ID}{ORCID})
+\strong{Maintainer}: Anna Boser \email{boseranna@gmail.com} (\href{https://orcid.org/0000-0002-7336-0117}{ORCID})
+
+Authors:
+\itemize{
+  \item Tyler Liddell \email{ttliddell4@gmail.com}
+  \item Sara Orofino \email{slorofino@gmail.com}
+  \item Tracey Mangin \email{tmangin@ucsb.edu}
+  \item Tamma Carleton \email{tcarleton@ucsb.edu}
+}
 
 }
 \keyword{internal}

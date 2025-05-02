@@ -77,12 +77,11 @@
 <p>Below is example code and commentary aimed at demonstrating expected typical usage. The order of the steps is important, as output from each step is used in the one that follows it.</p>
 <p><strong>Important</strong></p>
 <p>The <code>stagg</code> package currently does not include functions to download climate data. There are many packages that can be used to download climate data. For example, <a href="https://github.com/mikejohnson51/climateR" class="external-link"><code>climateR</code></a> provides access to climate datasets from over 2000 different data providers. ERA5 climate data can be download through <a href="https://github.com/bluegreen-labs/ecmwfr" class="external-link"><code>ecmwfr</code></a>, which provides an interface to two European Centre for Medium-Range Weather Forecast APIs. The <a href="https://github.com/ErikKusch/KrigR" class="external-link"><code>KrigR</code></a> package provides a helpful wrapper function for the <code>ecmwfr</code> package to enable direct downloading of ERA5 climate data in R. ECMWF also provides a general <a href="https://confluence.ecmwf.int/display/CKB/How+to+download+ERA5" class="external-link">guide to downloading ERA5 data</a>.</p>
-<p>In this example we use ERA5 climate data, and the package includes a global raster layer of ERA5 climate data which can be used in the <code><a href="reference/secondary_weights.html">secondary_weights()</a></code> and <code><a href="reference/overlay_weights.html">overlay_weights()</a></code> functions. However, other types of climate data can be used.</p>
-<p>For compatibility with <code>stagg</code> climate data should be:<br>
-- a raster or raster stack (e.g., <code><a href="https://rdrr.io/pkg/raster/man/raster.html" class="external-link">raster::raster()</a></code> or <code><a href="https://rdrr.io/pkg/raster/man/stack.html" class="external-link">raster::stack()</a></code>; can originally be stored in formats such as netCDF or .tif) - at least yearly temporal resolution, since the most coarse temporal aggregation offered by <code>stagg</code> is yearly. - if sub-daily, number of layers per day should be consistent. By default, hourly time steps are assumed (i.e. 24 time steps per day), though a different number can be specified using the <code>time_interval</code> argument in the <code>staggregate_*()</code> functions.<br>
-- in order for the temporal aggregation to happen properly, <code>stagg</code> must have a way of knowing the temporal information associated with the raster stack being aggregated. This can be achieved one of two ways: - the layer names use a character-date-time or character-date format following a string header, or the start date-time and temporal time steps of the raster stack must be specified in <code>staggregate_*()</code>. For example, ERA5 uses the format x2021.01.01.00.00.00 or x2021.01.01, and data retrieved using <code>climateR</code> uses the format variable_2021-01-01, both of which are compatible with <code>stagg</code>. - specify the start datetime and temporal interval of your data in the <code>staggregate_*()</code> functions using the <code>start_date</code> and <code>time_interval</code> arguments.</p>
+<p>In this example we use ERA5 climate data, and the package includes a global raster layer of ERA5 climate data which can be used as a default in the <code><a href="reference/secondary_weights.html">secondary_weights()</a></code> and <code><a href="reference/overlay_weights.html">overlay_weights()</a></code> functions. However, other climate datasets can easily be accommodated.</p>
+<p>For compatibility with <code>stagg</code>, input climate data should be a raster or layered raster (read in using <code><a href="https://rdrr.io/pkg/raster/man/raster.html" class="external-link">raster::raster()</a></code>/<code><a href="https://rdrr.io/pkg/terra/man/rast.html" class="external-link">terra::rast()</a></code> or <code><a href="https://rdrr.io/pkg/raster/man/stack.html" class="external-link">raster::stack()</a></code>/<code><a href="https://rdrr.io/pkg/terra/man/c.html" class="external-link">terra::c()</a></code>; data can originally be stored in formats such as netCDF or .tif) with at least an annual temporal resolution, since the most coarse temporal aggregation offered by stagg is annual. If the temporal resolution is sub-daily, the number of layers per day should be consistent. By default, hourly time steps are assumed (i.e., 24 time steps per day), though a different number can be specified using the time_interval argument in the <code>staggregate_*()</code> functions.</p>
+<p>In order for the temporal aggregation to happen properly, stagg must have a way of knowing the temporal information associated with the raster stack being aggregated. This can be achieved one of two ways: 1) the layer names use a string-date-time or string-date format; or 2) the start date-time and temporal time steps of the raster stack must be specified in <code>staggregate_*()</code>. For example, layer names for ERA5 and data retrieved using <code>climateR</code> uses the format x2021.01.01.00.00.00 or x2021.01.01 and variable_2021-01-01 respectively, both of which are compatible with <code>stagg</code>. Alternatively, the user can specify the start datetime and temporal interval of the data in the <code>staggregate_*()</code> functions using the <code>start_date</code> and <code>time_interval</code> arguments.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">stagg</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tcarleton.github.io/stagg">stagg</a></span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span> <span class="co"># Using polygons outlining counties of New Jersey as administrative regions</span></span>
 <span><span class="va">nj_counties</span> <span class="op">&lt;-</span> <span class="fu">tigris</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tigris/man/counties.html" class="external-link">counties</a></span><span class="op">(</span><span class="st">"NJ"</span><span class="op">)</span></span></code></pre></div>
@@ -111,8 +110,8 @@
 <span>                                           <span class="co"># option to define an extent for </span></span>
 <span>                                           <span class="co"># cropping the secondary_raster, </span></span>
 <span>                                           <span class="co"># which saves compute time. Input </span></span>
-<span>                                           <span class="co"># format must be compatible with </span></span>
-<span>                                           <span class="co"># raster::crop(), such as:</span></span>
+<span>                                           <span class="co"># must be in a compatible format, such as:</span></span>
+<span>                                           <span class="co">#    nj_extent &lt;- terra::ext(nj_counties)</span></span>
 <span>                                           <span class="co">#    nj_extent &lt;- sf::st_bbox(nj_counties)</span></span>
 <span>                                           <span class="co">#    nj_extent &lt;- raster::extent(nj_counties)</span></span>
 <span>                                           <span class="co">#    nj_extent &lt;- c(-76, -73, 38, 42)</span></span>
@@ -132,18 +131,17 @@
 <code class="sourceCode R"><span><span class="co">#Display resulting table</span></span>
 <span><span class="va">cropland_weights</span></span></code></pre></div>
 <div class="sourceCode" id="cb7"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co">#&gt;           x     y    weight</span></span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">#&gt;       &lt;num&gt; &lt;num&gt;     &lt;num&gt;</span></span>
-<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt;   1: -76.25 41.75 0.2294976</span></span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt;   2: -76.00 41.75 0.2198315</span></span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt;   3: -75.75 41.75 0.1777267</span></span>
-<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt;   4: -75.50 41.75 0.1362904</span></span>
-<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt;   5: -75.25 41.75 0.1061073</span></span>
-<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt;  ---                       </span></span>
-<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; 178: -74.25 38.50 0.0000000</span></span>
-<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt; 179: -74.00 38.50 0.0000000</span></span>
-<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt; 180: -73.75 38.50 0.0000000</span></span>
-<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt; 181: -73.50 38.50 0.0000000</span></span>
-<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt; 182: -73.25 38.50 0.0000000</span></span></code></pre></div>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">#&gt;   1: -76.25 41.75 0.2294976</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt;   2: -76.00 41.75 0.2198315</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt;   3: -75.75 41.75 0.1777267</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt;   4: -75.50 41.75 0.1362904</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt;   5: -75.25 41.75 0.1061073</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt;  ---                       </span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; 178: -74.25 38.50 0.0000000</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; 179: -74.00 38.50 0.0000000</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt; 180: -73.75 38.50 0.0000000</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt; 181: -73.50 38.50 0.0000000</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt; 182: -73.25 38.50 0.0000000</span></span></code></pre></div>
 <p>As you can see from the output, <code><a href="reference/secondary_weights.html">secondary_weights()</a></code> checks for alignment, and rotates the <code>secondary_raster</code> coordinates if necessary. It also resamples the data to the spatial resolution of the climate grid using bilinear interpolation, and returns a <code>data.table</code> with latitudes, longitudes, and cropland weights.</p>
 </div>
 <div class="section level3">
@@ -186,18 +184,17 @@
 <code class="sourceCode R"><span><span class="co"># Display results</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">county_weights</span>, digits <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb11"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co">#&gt;          x     y poly_id    w_area    weight</span></span>
-<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt;      &lt;num&gt; &lt;num&gt;  &lt;char&gt;     &lt;num&gt;     &lt;num&gt;</span></span>
-<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt;   1: 284.5 39.25     011 0.0172211 0.0360401</span></span>
-<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt;   2: 284.5 39.25     033 0.0058164 0.0060266</span></span>
-<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt;   3: 284.5 39.50     011 0.0170331 0.0307720</span></span>
-<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#&gt;   4: 284.5 39.50     033 0.3550727 0.3175946</span></span>
-<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt;   5: 284.5 39.75     015 0.0219317 0.0193611</span></span>
-<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">#&gt;  ---                                        </span></span>
-<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt; 137: 286.0 40.75     013 0.0095999 0.0057512</span></span>
-<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt; 138: 286.0 40.75     003 0.1828252 0.1307450</span></span>
-<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt; 139: 286.0 40.75     031 0.0065823 0.0028849</span></span>
-<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt; 140: 286.0 41.00     003 0.5410449 0.6773374</span></span>
-<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="co">#&gt; 141: 286.0 41.00     031 0.0007093 0.0005442</span></span></code></pre></div>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt;   1: 284.5 39.25     011 0.0172211 0.0360401</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt;   2: 284.5 39.25     033 0.0058164 0.0060266</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt;   3: 284.5 39.50     011 0.0170331 0.0307720</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt;   4: 284.5 39.50     033 0.3550727 0.3175946</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#&gt;   5: 284.5 39.75     015 0.0219317 0.0193611</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt;  ---                                        </span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">#&gt; 137: 286.0 40.75     013 0.0096002 0.0057514</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt; 138: 286.0 40.75     003 0.1828252 0.1307450</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt; 139: 286.0 40.75     031 0.0065855 0.0028879</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt; 140: 286.0 41.00     003 0.5410449 0.6773374</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="co">#&gt; 141: 286.0 41.00     031 0.0007097 0.0005448</span></span></code></pre></div>
 <p>You can see that the function outputs multiple rows for each polygon, one for every grid cell it overlaps. The column <code>w_area</code> represents the proportion of that polygon that falls within the grid cell corresponding to the x and y coordinates. If you included secondary_weights from Step 1, as we have here, <code><a href="reference/overlay_weights.html">overlay_weights()</a></code> also creates a column named <code>weight</code>, which is determined by normalizing the secondary_weights by <code>w_area</code>. This is what will be used in the aggregation of values. If you wish only to use <code>w_area</code> in aggregating by polygon, you need not run <code><a href="reference/secondary_weights.html">secondary_weights()</a></code> and can omit the argument <code>secondary_weights</code> from your call to <code><a href="reference/overlay_weights.html">overlay_weights()</a></code>.</p>
 <p>Given all of this information, we can interpret the top row in the output as follows: About 1.7% of the area in the county represented by COUNTYFP 011 falls within the grid cell at 284.50 degrees longitude (0-360 range), 39.25 degrees latitude. It appears that this particular pixel has slightly more cropland than other pixels in this polygon though, since the cropland weight for this cell is 3.1%.</p>
 </div>
@@ -246,30 +243,29 @@
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Display results</span></span>
 <span><span class="va">polynomial_output</span></span></code></pre></div>
-<div class="sourceCode" id="cb15"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co">#&gt;      year month poly_id  order_1  order_2  order_3</span></span>
-<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="co">#&gt;     &lt;num&gt; &lt;num&gt;  &lt;char&gt;    &lt;num&gt;    &lt;num&gt;    &lt;num&gt;</span></span>
-<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="co">#&gt;  1:  2024     6     011 729.4373 17894.66 442930.1</span></span>
-<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co">#&gt;  2:  2024     6     033 733.7415 18118.51 451662.6</span></span>
-<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co">#&gt;  3:  2024     6     015 729.0098 17892.01 443419.8</span></span>
-<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt;  4:  2024     6     009 686.3300 15807.50 366563.4</span></span>
-<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt;  5:  2024     6     007 730.9659 17987.04 446942.1</span></span>
-<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co">#&gt;  6:  2024     6     041 684.4207 15918.44 377139.5</span></span>
-<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co">#&gt;  7:  2024     6     019 705.7509 16878.38 410117.8</span></span>
-<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co">#&gt;  8:  2024     6     001 724.9572 17682.29 435310.3</span></span>
-<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co">#&gt;  9:  2024     6     005 726.9852 17802.18 440440.8</span></span>
-<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="co">#&gt; 10:  2024     6     021 721.3909 17561.50 432688.6</span></span>
-<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co">#&gt; 11:  2024     6     027 687.8298 16056.75 381384.9</span></span>
-<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="co">#&gt; 12:  2024     6     037 663.3331 14985.01 345520.2</span></span>
-<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="co">#&gt; 13:  2024     6     023 718.5814 17424.03 427602.5</span></span>
-<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a><span class="co">#&gt; 14:  2024     6     035 710.1241 17067.68 416336.7</span></span>
-<span id="cb15-17"><a href="#cb15-17" tabindex="-1"></a><span class="co">#&gt; 15:  2024     6     029 720.6808 17499.87 429477.7</span></span>
-<span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a><span class="co">#&gt; 16:  2024     6     025 711.0168 17042.99 413123.1</span></span>
-<span id="cb15-19"><a href="#cb15-19" tabindex="-1"></a><span class="co">#&gt; 17:  2024     6     039 702.9569 16690.27 401409.4</span></span>
-<span id="cb15-20"><a href="#cb15-20" tabindex="-1"></a><span class="co">#&gt; 18:  2024     6     013 698.6268 16473.52 393206.4</span></span>
-<span id="cb15-21"><a href="#cb15-21" tabindex="-1"></a><span class="co">#&gt; 19:  2024     6     031 670.6923 15279.34 354421.3</span></span>
-<span id="cb15-22"><a href="#cb15-22" tabindex="-1"></a><span class="co">#&gt; 20:  2024     6     017 704.8867 16733.28 401281.4</span></span>
-<span id="cb15-23"><a href="#cb15-23" tabindex="-1"></a><span class="co">#&gt; 21:  2024     6     003 688.9643 16026.13 377468.5</span></span>
-<span id="cb15-24"><a href="#cb15-24" tabindex="-1"></a><span class="co">#&gt;      year month poly_id  order_1  order_2  order_3</span></span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="co">#&gt;     year month poly_id  order_1  order_2  order_3</span></span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="co">#&gt;  1: 2024     6     011 729.4373 17894.66 442930.1</span></span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="co">#&gt;  2: 2024     6     033 733.7415 18118.51 451662.6</span></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="co">#&gt;  3: 2024     6     015 729.0098 17892.01 443419.8</span></span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="co">#&gt;  4: 2024     6     009 686.3300 15807.50 366563.4</span></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="co">#&gt;  5: 2024     6     007 730.9659 17987.04 446942.1</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="co">#&gt;  6: 2024     6     041 684.4207 15918.44 377139.5</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a><span class="co">#&gt;  7: 2024     6     019 705.7509 16878.38 410117.8</span></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="co">#&gt;  8: 2024     6     001 724.9572 17682.29 435310.3</span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="co">#&gt;  9: 2024     6     005 726.9852 17802.18 440440.8</span></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="co">#&gt; 10: 2024     6     021 721.3909 17561.50 432688.6</span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="co">#&gt; 11: 2024     6     027 687.8256 16056.56 381378.6</span></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="co">#&gt; 12: 2024     6     037 663.3327 14985.00 345519.8</span></span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="co">#&gt; 13: 2024     6     023 718.5814 17424.03 427602.5</span></span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="co">#&gt; 14: 2024     6     035 710.1241 17067.68 416336.7</span></span>
+<span id="cb15-16"><a href="#cb15-16" tabindex="-1"></a><span class="co">#&gt; 15: 2024     6     029 720.6808 17499.87 429477.7</span></span>
+<span id="cb15-17"><a href="#cb15-17" tabindex="-1"></a><span class="co">#&gt; 16: 2024     6     025 711.0168 17042.99 413123.1</span></span>
+<span id="cb15-18"><a href="#cb15-18" tabindex="-1"></a><span class="co">#&gt; 17: 2024     6     039 702.9571 16690.28 401409.8</span></span>
+<span id="cb15-19"><a href="#cb15-19" tabindex="-1"></a><span class="co">#&gt; 18: 2024     6     013 698.6267 16473.52 393206.3</span></span>
+<span id="cb15-20"><a href="#cb15-20" tabindex="-1"></a><span class="co">#&gt; 19: 2024     6     031 670.6985 15279.59 354428.6</span></span>
+<span id="cb15-21"><a href="#cb15-21" tabindex="-1"></a><span class="co">#&gt; 20: 2024     6     017 704.8867 16733.28 401281.4</span></span>
+<span id="cb15-22"><a href="#cb15-22" tabindex="-1"></a><span class="co">#&gt; 21: 2024     6     003 688.9643 16026.13 377468.5</span></span>
+<span id="cb15-23"><a href="#cb15-23" tabindex="-1"></a><span class="co">#&gt;     year month poly_id  order_1  order_2  order_3</span></span></code></pre></div>
 <p>You can see that 3 variables are created. <code>order_1</code> represents the original values, linearly aggregated to the county, monthly level. <code>order_2</code> and <code>order_3</code> represent the original values squared and cubed, respectively, prior to being aggregated to the county and monthly level. In this case, our example is only 30 days of temperature data and so each polygon only has one row corresponding to the only month present, June Were this a full year of data, each polygon would appear 12 times. Note also that passing <code>time_agg = "day"</code> would create a data.table 30 times longer, with another column to the right of <code>month</code> called <code>day</code>.</p>
 </div>
 <div class="section level4">
@@ -311,30 +307,29 @@
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Display output</span></span>
 <span><span class="va">spline_output</span></span></code></pre></div>
-<div class="sourceCode" id="cb19"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="co">#&gt;      year month poly_id    value   term_1   term_2</span></span>
-<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="co">#&gt;     &lt;num&gt; &lt;num&gt;  &lt;char&gt;    &lt;num&gt;    &lt;num&gt;    &lt;num&gt;</span></span>
-<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a><span class="co">#&gt;  1:  2024     6     011 729.4373 303327.9 61769.48</span></span>
-<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="co">#&gt;  2:  2024     6     033 733.7415 306556.2 62576.55</span></span>
-<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a><span class="co">#&gt;  3:  2024     6     015 729.0098 303007.5 61689.39</span></span>
-<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="co">#&gt;  4:  2024     6     009 686.3300 270997.7 53686.97</span></span>
-<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="co">#&gt;  5:  2024     6     007 730.9659 304474.5 62056.15</span></span>
-<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a><span class="co">#&gt;  6:  2024     6     041 684.4207 269634.4 53356.41</span></span>
-<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a><span class="co">#&gt;  7:  2024     6     019 705.7509 285580.9 57335.39</span></span>
-<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a><span class="co">#&gt;  8:  2024     6     001 724.9572 299967.9 60929.49</span></span>
-<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a><span class="co">#&gt;  9:  2024     6     005 726.9852 301489.3 61309.89</span></span>
-<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a><span class="co">#&gt; 10:  2024     6     021 721.3909 297294.5 60261.31</span></span>
-<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a><span class="co">#&gt; 11:  2024     6     027 687.8298 272168.1 53986.38</span></span>
-<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a><span class="co">#&gt; 12:  2024     6     037 663.3331 253919.2 49442.69</span></span>
-<span id="cb19-15"><a href="#cb19-15" tabindex="-1"></a><span class="co">#&gt; 13:  2024     6     023 718.5814 295187.0 59734.38</span></span>
-<span id="cb19-16"><a href="#cb19-16" tabindex="-1"></a><span class="co">#&gt; 14:  2024     6     035 710.1241 288852.2 58151.92</span></span>
-<span id="cb19-17"><a href="#cb19-17" tabindex="-1"></a><span class="co">#&gt; 15:  2024     6     029 720.6808 296761.1 60127.84</span></span>
-<span id="cb19-18"><a href="#cb19-18" tabindex="-1"></a><span class="co">#&gt; 16:  2024     6     025 711.0168 289513.4 58315.97</span></span>
-<span id="cb19-19"><a href="#cb19-19" tabindex="-1"></a><span class="co">#&gt; 17:  2024     6     039 702.9569 283473.5 56806.76</span></span>
-<span id="cb19-20"><a href="#cb19-20" tabindex="-1"></a><span class="co">#&gt; 18:  2024     6     013 698.6268 280224.5 55994.31</span></span>
-<span id="cb19-21"><a href="#cb19-21" tabindex="-1"></a><span class="co">#&gt; 19:  2024     6     031 670.6923 259366.5 50793.73</span></span>
-<span id="cb19-22"><a href="#cb19-22" tabindex="-1"></a><span class="co">#&gt; 20:  2024     6     017 704.8867 284915.9 57166.60</span></span>
-<span id="cb19-23"><a href="#cb19-23" tabindex="-1"></a><span class="co">#&gt; 21:  2024     6     003 688.9643 272983.2 54184.80</span></span>
-<span id="cb19-24"><a href="#cb19-24" tabindex="-1"></a><span class="co">#&gt;      year month poly_id    value   term_1   term_2</span></span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="co">#&gt;     year month poly_id    value   term_1   term_2</span></span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="co">#&gt;  1: 2024     6     011 729.4373 303327.9 61769.48</span></span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a><span class="co">#&gt;  2: 2024     6     033 733.7415 306556.2 62576.55</span></span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a><span class="co">#&gt;  3: 2024     6     015 729.0098 303007.5 61689.39</span></span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a><span class="co">#&gt;  4: 2024     6     009 686.3300 270997.7 53686.97</span></span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a><span class="co">#&gt;  5: 2024     6     007 730.9659 304474.5 62056.15</span></span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="co">#&gt;  6: 2024     6     041 684.4207 269634.4 53356.42</span></span>
+<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a><span class="co">#&gt;  7: 2024     6     019 705.7509 285580.9 57335.39</span></span>
+<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a><span class="co">#&gt;  8: 2024     6     001 724.9572 299967.9 60929.49</span></span>
+<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a><span class="co">#&gt;  9: 2024     6     005 726.9852 301489.3 61309.89</span></span>
+<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a><span class="co">#&gt; 10: 2024     6     021 721.3909 297294.5 60261.31</span></span>
+<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a><span class="co">#&gt; 11: 2024     6     027 687.8256 272164.9 53985.60</span></span>
+<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a><span class="co">#&gt; 12: 2024     6     037 663.3327 253918.9 49442.64</span></span>
+<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a><span class="co">#&gt; 13: 2024     6     023 718.5814 295187.0 59734.38</span></span>
+<span id="cb19-15"><a href="#cb19-15" tabindex="-1"></a><span class="co">#&gt; 14: 2024     6     035 710.1241 288852.2 58151.92</span></span>
+<span id="cb19-16"><a href="#cb19-16" tabindex="-1"></a><span class="co">#&gt; 15: 2024     6     029 720.6808 296761.1 60127.84</span></span>
+<span id="cb19-17"><a href="#cb19-17" tabindex="-1"></a><span class="co">#&gt; 16: 2024     6     025 711.0168 289513.4 58315.97</span></span>
+<span id="cb19-18"><a href="#cb19-18" tabindex="-1"></a><span class="co">#&gt; 17: 2024     6     039 702.9571 283473.7 56806.81</span></span>
+<span id="cb19-19"><a href="#cb19-19" tabindex="-1"></a><span class="co">#&gt; 18: 2024     6     013 698.6267 280224.5 55994.30</span></span>
+<span id="cb19-20"><a href="#cb19-20" tabindex="-1"></a><span class="co">#&gt; 19: 2024     6     031 670.6985 259371.1 50794.87</span></span>
+<span id="cb19-21"><a href="#cb19-21" tabindex="-1"></a><span class="co">#&gt; 20: 2024     6     017 704.8867 284915.9 57166.60</span></span>
+<span id="cb19-22"><a href="#cb19-22" tabindex="-1"></a><span class="co">#&gt; 21: 2024     6     003 688.9643 272983.2 54184.80</span></span>
+<span id="cb19-23"><a href="#cb19-23" tabindex="-1"></a><span class="co">#&gt;     year month poly_id    value   term_1   term_2</span></span></code></pre></div>
 <p>You can see that your output looks very similar to the table from the polynomial transformation. The only difference here is that 4 - 2 (number of knots minus two) new variables are being created. These data are now ready for use in a regression.</p>
 </div>
 <div class="section level4">
@@ -375,54 +370,52 @@
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Display output</span></span>
 <span><span class="va">bin_output</span></span></code></pre></div>
-<div class="sourceCode" id="cb23"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="co">#&gt;      year month poly_id bin_ninf_to_0 bin_0_to_2.5 bin_2.5_to_5 bin_5_to_7.5</span></span>
-<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a><span class="co">#&gt;     &lt;num&gt; &lt;num&gt;  &lt;char&gt;         &lt;num&gt;        &lt;num&gt;        &lt;num&gt;        &lt;num&gt;</span></span>
-<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a><span class="co">#&gt;  1:  2024     6     011             0            0            0            0</span></span>
-<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a><span class="co">#&gt;  2:  2024     6     033             0            0            0            0</span></span>
-<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a><span class="co">#&gt;  3:  2024     6     015             0            0            0            0</span></span>
-<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a><span class="co">#&gt;  4:  2024     6     009             0            0            0            0</span></span>
-<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a><span class="co">#&gt;  5:  2024     6     007             0            0            0            0</span></span>
-<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a><span class="co">#&gt;  6:  2024     6     041             0            0            0            0</span></span>
-<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a><span class="co">#&gt;  7:  2024     6     019             0            0            0            0</span></span>
-<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a><span class="co">#&gt;  8:  2024     6     001             0            0            0            0</span></span>
-<span id="cb23-11"><a href="#cb23-11" tabindex="-1"></a><span class="co">#&gt;  9:  2024     6     005             0            0            0            0</span></span>
-<span id="cb23-12"><a href="#cb23-12" tabindex="-1"></a><span class="co">#&gt; 10:  2024     6     021             0            0            0            0</span></span>
-<span id="cb23-13"><a href="#cb23-13" tabindex="-1"></a><span class="co">#&gt; 11:  2024     6     027             0            0            0            0</span></span>
-<span id="cb23-14"><a href="#cb23-14" tabindex="-1"></a><span class="co">#&gt; 12:  2024     6     037             0            0            0            0</span></span>
-<span id="cb23-15"><a href="#cb23-15" tabindex="-1"></a><span class="co">#&gt; 13:  2024     6     023             0            0            0            0</span></span>
-<span id="cb23-16"><a href="#cb23-16" tabindex="-1"></a><span class="co">#&gt; 14:  2024     6     035             0            0            0            0</span></span>
-<span id="cb23-17"><a href="#cb23-17" tabindex="-1"></a><span class="co">#&gt; 15:  2024     6     029             0            0            0            0</span></span>
-<span id="cb23-18"><a href="#cb23-18" tabindex="-1"></a><span class="co">#&gt; 16:  2024     6     025             0            0            0            0</span></span>
-<span id="cb23-19"><a href="#cb23-19" tabindex="-1"></a><span class="co">#&gt; 17:  2024     6     039             0            0            0            0</span></span>
-<span id="cb23-20"><a href="#cb23-20" tabindex="-1"></a><span class="co">#&gt; 18:  2024     6     013             0            0            0            0</span></span>
-<span id="cb23-21"><a href="#cb23-21" tabindex="-1"></a><span class="co">#&gt; 19:  2024     6     031             0            0            0            0</span></span>
-<span id="cb23-22"><a href="#cb23-22" tabindex="-1"></a><span class="co">#&gt; 20:  2024     6     017             0            0            0            0</span></span>
-<span id="cb23-23"><a href="#cb23-23" tabindex="-1"></a><span class="co">#&gt; 21:  2024     6     003             0            0            0            0</span></span>
-<span id="cb23-24"><a href="#cb23-24" tabindex="-1"></a><span class="co">#&gt;      year month poly_id bin_ninf_to_0 bin_0_to_2.5 bin_2.5_to_5 bin_5_to_7.5</span></span>
-<span id="cb23-25"><a href="#cb23-25" tabindex="-1"></a><span class="co">#&gt;     bin_7.5_to_10 bin_10_to_inf</span></span>
-<span id="cb23-26"><a href="#cb23-26" tabindex="-1"></a><span class="co">#&gt;             &lt;num&gt;         &lt;num&gt;</span></span>
-<span id="cb23-27"><a href="#cb23-27" tabindex="-1"></a><span class="co">#&gt;  1:             0            30</span></span>
-<span id="cb23-28"><a href="#cb23-28" tabindex="-1"></a><span class="co">#&gt;  2:             0            30</span></span>
-<span id="cb23-29"><a href="#cb23-29" tabindex="-1"></a><span class="co">#&gt;  3:             0            30</span></span>
-<span id="cb23-30"><a href="#cb23-30" tabindex="-1"></a><span class="co">#&gt;  4:             0            30</span></span>
-<span id="cb23-31"><a href="#cb23-31" tabindex="-1"></a><span class="co">#&gt;  5:             0            30</span></span>
-<span id="cb23-32"><a href="#cb23-32" tabindex="-1"></a><span class="co">#&gt;  6:             0            30</span></span>
-<span id="cb23-33"><a href="#cb23-33" tabindex="-1"></a><span class="co">#&gt;  7:             0            30</span></span>
-<span id="cb23-34"><a href="#cb23-34" tabindex="-1"></a><span class="co">#&gt;  8:             0            30</span></span>
-<span id="cb23-35"><a href="#cb23-35" tabindex="-1"></a><span class="co">#&gt;  9:             0            30</span></span>
-<span id="cb23-36"><a href="#cb23-36" tabindex="-1"></a><span class="co">#&gt; 10:             0            30</span></span>
-<span id="cb23-37"><a href="#cb23-37" tabindex="-1"></a><span class="co">#&gt; 11:             0            30</span></span>
-<span id="cb23-38"><a href="#cb23-38" tabindex="-1"></a><span class="co">#&gt; 12:             0            30</span></span>
-<span id="cb23-39"><a href="#cb23-39" tabindex="-1"></a><span class="co">#&gt; 13:             0            30</span></span>
-<span id="cb23-40"><a href="#cb23-40" tabindex="-1"></a><span class="co">#&gt; 14:             0            30</span></span>
-<span id="cb23-41"><a href="#cb23-41" tabindex="-1"></a><span class="co">#&gt; 15:             0            30</span></span>
-<span id="cb23-42"><a href="#cb23-42" tabindex="-1"></a><span class="co">#&gt; 16:             0            30</span></span>
-<span id="cb23-43"><a href="#cb23-43" tabindex="-1"></a><span class="co">#&gt; 17:             0            30</span></span>
-<span id="cb23-44"><a href="#cb23-44" tabindex="-1"></a><span class="co">#&gt; 18:             0            30</span></span>
-<span id="cb23-45"><a href="#cb23-45" tabindex="-1"></a><span class="co">#&gt; 19:             0            30</span></span>
-<span id="cb23-46"><a href="#cb23-46" tabindex="-1"></a><span class="co">#&gt; 20:             0            30</span></span>
-<span id="cb23-47"><a href="#cb23-47" tabindex="-1"></a><span class="co">#&gt; 21:             0            30</span></span>
-<span id="cb23-48"><a href="#cb23-48" tabindex="-1"></a><span class="co">#&gt;     bin_7.5_to_10 bin_10_to_inf</span></span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="co">#&gt;     year month poly_id bin_ninf_to_0 bin_0_to_2.5 bin_2.5_to_5 bin_5_to_7.5</span></span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a><span class="co">#&gt;  1: 2024     6     011             0            0            0            0</span></span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a><span class="co">#&gt;  2: 2024     6     033             0            0            0            0</span></span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a><span class="co">#&gt;  3: 2024     6     015             0            0            0            0</span></span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a><span class="co">#&gt;  4: 2024     6     009             0            0            0            0</span></span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a><span class="co">#&gt;  5: 2024     6     007             0            0            0            0</span></span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a><span class="co">#&gt;  6: 2024     6     041             0            0            0            0</span></span>
+<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a><span class="co">#&gt;  7: 2024     6     019             0            0            0            0</span></span>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a><span class="co">#&gt;  8: 2024     6     001             0            0            0            0</span></span>
+<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a><span class="co">#&gt;  9: 2024     6     005             0            0            0            0</span></span>
+<span id="cb23-11"><a href="#cb23-11" tabindex="-1"></a><span class="co">#&gt; 10: 2024     6     021             0            0            0            0</span></span>
+<span id="cb23-12"><a href="#cb23-12" tabindex="-1"></a><span class="co">#&gt; 11: 2024     6     027             0            0            0            0</span></span>
+<span id="cb23-13"><a href="#cb23-13" tabindex="-1"></a><span class="co">#&gt; 12: 2024     6     037             0            0            0            0</span></span>
+<span id="cb23-14"><a href="#cb23-14" tabindex="-1"></a><span class="co">#&gt; 13: 2024     6     023             0            0            0            0</span></span>
+<span id="cb23-15"><a href="#cb23-15" tabindex="-1"></a><span class="co">#&gt; 14: 2024     6     035             0            0            0            0</span></span>
+<span id="cb23-16"><a href="#cb23-16" tabindex="-1"></a><span class="co">#&gt; 15: 2024     6     029             0            0            0            0</span></span>
+<span id="cb23-17"><a href="#cb23-17" tabindex="-1"></a><span class="co">#&gt; 16: 2024     6     025             0            0            0            0</span></span>
+<span id="cb23-18"><a href="#cb23-18" tabindex="-1"></a><span class="co">#&gt; 17: 2024     6     039             0            0            0            0</span></span>
+<span id="cb23-19"><a href="#cb23-19" tabindex="-1"></a><span class="co">#&gt; 18: 2024     6     013             0            0            0            0</span></span>
+<span id="cb23-20"><a href="#cb23-20" tabindex="-1"></a><span class="co">#&gt; 19: 2024     6     031             0            0            0            0</span></span>
+<span id="cb23-21"><a href="#cb23-21" tabindex="-1"></a><span class="co">#&gt; 20: 2024     6     017             0            0            0            0</span></span>
+<span id="cb23-22"><a href="#cb23-22" tabindex="-1"></a><span class="co">#&gt; 21: 2024     6     003             0            0            0            0</span></span>
+<span id="cb23-23"><a href="#cb23-23" tabindex="-1"></a><span class="co">#&gt;     year month poly_id bin_ninf_to_0 bin_0_to_2.5 bin_2.5_to_5 bin_5_to_7.5</span></span>
+<span id="cb23-24"><a href="#cb23-24" tabindex="-1"></a><span class="co">#&gt;     bin_7.5_to_10 bin_10_to_inf</span></span>
+<span id="cb23-25"><a href="#cb23-25" tabindex="-1"></a><span class="co">#&gt;  1:             0            30</span></span>
+<span id="cb23-26"><a href="#cb23-26" tabindex="-1"></a><span class="co">#&gt;  2:             0            30</span></span>
+<span id="cb23-27"><a href="#cb23-27" tabindex="-1"></a><span class="co">#&gt;  3:             0            30</span></span>
+<span id="cb23-28"><a href="#cb23-28" tabindex="-1"></a><span class="co">#&gt;  4:             0            30</span></span>
+<span id="cb23-29"><a href="#cb23-29" tabindex="-1"></a><span class="co">#&gt;  5:             0            30</span></span>
+<span id="cb23-30"><a href="#cb23-30" tabindex="-1"></a><span class="co">#&gt;  6:             0            30</span></span>
+<span id="cb23-31"><a href="#cb23-31" tabindex="-1"></a><span class="co">#&gt;  7:             0            30</span></span>
+<span id="cb23-32"><a href="#cb23-32" tabindex="-1"></a><span class="co">#&gt;  8:             0            30</span></span>
+<span id="cb23-33"><a href="#cb23-33" tabindex="-1"></a><span class="co">#&gt;  9:             0            30</span></span>
+<span id="cb23-34"><a href="#cb23-34" tabindex="-1"></a><span class="co">#&gt; 10:             0            30</span></span>
+<span id="cb23-35"><a href="#cb23-35" tabindex="-1"></a><span class="co">#&gt; 11:             0            30</span></span>
+<span id="cb23-36"><a href="#cb23-36" tabindex="-1"></a><span class="co">#&gt; 12:             0            30</span></span>
+<span id="cb23-37"><a href="#cb23-37" tabindex="-1"></a><span class="co">#&gt; 13:             0            30</span></span>
+<span id="cb23-38"><a href="#cb23-38" tabindex="-1"></a><span class="co">#&gt; 14:             0            30</span></span>
+<span id="cb23-39"><a href="#cb23-39" tabindex="-1"></a><span class="co">#&gt; 15:             0            30</span></span>
+<span id="cb23-40"><a href="#cb23-40" tabindex="-1"></a><span class="co">#&gt; 16:             0            30</span></span>
+<span id="cb23-41"><a href="#cb23-41" tabindex="-1"></a><span class="co">#&gt; 17:             0            30</span></span>
+<span id="cb23-42"><a href="#cb23-42" tabindex="-1"></a><span class="co">#&gt; 18:             0            30</span></span>
+<span id="cb23-43"><a href="#cb23-43" tabindex="-1"></a><span class="co">#&gt; 19:             0            30</span></span>
+<span id="cb23-44"><a href="#cb23-44" tabindex="-1"></a><span class="co">#&gt; 20:             0            30</span></span>
+<span id="cb23-45"><a href="#cb23-45" tabindex="-1"></a><span class="co">#&gt; 21:             0            30</span></span>
+<span id="cb23-46"><a href="#cb23-46" tabindex="-1"></a><span class="co">#&gt;     bin_7.5_to_10 bin_10_to_inf</span></span></code></pre></div>
 <p>Like before, the output table features one row for every county for every time period specified by the <code>time_agg</code> argument. What has changed is that there is a new column for each bin created, representing the number of days a polygon had a value that fell within that bin during the timespan specified by the <code>time_agg</code> argument. These outputs are not necessarily integers since the polygon is made up of pixels that are sorted into bins and then weighted by the <code>overlay_weights</code> provided and aggregated, here, to the county level. Here we specify bins, in degrees Celsius, from negative infinity to 0, 0 to 2.5, 2.5 to 5, 5 to 7.5, 7.5 to 10, and 10 to infinity by passing <code>c(0, 2.5, 5, 7.5, 10)</code> to <code>bin_break</code>. <code><a href="reference/staggregate_bin.html">staggregate_bin()</a></code> draws a bin between each pair of breaks, and adds edge bins that encompass all values below the minimum break and above the maximum break.</p>
 </div>
 <div class="section level4">
@@ -458,57 +451,78 @@
 <span id="cb25-4"><a href="#cb25-4" tabindex="-1"></a></span>
 <span id="cb25-5"><a href="#cb25-5" tabindex="-1"></a><span class="co">#&gt; Aggregating by polygon and month</span></span>
 <span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a></span>
-<span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a><span class="co">#&gt;      year month poly_id threshold_ninf_to_0 threshold_0_to_10</span></span>
-<span id="cb25-8"><a href="#cb25-8" tabindex="-1"></a><span class="co">#&gt;     &lt;num&gt; &lt;num&gt;  &lt;char&gt;               &lt;num&gt;             &lt;num&gt;</span></span>
-<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a><span class="co">#&gt;  1:  2024     6     011                   0              7200</span></span>
-<span id="cb25-10"><a href="#cb25-10" tabindex="-1"></a><span class="co">#&gt;  2:  2024     6     033                   0              7200</span></span>
-<span id="cb25-11"><a href="#cb25-11" tabindex="-1"></a><span class="co">#&gt;  3:  2024     6     015                   0              7200</span></span>
-<span id="cb25-12"><a href="#cb25-12" tabindex="-1"></a><span class="co">#&gt;  4:  2024     6     009                   0              7200</span></span>
-<span id="cb25-13"><a href="#cb25-13" tabindex="-1"></a><span class="co">#&gt;  5:  2024     6     007                   0              7200</span></span>
-<span id="cb25-14"><a href="#cb25-14" tabindex="-1"></a><span class="co">#&gt;  6:  2024     6     041                   0              7200</span></span>
-<span id="cb25-15"><a href="#cb25-15" tabindex="-1"></a><span class="co">#&gt;  7:  2024     6     019                   0              7200</span></span>
-<span id="cb25-16"><a href="#cb25-16" tabindex="-1"></a><span class="co">#&gt;  8:  2024     6     001                   0              7200</span></span>
-<span id="cb25-17"><a href="#cb25-17" tabindex="-1"></a><span class="co">#&gt;  9:  2024     6     005                   0              7200</span></span>
-<span id="cb25-18"><a href="#cb25-18" tabindex="-1"></a><span class="co">#&gt; 10:  2024     6     021                   0              7200</span></span>
-<span id="cb25-19"><a href="#cb25-19" tabindex="-1"></a><span class="co">#&gt; 11:  2024     6     027                   0              7200</span></span>
-<span id="cb25-20"><a href="#cb25-20" tabindex="-1"></a><span class="co">#&gt; 12:  2024     6     037                   0              7200</span></span>
-<span id="cb25-21"><a href="#cb25-21" tabindex="-1"></a><span class="co">#&gt; 13:  2024     6     023                   0              7200</span></span>
-<span id="cb25-22"><a href="#cb25-22" tabindex="-1"></a><span class="co">#&gt; 14:  2024     6     035                   0              7200</span></span>
-<span id="cb25-23"><a href="#cb25-23" tabindex="-1"></a><span class="co">#&gt; 15:  2024     6     029                   0              7200</span></span>
-<span id="cb25-24"><a href="#cb25-24" tabindex="-1"></a><span class="co">#&gt; 16:  2024     6     025                   0              7200</span></span>
-<span id="cb25-25"><a href="#cb25-25" tabindex="-1"></a><span class="co">#&gt; 17:  2024     6     039                   0              7200</span></span>
-<span id="cb25-26"><a href="#cb25-26" tabindex="-1"></a><span class="co">#&gt; 18:  2024     6     013                   0              7200</span></span>
-<span id="cb25-27"><a href="#cb25-27" tabindex="-1"></a><span class="co">#&gt; 19:  2024     6     031                   0              7200</span></span>
-<span id="cb25-28"><a href="#cb25-28" tabindex="-1"></a><span class="co">#&gt; 20:  2024     6     017                   0              7200</span></span>
-<span id="cb25-29"><a href="#cb25-29" tabindex="-1"></a><span class="co">#&gt; 21:  2024     6     003                   0              7200</span></span>
-<span id="cb25-30"><a href="#cb25-30" tabindex="-1"></a><span class="co">#&gt;      year month poly_id threshold_ninf_to_0 threshold_0_to_10</span></span>
-<span id="cb25-31"><a href="#cb25-31" tabindex="-1"></a><span class="co">#&gt;     threshold_10_to_20 threshold_20_to_inf</span></span>
-<span id="cb25-32"><a href="#cb25-32" tabindex="-1"></a><span class="co">#&gt;                  &lt;num&gt;               &lt;num&gt;</span></span>
-<span id="cb25-33"><a href="#cb25-33" tabindex="-1"></a><span class="co">#&gt;  1:           7033.869            3272.625</span></span>
-<span id="cb25-34"><a href="#cb25-34" tabindex="-1"></a><span class="co">#&gt;  2:           6996.451            3413.344</span></span>
-<span id="cb25-35"><a href="#cb25-35" tabindex="-1"></a><span class="co">#&gt;  3:           6929.859            3366.375</span></span>
-<span id="cb25-36"><a href="#cb25-36" tabindex="-1"></a><span class="co">#&gt;  4:           7129.929            2141.990</span></span>
-<span id="cb25-37"><a href="#cb25-37" tabindex="-1"></a><span class="co">#&gt;  5:           6935.451            3407.730</span></span>
-<span id="cb25-38"><a href="#cb25-38" tabindex="-1"></a><span class="co">#&gt;  6:           6486.642            2739.455</span></span>
-<span id="cb25-39"><a href="#cb25-39" tabindex="-1"></a><span class="co">#&gt;  7:           6661.205            3076.817</span></span>
-<span id="cb25-40"><a href="#cb25-40" tabindex="-1"></a><span class="co">#&gt;  8:           6965.391            3233.581</span></span>
-<span id="cb25-41"><a href="#cb25-41" tabindex="-1"></a><span class="co">#&gt;  9:           6902.068            3345.578</span></span>
-<span id="cb25-42"><a href="#cb25-42" tabindex="-1"></a><span class="co">#&gt; 10:           6822.985            3290.398</span></span>
-<span id="cb25-43"><a href="#cb25-43" tabindex="-1"></a><span class="co">#&gt; 11:           6549.322            2758.592</span></span>
-<span id="cb25-44"><a href="#cb25-44" tabindex="-1"></a><span class="co">#&gt; 12:           6336.398            2383.596</span></span>
-<span id="cb25-45"><a href="#cb25-45" tabindex="-1"></a><span class="co">#&gt; 13:           6834.659            3211.294</span></span>
-<span id="cb25-46"><a href="#cb25-46" tabindex="-1"></a><span class="co">#&gt; 14:           6712.329            3130.650</span></span>
-<span id="cb25-47"><a href="#cb25-47" tabindex="-1"></a><span class="co">#&gt; 15:           6894.822            3201.517</span></span>
-<span id="cb25-48"><a href="#cb25-48" tabindex="-1"></a><span class="co">#&gt; 16:           6886.335            2978.067</span></span>
-<span id="cb25-49"><a href="#cb25-49" tabindex="-1"></a><span class="co">#&gt; 17:           6794.598            2876.367</span></span>
-<span id="cb25-50"><a href="#cb25-50" tabindex="-1"></a><span class="co">#&gt; 18:           6812.126            2754.916</span></span>
-<span id="cb25-51"><a href="#cb25-51" tabindex="-1"></a><span class="co">#&gt; 19:           6437.996            2458.619</span></span>
-<span id="cb25-52"><a href="#cb25-52" tabindex="-1"></a><span class="co">#&gt; 20:           6947.556            2769.725</span></span>
-<span id="cb25-53"><a href="#cb25-53" tabindex="-1"></a><span class="co">#&gt; 21:           6755.068            2580.074</span></span>
-<span id="cb25-54"><a href="#cb25-54" tabindex="-1"></a><span class="co">#&gt;     threshold_10_to_20 threshold_20_to_inf</span></span></code></pre></div>
+<span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a><span class="co">#&gt;     year month poly_id threshold_ninf_to_0 threshold_0_to_10 threshold_10_to_20</span></span>
+<span id="cb25-8"><a href="#cb25-8" tabindex="-1"></a><span class="co">#&gt;  1: 2024     6     011                   0              7200           7033.869</span></span>
+<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a><span class="co">#&gt;  2: 2024     6     033                   0              7200           6996.451</span></span>
+<span id="cb25-10"><a href="#cb25-10" tabindex="-1"></a><span class="co">#&gt;  3: 2024     6     015                   0              7200           6929.859</span></span>
+<span id="cb25-11"><a href="#cb25-11" tabindex="-1"></a><span class="co">#&gt;  4: 2024     6     009                   0              7200           7129.929</span></span>
+<span id="cb25-12"><a href="#cb25-12" tabindex="-1"></a><span class="co">#&gt;  5: 2024     6     007                   0              7200           6935.451</span></span>
+<span id="cb25-13"><a href="#cb25-13" tabindex="-1"></a><span class="co">#&gt;  6: 2024     6     041                   0              7200           6486.642</span></span>
+<span id="cb25-14"><a href="#cb25-14" tabindex="-1"></a><span class="co">#&gt;  7: 2024     6     019                   0              7200           6661.205</span></span>
+<span id="cb25-15"><a href="#cb25-15" tabindex="-1"></a><span class="co">#&gt;  8: 2024     6     001                   0              7200           6965.391</span></span>
+<span id="cb25-16"><a href="#cb25-16" tabindex="-1"></a><span class="co">#&gt;  9: 2024     6     005                   0              7200           6902.068</span></span>
+<span id="cb25-17"><a href="#cb25-17" tabindex="-1"></a><span class="co">#&gt; 10: 2024     6     021                   0              7200           6822.985</span></span>
+<span id="cb25-18"><a href="#cb25-18" tabindex="-1"></a><span class="co">#&gt; 11: 2024     6     027                   0              7200           6549.290</span></span>
+<span id="cb25-19"><a href="#cb25-19" tabindex="-1"></a><span class="co">#&gt; 12: 2024     6     037                   0              7200           6336.393</span></span>
+<span id="cb25-20"><a href="#cb25-20" tabindex="-1"></a><span class="co">#&gt; 13: 2024     6     023                   0              7200           6834.659</span></span>
+<span id="cb25-21"><a href="#cb25-21" tabindex="-1"></a><span class="co">#&gt; 14: 2024     6     035                   0              7200           6712.329</span></span>
+<span id="cb25-22"><a href="#cb25-22" tabindex="-1"></a><span class="co">#&gt; 15: 2024     6     029                   0              7200           6894.822</span></span>
+<span id="cb25-23"><a href="#cb25-23" tabindex="-1"></a><span class="co">#&gt; 16: 2024     6     025                   0              7200           6886.335</span></span>
+<span id="cb25-24"><a href="#cb25-24" tabindex="-1"></a><span class="co">#&gt; 17: 2024     6     039                   0              7200           6794.602</span></span>
+<span id="cb25-25"><a href="#cb25-25" tabindex="-1"></a><span class="co">#&gt; 18: 2024     6     013                   0              7200           6812.126</span></span>
+<span id="cb25-26"><a href="#cb25-26" tabindex="-1"></a><span class="co">#&gt; 19: 2024     6     031                   0              7200           6438.093</span></span>
+<span id="cb25-27"><a href="#cb25-27" tabindex="-1"></a><span class="co">#&gt; 20: 2024     6     017                   0              7200           6947.556</span></span>
+<span id="cb25-28"><a href="#cb25-28" tabindex="-1"></a><span class="co">#&gt; 21: 2024     6     003                   0              7200           6755.068</span></span>
+<span id="cb25-29"><a href="#cb25-29" tabindex="-1"></a><span class="co">#&gt;     year month poly_id threshold_ninf_to_0 threshold_0_to_10 threshold_10_to_20</span></span>
+<span id="cb25-30"><a href="#cb25-30" tabindex="-1"></a><span class="co">#&gt;     threshold_20_to_inf</span></span>
+<span id="cb25-31"><a href="#cb25-31" tabindex="-1"></a><span class="co">#&gt;  1:            3272.625</span></span>
+<span id="cb25-32"><a href="#cb25-32" tabindex="-1"></a><span class="co">#&gt;  2:            3413.344</span></span>
+<span id="cb25-33"><a href="#cb25-33" tabindex="-1"></a><span class="co">#&gt;  3:            3366.375</span></span>
+<span id="cb25-34"><a href="#cb25-34" tabindex="-1"></a><span class="co">#&gt;  4:            2141.990</span></span>
+<span id="cb25-35"><a href="#cb25-35" tabindex="-1"></a><span class="co">#&gt;  5:            3407.730</span></span>
+<span id="cb25-36"><a href="#cb25-36" tabindex="-1"></a><span class="co">#&gt;  6:            2739.455</span></span>
+<span id="cb25-37"><a href="#cb25-37" tabindex="-1"></a><span class="co">#&gt;  7:            3076.817</span></span>
+<span id="cb25-38"><a href="#cb25-38" tabindex="-1"></a><span class="co">#&gt;  8:            3233.581</span></span>
+<span id="cb25-39"><a href="#cb25-39" tabindex="-1"></a><span class="co">#&gt;  9:            3345.578</span></span>
+<span id="cb25-40"><a href="#cb25-40" tabindex="-1"></a><span class="co">#&gt; 10:            3290.398</span></span>
+<span id="cb25-41"><a href="#cb25-41" tabindex="-1"></a><span class="co">#&gt; 11:            2758.524</span></span>
+<span id="cb25-42"><a href="#cb25-42" tabindex="-1"></a><span class="co">#&gt; 12:            2383.593</span></span>
+<span id="cb25-43"><a href="#cb25-43" tabindex="-1"></a><span class="co">#&gt; 13:            3211.295</span></span>
+<span id="cb25-44"><a href="#cb25-44" tabindex="-1"></a><span class="co">#&gt; 14:            3130.650</span></span>
+<span id="cb25-45"><a href="#cb25-45" tabindex="-1"></a><span class="co">#&gt; 15:            3201.517</span></span>
+<span id="cb25-46"><a href="#cb25-46" tabindex="-1"></a><span class="co">#&gt; 16:            2978.067</span></span>
+<span id="cb25-47"><a href="#cb25-47" tabindex="-1"></a><span class="co">#&gt; 17:            2876.369</span></span>
+<span id="cb25-48"><a href="#cb25-48" tabindex="-1"></a><span class="co">#&gt; 18:            2754.916</span></span>
+<span id="cb25-49"><a href="#cb25-49" tabindex="-1"></a><span class="co">#&gt; 19:            2458.671</span></span>
+<span id="cb25-50"><a href="#cb25-50" tabindex="-1"></a><span class="co">#&gt; 20:            2769.725</span></span>
+<span id="cb25-51"><a href="#cb25-51" tabindex="-1"></a><span class="co">#&gt; 21:            2580.074</span></span>
+<span id="cb25-52"><a href="#cb25-52" tabindex="-1"></a><span class="co">#&gt;     threshold_20_to_inf</span></span></code></pre></div>
 <p><code><a href="reference/staggregate_degree_days.html">staggregate_degree_days()</a></code> operates directly on the hourly values. Passing a vector of length <code>n</code> to <code>thresholds</code> creates <code>n + 1</code> columns, similar to how <code><a href="reference/staggregate_bin.html">staggregate_bin()</a></code> operates. For each value in the climate raster brick (or stack), the function determines which thresholds the value falls between. For example, a value of 15 falls between 10 and 20. All the variables corresponding to threshold pairs below these receive the difference between the two thresholds (<code>threshold_0_to_10</code> gets 10) and all variables above (<code>threshold_20_to_inf</code>) get 0. The variable in which the value falls gets the difference between the lower threshold and the value (<code>threshold_10_to20</code> gets 5). The low edge variable (<code>threshold_ninf_to_0</code>) is unique in that it measures how far below the smallest threshold a value falls. A value of -3 would get 3 for this variable, while any value above 0 would receive 0 here. Once all values are transformed in this way the hourly values are then aggregated to the polygon level and temporal scale desired as with all other <code>staggregate_*()</code> functions.</p>
 </div>
 </div>
+<div class="section level3">
+<h3 id="a-note-on-spatiotemporally-aggregated-climate-data-without-further-transformations">A note on spatiotemporally aggregated climate data without further transformations<a class="anchor" aria-label="anchor" href="#a-note-on-spatiotemporally-aggregated-climate-data-without-further-transformations"></a>
+</h3>
+<p>If desired, a user can employ <code>stagg</code> to return spatiotemporally aggregated climate data without further transformations using the <code><a href="reference/staggregate_polynomial.html">staggregate_polynomial()</a></code> function. The column <code>order_1</code> represents the first order polynomial, i.e., merely spatiotemporal means (or sums) of input climate data. The temporal aggregation is dictated by the user-defined arguments <code>daily_agg</code> (options are “sum” “average”, and “none”) and <code>time_agg</code> (options are “hour”, “day”, “month”, and “year”). The spatial aggregation occurs for the user-defined administrative areas of interests (e.g., counties), which is incorporated through the <code>overlay_weights</code> input generated by the <code><a href="reference/overlay_weights.html">overlay_weights()</a></code> function. The user can set the argument <code>degree = 1</code> if this is the only desired output. However, it is important to note that aggregation bias can become severe when aggregations are taken over large spatial and/or temporal periods before nonlinear transformations are performed. Indeed, a main feature of the <code>stagg</code> package is that it performs the transformations and aggregations in a sequence that avoids aggregation bias. Thus, users are cautioned against performing transformations after aggregation. Users who wish to use other transformations are encouraged to submit them to the package via an issue or pull request on GitHub for future package integration.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="additional-resources">Additional Resources<a class="anchor" aria-label="anchor" href="#additional-resources"></a>
+</h2>
+<p>Below are some helpful resources on climate data and the analysis of climate impacts on socioeconomic outcomes:</p>
+<ul>
+<li><a href="https://climatedataguide.ucar.edu/" class="external-link">UCAR Climate Data Guide</a></li>
+<li><a href="https://climateestimate.net/content/getting-started.html" class="external-link">Rising et al. (2020) Practical Guide to Climate Econometrics</a></li>
+<li><a href="https://www.journals.uchicago.edu/doi/full/10.1093/reep/ret016" class="external-link">Auffhammer et al. (2013) Using Weather Data and Climate Model Output in Economic Analyses of Climate Change</a></li>
+<li><a href="https://wires.onlinelibrary.wiley.com/doi/10.1002/wcc.579" class="external-link">Nissan et al. (2019) On the use and misuse of climate change projections in international development</a></li>
+<li><a href="https://www.annualreviews.org/content/journals/10.1146/annurev-resource-100815-095343" class="external-link">Hsiang (2016) Climate Econometrics</a></li>
+<li>
+<a href="https://www.nature.com/articles/s41597-024-03304-1" class="external-link">Gortan et al. (2024) A unified dataset for pre-processed climate indicators weighted by gridded economic activity</a>
+<ul>
+<li><a href="https://weightedclimatedata.streamlit.app/" class="external-link">Gortan et al. (2024) Weighted Climate Dataset Dashboard</a></li>
+</ul>
+</li>
+</ul>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
@@ -538,11 +552,11 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Tyler Liddell <br><small class="roles"> Author, maintainer </small>  </li>
+<li>Tyler Liddell <br><small class="roles"> Author </small>  </li>
 <li>Anna Boser <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-7336-0117" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
-<li>Sara Orofino <br><small class="roles"> Author, maintainer </small>  </li>
-<li>Tracey Mangin <br><small class="roles"> Author, maintainer </small>  </li>
-<li>Tamma Carleton <br><small class="roles"> Author, maintainer </small>  </li>
+<li>Sara Orofino <br><small class="roles"> Author </small>  </li>
+<li>Tracey Mangin <br><small class="roles"> Author </small>  </li>
+<li>Tamma Carleton <br><small class="roles"> Author </small>  </li>
 </ul>
 </div>
 
@@ -557,7 +571,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
 </div>
 
     </footer>

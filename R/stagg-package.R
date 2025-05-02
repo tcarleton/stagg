@@ -11,6 +11,7 @@
 #' @importFrom data.table .NGRP
 #' @importFrom data.table .SD
 #' @importFrom data.table data.table
+#' @importFrom stats na.omit
 #' @importFrom magrittr %>%
 #' @importFrom methods as
 #' @importFrom methods setMethod

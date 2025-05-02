@@ -59,7 +59,7 @@
                         <h4 data-toc-skip class="author">Tyler Liddell,
 Anna Boser, Sara Orofino, Tracey Mangin, and Tamma Carleton</h4>
             
-            <h4 data-toc-skip class="date">2024-08-20</h4>
+            <h4 data-toc-skip class="date">2024-11-05</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/tcarleton/stagg/blob/HEAD/vignettes/data_sources.Rmd" class="external-link"><code>vignettes/data_sources.Rmd</code></a></small>
       <div class="d-none name"><code>data_sources.Rmd</code></div>
@@ -78,7 +78,7 @@ accepts in the layer names.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/mikejohnson51/climateR" class="external-link">climateR</a></span><span class="op">)</span> <span class="co"># Obtain climate data</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/walkerke/tigris" class="external-link">tigris</a></span><span class="op">)</span> <span class="co"># Polygons to request and aggregate climate data over</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">stagg</span><span class="op">)</span> <span class="co"># Aggregate the climate data</span></span></code></pre></div>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tcarleton.github.io/stagg">stagg</a></span><span class="op">)</span> <span class="co"># Aggregate the climate data</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="climater-example-working-with-gridmet-data">climateR example: Working with GridMET Data<a class="anchor" aria-label="anchor" href="#climater-example-working-with-gridmet-data"></a>
@@ -195,17 +195,17 @@ calculated overlay weights.</p>
 <span><span class="va">polynomial_output</span></span>
 <span><span class="co">#&gt;       year month poly_id   order_1   order_2    order_3</span></span>
 <span><span class="co">#&gt;      &lt;num&gt; &lt;num&gt;  &lt;char&gt;     &lt;num&gt;     &lt;num&gt;      &lt;num&gt;</span></span>
-<span><span class="co">#&gt;   1:  2010     1     037  56.75739 1327.2879  39806.128</span></span>
-<span><span class="co">#&gt;   2:  2010     2     037  97.13325 2434.7100  80308.805</span></span>
-<span><span class="co">#&gt;   3:  2010     3     037 214.54942 9825.3591 563559.235</span></span>
-<span><span class="co">#&gt;   4:  2010     4     037  72.66265 1221.0374  22493.601</span></span>
-<span><span class="co">#&gt;   5:  2010     5     037  77.19771 1183.7247  23434.094</span></span>
+<span><span class="co">#&gt;   1:  2010     1     037  30.79827  698.5901  19485.618</span></span>
+<span><span class="co">#&gt;   2:  2010     2     037  49.60716 1194.6476  36381.718</span></span>
+<span><span class="co">#&gt;   3:  2010     3     037 107.00895 4598.5119 248442.534</span></span>
+<span><span class="co">#&gt;   4:  2010     4     037  39.93862  678.2517  12457.194</span></span>
+<span><span class="co">#&gt;   5:  2010     5     037  43.34992  703.7214  14583.161</span></span>
 <span><span class="co">#&gt;  ---                                                   </span></span>
-<span><span class="co">#&gt; 266:  2010     8     021  32.03729  276.7235   4083.636</span></span>
-<span><span class="co">#&gt; 267:  2010     9     021 129.12420 4667.6112 265225.311</span></span>
-<span><span class="co">#&gt; 268:  2010    10     021  60.02752  520.8648   5385.785</span></span>
-<span><span class="co">#&gt; 269:  2010    11     021  60.80051  809.1176  13799.290</span></span>
-<span><span class="co">#&gt; 270:  2010    12     021  73.83445 1502.6363  33897.406</span></span></code></pre></div>
+<span><span class="co">#&gt; 269:  2010     9     021  69.36754 3093.8891 208694.340</span></span>
+<span><span class="co">#&gt; 270:  2010    10     021  31.27158  277.4310   2929.496</span></span>
+<span><span class="co">#&gt; 271:  2010    11     021  30.83565  418.2693   7360.483</span></span>
+<span><span class="co">#&gt; 272:  2010    12     021  36.97638  794.4837  19675.276</span></span>
+<span><span class="co">#&gt; 273:    NA    NA     021        NA        NA         NA</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
@@ -252,17 +252,17 @@ are using.</p>
 <code class="sourceCode R"><span><span class="va">polynomial_output</span></span>
 <span><span class="co">#&gt;       year month poly_id   order_1   order_2    order_3</span></span>
 <span><span class="co">#&gt;      &lt;num&gt; &lt;num&gt;  &lt;char&gt;     &lt;num&gt;     &lt;num&gt;      &lt;num&gt;</span></span>
-<span><span class="co">#&gt;   1:  2010     1     037  56.75739 1327.2879  39806.128</span></span>
-<span><span class="co">#&gt;   2:  2010     2     037  97.13325 2434.7100  80308.805</span></span>
-<span><span class="co">#&gt;   3:  2010     3     037 214.54942 9825.3591 563559.235</span></span>
-<span><span class="co">#&gt;   4:  2010     4     037  72.66265 1221.0374  22493.601</span></span>
-<span><span class="co">#&gt;   5:  2010     5     037  77.19771 1183.7247  23434.094</span></span>
+<span><span class="co">#&gt;   1:  2010     1     037  30.79827  698.5901  19485.618</span></span>
+<span><span class="co">#&gt;   2:  2010     2     037  49.60716 1194.6476  36381.718</span></span>
+<span><span class="co">#&gt;   3:  2010     3     037 107.00895 4598.5119 248442.534</span></span>
+<span><span class="co">#&gt;   4:  2010     4     037  39.93862  678.2517  12457.194</span></span>
+<span><span class="co">#&gt;   5:  2010     5     037  43.34992  703.7214  14583.161</span></span>
 <span><span class="co">#&gt;  ---                                                   </span></span>
-<span><span class="co">#&gt; 266:  2010     8     021  32.03729  276.7235   4083.636</span></span>
-<span><span class="co">#&gt; 267:  2010     9     021 129.12420 4667.6112 265225.311</span></span>
-<span><span class="co">#&gt; 268:  2010    10     021  60.02752  520.8648   5385.785</span></span>
-<span><span class="co">#&gt; 269:  2010    11     021  60.80051  809.1176  13799.290</span></span>
-<span><span class="co">#&gt; 270:  2010    12     021  73.83445 1502.6363  33897.406</span></span></code></pre></div>
+<span><span class="co">#&gt; 269:  2010     9     021  69.36754 3093.8891 208694.340</span></span>
+<span><span class="co">#&gt; 270:  2010    10     021  31.27158  277.4310   2929.496</span></span>
+<span><span class="co">#&gt; 271:  2010    11     021  30.83565  418.2693   7360.483</span></span>
+<span><span class="co">#&gt; 272:  2010    12     021  36.97638  794.4837  19675.276</span></span>
+<span><span class="co">#&gt; 273:    NA    NA     021        NA        NA         NA</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
@@ -275,7 +275,7 @@ are using.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
 </div>
 
     </footer>

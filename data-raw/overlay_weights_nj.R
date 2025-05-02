@@ -1,4 +1,6 @@
-## code to prepare `overlay_weights_nj` dataset
+# code to prepare `overlay_weights_nj` dataset
+
+# last run: August 14, 2024
 
 # load county polygons
 nj_counties <- tigris::counties("nj")

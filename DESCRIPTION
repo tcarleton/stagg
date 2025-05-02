@@ -23,16 +23,19 @@ Imports:
     lubridate,
     magrittr,
     methods,
-    raster,
     sf,
     stringr,
     terra
 Suggests: 
+    climateR (>= 0.3.5),
     knitr,
+    raster,
     rmarkdown,
     testthat (>= 3.0.0),
     tidyr,
-    tigris,
-    usethis
+    usethis,
+    tigris
 Config/testthat/edition: 3
 VignetteBuilder: knitr
+Remotes:  
+    mikejohnson51/climateR

@@ -11,7 +11,7 @@ secondary_weights(secondary_raster, grid = era5_grid, extent = "full")
 cropland coverage or population}
 
 \item{grid}{a raster layer with the same spatial resolution as the climate
-data}
+data (must use geographic coordinates)}
 
 \item{extent}{an optional extent to crop the secondary_raster to for faster
 processing. Format must be compatible with raster::crop(). The default is "full", which

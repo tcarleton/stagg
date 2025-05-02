@@ -17,7 +17,8 @@ overlay_weights(
 \item{polygon_id_col}{the name of a column in the \code{polygons} object with a
 unique identifier for each polygon}
 
-\item{grid}{a raster layer with the same spatial resolution as the data}
+\item{grid}{a raster layer with the same spatial resolution as the data
+(must use geographic coordinates)}
 
 \item{secondary_weights}{an optional table of secondary weights, output from
 the \code{secondary_weights()} function}
@@ -33,7 +34,7 @@ family of functions.
 }
 \examples{
 overlay_output_with_secondary_weights <- overlay_weights(
-  polygons = nj_counties, # Polygons outlining the 21 counties of New Jersey
+  polygons = tigris::counties("nj"), # Polygons outlining the 21 counties of New Jersey
   polygon_id_col = "COUNTYFP", # The name of the column with the unique
                                # county identifiers
   grid = era5_grid, # The grid to use when extracting area weights (era5_grid is the
@@ -49,7 +50,7 @@ head(overlay_output_with_secondary_weights)
 
 
 overlay_output_without_secondary_weights <- overlay_weights(
-  polygons = nj_counties, # Polygons outlining the 21 counties of New Jersey
+  polygons = tigris::counties("nj"), # Polygons outlining the 21 counties of New Jersey
   polygon_id_col = "COUNTYFP" # The name of the column with the unique county
                               # identifiers
   )

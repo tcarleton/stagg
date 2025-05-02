@@ -1,9 +1,9 @@
 # Test basic elements of output for helper functions
 
-test_that(
-  "as.data.table.raster has correct output type, class, and column names",
+testthat::test_that(
+  "as.data.table.terra has correct output type, class, and column names",
   {
-    output <- as.data.table.raster(temp_nj_jun_2024_era5[[1]], xy = TRUE)
+    output <- as_data_table_terra(temp_nj_jun_2024_era5[[1]], xy = TRUE)
 
     expect_type(output, "list")
     expect_is(output, "data.table")
@@ -12,7 +12,7 @@ test_that(
   }
 )
 
-test_that(
+testthat::test_that(
   "daily_aggregation has correct output type and class",
   {
     output <- daily_aggregation(temp_nj_jun_2024_era5,
@@ -22,14 +22,14 @@ test_that(
 
     # Raster brick element of the list
     expect_type(output[[1]], "S4")
-    expect_is(output[[1]], "RasterBrick")
+    expect_is(output[[1]], "SpatRaster")
 
     # Names vector element of the list
     expect_type(output[[2]], "character")
   }
 )
 
-test_that(
+testthat::test_that(
   "infer_layer_datetimes has correct output type and class",
   {
     output <- infer_layer_datetimes(temp_nj_jun_2024_era5,
@@ -37,18 +37,18 @@ test_that(
                                     "1 hour")
 
     expect_type(output, "S4")
-    expect_is(output, "RasterStack")
+    expect_is(output, "SpatRaster")
 
 
   }
 )
 
 
-test_that(
+testthat::test_that(
   "polygon_aggregation has correct output type, class, and column names",
   {
     # Make clim_dt input for polygon_aggregation() (the numbers are nonsensical)
-    clim_dt_input <- as.data.table.raster(temp_nj_jun_2024_era5, xy = TRUE) %>%
+    clim_dt_input <- as_data_table_terra(temp_nj_jun_2024_era5, xy = TRUE) %>%
       dplyr::select(c(1,2, 4:10)) %>%
       tidyr::pivot_longer(cols = 3:9, names_to = "date", values_to = "order_1") %>%
       dplyr::mutate(x = x + 360) %>%
@@ -57,7 +57,10 @@ test_that(
     output <- polygon_aggregation(clim_dt_input,
                                   overlay_weights_nj,
                                   c("order_1"),
-                                  "hour")
+                                  "hour",
+                                  weights_join_tolerance_x = 0,
+                                  weights_join_tolerance_y = 0,
+                                  na_rm = F)
 
     expect_type(output, "list")
     expect_is(output, "data.frame")
@@ -69,7 +72,7 @@ test_that(
 
 
 # Test basic elements of user-level functions
-test_that(
+testthat::test_that(
   "staggregate_polynomial has correct output type, class, and column names",
   {
     polynomial_output <- staggregate_polynomial(
@@ -97,7 +100,7 @@ test_that(
 )
 
 
-test_that(
+testthat::test_that(
   "staggregate_spline has correct output type, class, and column names",
   {
     spline_output <- staggregate_spline(
@@ -126,7 +129,7 @@ test_that(
 
 
 
-test_that(
+testthat::test_that(
   "staggregate_bin has correct output type, class, and column names",
   {
     bin_output <- staggregate_bin(
@@ -155,7 +158,7 @@ test_that(
 )
 
 
-test_that(
+testthat::test_that(
   "staggregate_degree_days has correct output type, class, and column names",
   {
     degree_days_output <- staggregate_degree_days(

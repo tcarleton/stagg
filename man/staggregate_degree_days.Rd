@@ -10,6 +10,8 @@ staggregate_degree_days(
   time_agg = "month",
   start_date = NA,
   time_interval = "1 hour",
+  weights_join_tolerance = 0,
+  na_rm = FALSE,
   thresholds
 )
 }
@@ -33,6 +35,20 @@ aggregated. To be input in a format compatible with seq(), e.g.
 \code{'1 day'} or \code{'3 months'}. The default is \code{'1 hour'} and this argument is
 required if the \code{start_date} argument is not \code{NA}.}
 
+\item{weights_join_tolerance}{the tolerance to use when joining
+overlay_weights with the climate data by the x and y columns. This is useful
+when the height/width of your data cells expressed in degrees is a very long
+decimal. The default, \code{0}, performs a keyed equi-join. Anything other than 0
+performs a nonequi-join wherein latitudes/longitudes within the specified
+tolerance (inclusive) are considered a match. Passing a single number results
+in the tolerance being the same for x and y, but you can also pass a vector
+of two numbers to have the first specify the x tolerance and second specify
+the y tolerance.}
+
+\item{na_rm}{whether to remove NAs in the climate data and adjust the
+overlay weights so that the weights of non-na cells sum to 1 across each
+polygon. The default is \code{FALSE}.}
+
 \item{thresholds}{A vector of temperature thresholds critical to a crop}
 }
 \description{
@@ -43,7 +59,7 @@ scale
 }
 \examples{
 degree_days_output <- staggregate_degree_days(
-  data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and
+  data = terra::rast(temp_nj_jun_2024_era5) - 273.15, # Climate data to transform and
                                          # aggregate
   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
   time_agg = "month", # Sum the transformed daily values across months

@@ -1,24 +1,36 @@
 # Function to convert raster to data.table from https://gist.github.com/etiennebr/9515738
-as.data.table.raster <- function(x, row.names = NULL, optional = FALSE, xy=FALSE, inmem = raster::canProcessInMemory(x, 2), ...) {
+as_data_table_terra <- function(x, row.names = NULL, optional = FALSE, xy=FALSE, inmem = terra::inMemory(x), ...) {
   if(inmem) {
-    v <- data.table::as.data.table(raster::as.data.frame(x, row.names=row.names, optional=optional, xy=xy, ...))
+    v <- data.table::as.data.table(terra::as.data.frame(x, row.names=row.names, optional=optional, xy=xy, ...))
+    coln <- names(x)
+    if(xy) coln <- c("x", "y", coln)
+    data.table::setnames(v, coln)
   } else {
-    tr <- raster::blockSize(x, n=2)
-    l <- lapply(1:tr$n, function(i)
-      data.table::as.data.table(raster::as.data.frame(raster::getValues(x,
-                                                                        row=tr$row[i],
-                                                                        nrows=tr$nrows[i]),
-                                                      row.names=row.names, optional=optional, xy=xy, ...)))
+    tr <- terra::blocks(x)
+    l <- lapply(1:tr$n, function(i) {
+      DT <- data.table::as.data.table(as.data.frame(terra::values(x, row = tr$row[i], nrows = tr$nrows[i]), ...))
+      if(xy == TRUE) {
+        cells <- terra::cellFromRowCol(x, c(tr$row[i], tr$row[i] + tr$nrows[i] - 1), c(1, ncol(x)))
+        coords <- terra::xyFromCell(x, cell = cells[1]:cells[2])
+        DT[, c("x", "y") := data.frame(terra::xyFromCell(x, cell = cells[1]:cells[2]))]
+      }
+      DT
+    })
     v <- data.table::rbindlist(l)
+    coln <- names(x)
+    if(xy) {
+      coln <- c("x", "y", coln)
+      data.table::setcolorder(v, coln)
+    }
   }
-  coln <- names(x)
-  if(xy) coln <- c("x", "y", coln)
-  data.table::setnames(v, coln)
   v
 }
 
 # Function to convert raster to data.table and aggregate to daily values before transformation
 daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1 hour'){
+
+  # Input validation and read in data
+  # ----------------------------------------------------------------------------
 
   if(!daily_agg %in% c('average', 'sum', 'none')){
 
@@ -28,80 +40,111 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
   # Data.table of weights
   weights_dt <- data.table::as.data.table(overlay_weights)
 
-  # Check if raster overlay_weights span prime meridian
-  is_pm <- FALSE
-  for(i in length(weights_dt$x)){
-    if(weights_dt[i,x] < .5 | weights_dt[i,x] > 359.5){
-      is_pm = TRUE # Check each x value
-      break # If near 0 value found exit loop
-    }
-  }
+  # read in climate data and coerce if not a spat raster
+  if(inherits(data, "SpatRaster")){
 
-  ## read in climate data
-  clim_raster <- raster::stack(data)
+    clim_stack <- data
 
-  ## shift into 0 to 360 if not already in that format
-  if(raster::extent(clim_raster)@xmin < 0 - raster::xres(clim_raster) / 2) {
+  } else{
 
-    clim_raster_xmin <- raster::extent(clim_raster)@xmin - raster::xres(clim_raster) / 2
-    clim_raster_xmax <- raster::extent(clim_raster)@xmax + raster::xres(clim_raster) / 2
-    clim_raster_ymin <- raster::extent(clim_raster)@ymin - raster::yres(clim_raster) / 2
-    clim_raster_ymax <- raster::extent(clim_raster)@ymax + raster::yres(clim_raster) / 2
-
-    clim_raster1 <- raster::crop(clim_raster, c(clim_raster_xmin, min(clim_raster_xmax, 0), clim_raster_ymin, clim_raster_ymax))
-
-    clim_raster1 <- raster::shift(clim_raster1, dx = 360)
-
-    if(raster::extent(clim_raster)@xmax > 0) {
-
-      clim_raster2 <- raster::crop(clim_raster, c(0, clim_raster_xmax, clim_raster_ymin, clim_raster_ymax))
-
-      clim_raster <- raster::merge(clim_raster1, clim_raster2)
-
-    } else {
-
-      clim_raster <- clim_raster1
-    }
+    clim_stack <- terra::rast(data)
 
   }
 
-  # If raster overlay_weights does not span prime meridian, crop as usual
-  if(is_pm == FALSE){
+
+  # Determine whether the climate data is in climate (0 to 360) or standard (-180 to 180) coordinates
+  if(terra::ext(clim_stack)$xmax > 180 + terra::xres(clim_stack)){
+    coord_alignment <- "climate"
+  } else{
+    coord_alignment <- "standard"
+  }
+
+  # Now, determine if the polygons were likely in a different coordinate system
+  if(coord_alignment == "standard"){
+    polygons_split <- (
+      max(weights_dt[,x]) > 180 - terra::xres(clim_stack) & # has cell next to 180
+      min(weights_dt[,x]) < -180 + terra::xres(clim_stack) # has cell next to -180
+    )
+  }
+
+  if(coord_alignment == "climate"){
+    polygons_split <- (
+      max(weights_dt[,x]) > 360 - terra::xres(clim_stack) & # has cell next to 360
+      min(weights_dt[,x]) < terra::xres(clim_stack) # has cell next to 0
+    )
+  }
+
+  # Check for the final case in which the polygons just span the entire globe
+  if(length(unique(weights_dt[,x])) >= terra::ncol(clim_stack)){
+    polygons_split <- FALSE
+  }
+
+
+  # If we've split the polygons, try to find a more memory efficient spot to do our cropping than across 360 / -180 line,
+  # unless we have peculiar cell widths that would make this a bad idea
+  if(polygons_split & 360 %% terra::xres(clim_stack) == 0){
+
+    # Find the widest xgap that exists to be the cropping location For instance,
+    # if x values are 0, 60, 120, 300, 360, then crop such that left is [0 - 120] and
+    # right is [300 - 360] (saves reading in 180 degrees of data)
+    x_vector <- sort(unique(weights_dt[,x]))
+
+    # Get cropping locations by finding largest gap and making left side's xmax
+    # the x value to the left and right side's xmin the x value to the right
+    crop_locs <- data.frame(x_vector) %>%
+      dplyr::mutate(
+        diff = x_vector - dplyr::lag(x_vector),
+        is_right_xmin = diff == max(diff, na.rm = TRUE),
+        is_left_xmax = dplyr::lead(diff) == max(diff, na.rm = TRUE)
+        )
+
+    right_xmin <- crop_locs %>%
+      dplyr::filter(is_right_xmin) %>%
+      dplyr::slice(1) %>%
+      dplyr::pull(x_vector)
+
+    left_xmax <- crop_locs %>%
+      dplyr::filter(is_left_xmax) %>%
+      dplyr::slice(1) %>%
+      dplyr::pull(x_vector)
+
+    # Split into 2 and then merge back together
+    left_xmin <- 0 - 2*terra::xres(clim_stack)
+    left_xmax <- left_xmax + 2*terra::xres(clim_stack)
+
+    right_xmin <- right_xmin - 2*terra::xres(clim_stack)
+    right_xmax <- 360 + 2*terra::xres(clim_stack)
+
+    ymin <- min(weights_dt$y) - 2*terra::yres(clim_stack)
+    ymax <- max(weights_dt$y) + 2*terra::yres(clim_stack)
+
+    weights_ext_left <- terra::ext(left_xmin, left_xmax, ymin, ymax)
+    weights_ext_right <- terra::ext(right_xmin, right_xmax, ymin, ymax)
+
+    clim_stack_left <- terra::crop(clim_stack, weights_ext_left, snap = 'out')
+    clim_stack_right <- terra::crop(clim_stack, weights_ext_right, snap = 'out')
+
+
+    clim_stack <- terra::merge(clim_stack_left, clim_stack_right)
+
+    # Get layer names (dates) from clim_stack_left
+    all_layers <- names(clim_stack_left)
+
+
+  } else{ # If raster overlay_weights does not span prime meridian, crop as usual
+
     # Extent of area weights with 2 cell buffer to make sure all cells are included
-    min_x <- min(weights_dt$x) - 2*raster::xres(clim_raster)
-    max_x <- max(weights_dt$x) + 2*raster::xres(clim_raster)
-    min_y <- min(weights_dt$y) - 2*raster::yres(clim_raster)
-    max_y <- max(weights_dt$y) + 2*raster::yres(clim_raster)
+    xmin <- min(weights_dt$x) - 2*terra::xres(clim_stack)
+    xmax <- max(weights_dt$x) + 2*terra::xres(clim_stack)
+    ymin <- min(weights_dt$y) - 2*terra::yres(clim_stack)
+    ymax <- max(weights_dt$y) + 2*terra::yres(clim_stack)
 
-    weights_ext <- raster::extent(min_x, max_x, min_y, max_y)
+    weights_ext <- terra::ext(xmin, xmax, ymin, ymax)
 
-    clim_raster <- raster::crop(clim_raster, weights_ext)
+    clim_stack <- terra::crop(clim_stack, weights_ext)
 
-    all_layers <- names(clim_raster)
+    all_layers <- names(clim_stack)
 
-  }
-
-  else { # If yes, make 2 crops and stitch together
-    min_x_left <- min(weights_dt$x[weights_dt$x >= 180]) - 2*raster::xres(data)
-    max_x_left <- 360
-
-    min_x_right <- -0.1 # This is necessary because cropping is non-inclusive (min_x_right = 0 excludes the cell at 0)
-    max_x_right <- max(weights_dt$x[weights_dt$x < 180]) + 2*raster::xres(data)
-
-    min_y <- min(weights_dt$y) - 2*raster::yres(data)
-    max_y <- max(weights_dt$y) + 2*raster::yres(data)
-
-    weights_ext_left <- raster::extent(min_x_left, max_x_left, min_y, max_y)
-    weights_ext_right <- raster::extent(min_x_right, max_x_right, min_y, max_y)
-
-    clim_raster_left <- raster::crop(clim_raster, weights_ext_left)
-    clim_raster_right <- raster::crop(clim_raster, weights_ext_right)
-
-
-    clim_raster <- raster::stack(raster::merge(clim_raster_left, clim_raster_right)) # Merge creates raster bricks without proper layer names
-
-    # Get layer names (dates) from clim_raster_left
-    all_layers <- names(clim_raster_left)
   }
 
 
@@ -111,8 +154,8 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
   # Pass all layers through if not aggregating to daily level
   if(daily_agg == "none"){
     message(crayon::yellow("Skipping pre-transformation aggregation to daily level"))
-    all_names <- names(clim_raster)
-    clim_hourly <- clim_raster
+    all_names <- names(clim_stack)
+    clim_hourly <- clim_stack
 
     return(list(clim_hourly, all_names))
   }
@@ -137,7 +180,7 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
   }
 
   # Check that you have a dataset with a number of layers that is divisible by the number of timesteps in a day
-  if(!(raster::nlayers(clim_raster)%%timesteps_per_day == 0)){
+  if(!(terra::nlyr(clim_stack)%%timesteps_per_day == 0)){
     stop(crayon::red(sprintf("The data does not contain a number of layers that is a multiple of %d (the number of timesteps in a day calculated using the `time_interval` argument, currently set to %s). Please use complete data with all timesteps available for each day.", timesteps_per_day, time_interval)))
   }
 
@@ -152,8 +195,8 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
     message(crayon::green(sprintf("Averaging over %d layers per day to get daily values", timesteps_per_day)))
 
     # Average over each set of layers representing one day
-    indices<-rep(1:(raster::nlayers(clim_raster)/timesteps_per_day),each=timesteps_per_day)
-    clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=mean)
+    indices<-rep(1:(terra::nlyr(clim_stack)/timesteps_per_day),each=timesteps_per_day)
+    clim_daily <- terra::tapp(clim_stack, indices, fun=mean)
   }
 
   ## Sum
@@ -162,23 +205,33 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
     message(crayon::green(sprintf("Summing over %d layers per day to get daily values", timesteps_per_day)))
 
     # Sum over each set of layers representing one day
-    indices<-rep(1:(raster::nlayers(clim_raster)/timesteps_per_day),each=timesteps_per_day)
-    clim_daily <- raster::stackApply(clim_raster, indices = indices, fun=sum)
+    indices<-rep(1:(terra::nlyr(clim_stack)/timesteps_per_day),each=timesteps_per_day)
+    clim_daily <- terra::tapp(clim_stack, indices, fun=sum)
   }
 
 
 
-  # Return a list containing, in order, daily aggregated climate data as a raster brick, and the layer_names created.
+  # Return a list containing, in order, daily aggregated climate data as a spatRaster stack, and the layer_names created.
   return(list(clim_daily, layer_names))
 }
 
-# Function to infer date-times for raster layers based on a time interval
+# Function to infer date-times for spatRaster layers based on a time interval
 infer_layer_datetimes <- function(data, start_date, time_interval) {
-  # Turn the data into a raster stack in case it's a SpatRaster
-  raster_stack <- raster::stack(data)
 
-  # Number of layers in the raster stack
-  num_layers <- raster::nlayers(raster_stack)
+  # Running rast() on a stack that's already a spat raster removes the values for some reason
+  # read in climate data and coerce if not a spat raster
+  if(methods::is(data, "SpatRaster")){
+
+    clim_stack <- data
+
+  } else{
+
+    clim_stack <- terra::rast(data)
+
+  }
+
+  # Number of layers in the spatRaster stack
+  num_layers <- terra::nlyr(clim_stack)
 
   # Convert start date to POSIXct
   start_date <- lubridate::as_datetime(start_date)
@@ -189,16 +242,16 @@ infer_layer_datetimes <- function(data, start_date, time_interval) {
   # Make sure the full date shows up in the string every time
   formatted_dates <- format(layer_dates, "X%Y.%m.%d.%H.%M.%S")
 
-  # Assign the inferred date-times to the raster layers
-  names(raster_stack) <- as.character(formatted_dates)
+  # Assign the inferred date-times to the spatRaster layers
+  names(clim_stack) <- as.character(formatted_dates)
 
-  return(raster_stack)
+  return(clim_stack)
 }
 
 # Function to merge with geoweights and aggregate by polygon
-polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
+polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg, weights_join_tolerance_x, weights_join_tolerance_y, na_rm){
 
-  ## Merge weights with climate raster
+  ## Merge weights with climate spatRaster
   ## -----------------------------------------------
 
   # Set key column in the climate data.table
@@ -210,8 +263,57 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
   clim_dt[, date := stringr::str_replace(date, "^[^0-9]+", "")] # Remove any non-digit characters from the start of the string
   clim_dt[, date := lubridate::as_datetime(date)]
 
-  # Keyed merge on the x/y column
-  merged_dt <- clim_dt[weights_dt, allow.cartesian = TRUE] # cols: x, y, date, value cols 1:k, poly_id, w_area, weight (if weights = T)
+  # Join overlay_weights and climate data table
+  if(weights_join_tolerance_x == 0 & weights_join_tolerance_y == 0){
+
+    # Keyed merge on the x/y column
+    merged_dt <- clim_dt[weights_dt, allow.cartesian = TRUE] # cols: x, y, date, value cols 1:k, poly_id, w_area, weight (if weights = T)
+
+  } else{
+
+    # Create a copy of the weights data table so we don't change the user's data
+    # without their knowledge. (data.table creates "shallow copies" unless
+    # explicitly told to do otherwise).
+    copied_weights_dt <- data.table::copy(weights_dt)
+
+    # Since data.table doesn't allow arithmatic in nonequi-joins, create tolerance columns now
+    copied_weights_dt[, x_low := x - weights_join_tolerance_x]
+    copied_weights_dt[, x_high := x + weights_join_tolerance_x]
+    copied_weights_dt[, y_low := y - weights_join_tolerance_y]
+    copied_weights_dt[, y_high := y + weights_join_tolerance_y]
+
+    #  Remove x and y columns to avoid confusion in join
+    copied_weights_dt[, x := NULL]
+    copied_weights_dt[, y := NULL]
+
+
+    # Determine which columns to keep in join,
+    # format as arguments that can directly be supplied to j
+    # through eval and parse
+    cols_to_keep <- c(
+
+      # Add x and y in manually (referring to clim_dt$x by "x.x" prevents the
+      # column from being overwritten in the nonequi-join below)
+      'x.x',
+      'x.y',
+
+      # Keep all column names except the tolerance columns created above
+      setdiff(colnames(clim_dt), c('x', 'y')),
+      setdiff(colnames(copied_weights_dt), c('x_low', 'x_high', 'y_low', 'y_high')))
+
+
+    # Merge based on tolerance columns
+    merged_dt <- clim_dt[copied_weights_dt, # Right join
+                         allow.cartesian = TRUE,
+
+                         # Specify which columns to keep
+                         j = ..cols_to_keep,
+                         on = .(x >= x_low,
+                                x <= x_high,
+                                y >= y_low,
+                                y <= y_high)]
+    data.table::setnames(merged_dt, c('x.x', 'x.y'), c('x', 'y'))
+  }
 
   ## Multiply weights x climate value (all 1:k values); aggregate by month and polygon
   ## -----------------------------------------------
@@ -220,57 +322,85 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
   # Otherwise multiply by just area weights
   if("weight" %in% names(merged_dt)){
     merged_dt[, (list_names) := lapply(list_names, function(x) {get(x) * weight})]
+    weight_col <- "weight"
   } else {
     merged_dt[, (list_names) := lapply(list_names, function(x) {get(x) * w_area})]
+    weight_col <- "w_area"
   }
 
   # Separate year, month, day, and time columns
   merged_dt[, ':=' (year = lubridate::year(date),
                     month = lubridate::month(date),
                     day = lubridate::day(date),
-                    hour = lubridate::hour(date))] # NOTE: if the timestep is smaller than hourly, the minutes and seconds will not be recorded. However, this does not affect the output since the lowest aggregation level possible is 'hour'.
+                    hour = lubridate::hour(date),
+                    minute = lubridate::minute(date))]
+
+
+  # Determine if we need to sum weights to "ignore" NAs
+  if(na_rm){
+    sum_cols <- c(weight_col, list_names)
+  }else{
+    sum_cols <- list_names
+  }
 
   # Temporal Aggregation
   if(time_agg == "year"){
     message(crayon::green("Aggregating by polygon and year"))
 
     sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year),
-                             .SDcols = list_names]
+                             .SDcols = sum_cols]
 
     ## Order columns
-    data.table::setcolorder(sum_by_poly, neworder = c('year', 'poly_id', list_names))
-  }
+    data.table::setcolorder(sum_by_poly, neworder = c('year', 'poly_id', sum_cols))
 
-  if(time_agg == "month"){
+  }else if(time_agg == "month"){
     message(crayon::green("Aggregating by polygon and month"))
 
     sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month),
-                             .SDcols = list_names]
+                             .SDcols = sum_cols]
 
     ## Order columns
-    data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'poly_id', list_names))
-  }
+    data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'poly_id', sum_cols))
 
-  if(time_agg == "day"){
-    message(crayon::green("Aggregating by polygon"))
+  }else if(time_agg == "day"){
+    message(crayon::green("Aggregating by polygon and date"))
 
     sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month, day),
-                             .SDcols = list_names]
+                             .SDcols = sum_cols]
 
     ## Order columns
-    data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'day', 'poly_id', list_names))
+    data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'day', 'poly_id', sum_cols))
+
+  }else if(time_agg == "hour"){
+    message(crayon::green("Aggregating by polygon and hour"))
+    sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month, day, hour),
+                             .SDcols = sum_cols]
+
+    ## Order columns
+    data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'day', 'hour', 'poly_id', sum_cols))
+
+  }else{
+
+    message(crayon::green("Aggregating by polygon and time"))
+    sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month, day, hour, minute),
+                             .SDcols = sum_cols]
+
+    ## Order columns
+    data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'day', 'hour', 'minute', 'poly_id', sum_cols))
   }
 
 
+  # If we need to re-weight to remove influence of NAs on means, divide by the
+  # now summed weights. For instance, if .25 of the cells (by weight) was NA,
+  if(na_rm){
+    if(weight_col == "weight"){
+      sum_by_poly[, (list_names) := lapply(list_names, function(x) {get(x) / weight})]
+    } else{
+      sum_by_poly[, (list_names) := lapply(list_names, function(x) {get(x) / w_area})]
+    }
 
-
-  if(time_agg == "hour"){
-    message(crayon::green("Aggregating by polygon"))
-    sum_by_poly <- merged_dt[,  lapply(.SD, sum), by = .(poly_id, year, month, day, hour),
-                             .SDcols = list_names]
-
-    ## Order columns
-    data.table::setcolorder(sum_by_poly, neworder = c('year', 'month', 'day', 'hour', 'poly_id', list_names))
+    # Remove the NA data
+    stats::na.omit(sum_by_poly, "year")
   }
 
 
@@ -290,7 +420,7 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' level, raises these daily values to the 1 through nth power, and aggregates
 #' the transformed values to the polygon level and desired temporal scale.
 #'
-#' @param data The raster brick with the data to be transformed and aggregated
+#' @param data The spatRasters with the data to be transformed and aggregated
 #' @param overlay_weights A table of weights which can be generated using the
 #'   function `overlay_weights()`
 #' @param daily_agg How to aggregate hourly values to daily values prior to
@@ -300,20 +430,32 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #'   `'hour'`, `'day'`, `'month'`, or `'year'` (`'hour'` cannot be selected
 #'   unless `daily_agg = 'none'`)
 #' @param start_date the date (and time, if applicable) of the first layer in
-#'  the raster. To be input in a format compatible with
+#'  the stack. To be input in a format compatible with
 #'  lubridate::as_datetime(), e.g. `"1991-10-29"` or `"1991-10-29 00:00:00"`.
-#'  The default is `NA` since the rasters usually already contain temporal
+#'  The default is `NA` since the spatRasters usually already contain temporal
 #'  information in the layer names and they do not need to be manually supplied.
-#' @param time_interval the time interval between layers in the raster to be
+#' @param time_interval the time interval between layers in the spatRaster to be
 #'  aggregated. To be input in a format compatible with seq(), e.g.
 #'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
 #'  required if daily_agg is not `'none'` or if the `start_date` argument is not
 #'  `NA`.
+#' @param weights_join_tolerance the tolerance to use when joining
+#' overlay_weights with the climate data by the x and y columns. This is useful
+#' when the height/width of your data cells expressed in degrees is a very long
+#' decimal. The default, `0`, performs a keyed equi-join. Anything other than 0
+#' performs a nonequi-join wherein latitudes/longitudes within the specified
+#' tolerance (inclusive) are considered a match. Passing a single number results
+#' in the tolerance being the same for x and y, but you can also pass a vector
+#' of two numbers to have the first specify the x tolerance and second specify
+#' the y tolerance.
+#' @param na_rm whether to remove NAs in the climate data and adjust the
+#' overlay weights so that the weights of non-na cells sum to 1 across each
+#' polygon. The default is `FALSE`.
 #' @param degree the highest exponent to raise the data to
 #'
 #' @examples
 #' polynomial_output <- staggregate_polynomial(
-#'   data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and
+#'   data = terra::rast(temp_nj_jun_2024_era5) - 273.15, # Climate data to transform and
 #'                                          # aggregate
 #'   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 #'   daily_agg = "average", # Average hourly values to produce daily values
@@ -331,9 +473,9 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg){
 #' head(polynomial_output)
 #'
 #' @export
-staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = "month", start_date = NA, time_interval = "1 hour", degree){
+staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = "month", start_date = NA, time_interval = "1 hour", weights_join_tolerance = 0, na_rm = FALSE, degree){
 
-  # If the start date is supplied, overwrite the raster's layer names to reflect the specified temporal metadata
+  # If the start date is supplied, overwrite the spatRaster's layer names to reflect the specified temporal metadata
   if(!is.na(start_date)){
     message(crayon::green(sprintf("Rewriting the data's temporal metadata (layer names) to reflect a dataset starting on the supplied start date and with a temporal interval of %s", time_interval)))
     data <- infer_layer_datetimes(data, start_date, time_interval)
@@ -345,14 +487,26 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
     daily_agg = "none"
   }
 
+  # If tolerance supplied is one number, apply to both x and y.
+  # If two numbers, apply first to x and second to y
+  if(length(weights_join_tolerance) == 1){
+    weights_join_tolerance_x <- weights_join_tolerance
+    weights_join_tolerance_y <- weights_join_tolerance
+  } else if(length(weights_join_tolerance == 2)){
+    weights_join_tolerance_x <- weights_join_tolerance[1]
+    weights_join_tolerance_y <- weights_join_tolerance[2]
+  } else{
+    stop(crayon::red("Please provide one digit or a vector of only two digits for weights_join_tolerance."))
+  }
+
   # Aggregate climate data to daily values
   setup_list <- daily_aggregation(data, overlay_weights, daily_agg, time_interval)
 
-  clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
+  clim_daily <- setup_list[[1]] # Pulls the daily aggregated spatRaster stack
   layer_names <- setup_list[[2]] # Pulls the saved layer names
 
   # Polynomial transformation
-  poly_orders <- seq(1:degree) # Compute values from 1 to degree
+  poly_orders <- 1:degree # Compute values from 1 to degree
   list_length <- length(poly_orders) # How many lists are in the final object
   list_names <- sapply(1:list_length, FUN=function(x){paste("order", poly_orders[x], sep="_")})
 
@@ -365,8 +519,8 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
   ## Function: Set names of data.table by month, change from wide to long format, rename based on polynomial orders
   create_dt <- function(x){
 
-    # Should output raster cells x/y with 365 days as column names
-    dt <- as.data.table.raster(r[[x]], xy=TRUE)
+    # Should output spatRaster cells x/y with 365 days as column names
+    dt <- as_data_table_terra(r[[x]], xy=TRUE)
 
     # Set column names with months
     new_names <- c('x', 'y', layer_names)
@@ -380,7 +534,7 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
     data.table::setnames(dt, old=c('variable', 'value'), new=var_names)
   }
 
-  # Make each raster layer a data.table
+  # Make each layer a data.table
   list_dt <- lapply(1:list_length, create_dt)
 
   # Merge all data.tables together if there are multiple
@@ -393,7 +547,14 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
   }
 
   # Aggregate by polygon
-  sum_by_poly <- polygon_aggregation(clim_dt, overlay_weights, list_names, time_agg)
+  sum_by_poly <- polygon_aggregation(
+    clim_dt,
+    overlay_weights,
+    list_names,
+    time_agg,
+    weights_join_tolerance_x = weights_join_tolerance_x,
+    weights_join_tolerance_y = weights_join_tolerance_y,
+    na_rm = na_rm)
 
   return(sum_by_poly)
 
@@ -416,7 +577,7 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #' values, and aggregates the transformed values to the polygon level and
 #' desired temporal scale.
 #'
-#' @param data The raster brick with the data to be transformed and aggregated
+#' @param data The spatRaster stack with the data to be transformed and aggregated
 #' @param overlay_weights A table of weights which can be generated using the
 #'   function `overlay_weights()`
 #' @param daily_agg How to aggregate hourly values to daily values prior to
@@ -426,20 +587,32 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #'   `'hour'`, `'day'`, `'month'`, or `'year'` (`'hour'` cannot be selected
 #'   unless `daily_agg = 'none'`)
 #' @param start_date the date (and time, if applicable) of the first layer in
-#'  the raster. To be input in a format compatible with
+#'  the stack. To be input in a format compatible with
 #'  lubridate::as_datetime(), e.g. `"1991-10-29"` or `"1991-10-29 00:00:00"`.
-#'  The default is `NA` since the rasters usually already contain temporal
+#'  The default is `NA` since the spatRasters usually already contain temporal
 #'  information in the layer names and they do not need to be manually supplied.
-#' @param time_interval the time interval between layers in the raster to be
+#' @param time_interval the time interval between layers in the spatRaster to be
 #'  aggregated. To be input in a format compatible with seq(), e.g.
 #'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
 #'  required if daily_agg is not `'none'` or if the `start_date` argument is not
 #'  `NA`.
+#' @param weights_join_tolerance the tolerance to use when joining
+#' overlay_weights with the climate data by the x and y columns. This is useful
+#' when the height/width of your data cells expressed in degrees is a very long
+#' decimal. The default, `0`, performs a keyed equi-join. Anything other than 0
+#' performs a nonequi-join wherein latitudes/longitudes within the specified
+#' tolerance (inclusive) are considered a match. Passing a single number results
+#' in the tolerance being the same for x and y, but you can also pass a vector
+#' of two numbers to have the first specify the x tolerance and second specify
+#' the y tolerance.
+#' @param na_rm whether to remove NAs in the climate data and adjust the
+#' overlay weights so that the weights of non-na cells sum to 1 across each
+#' polygon. The default is `FALSE`.
 #' @param knot_locs where to place the knots
 #'
 #' @examples
 #' spline_output <- staggregate_spline(
-#' data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and
+#' data = terra::rast(temp_nj_jun_2024_era5) - 273.15, # Climate data to transform and
 #'                                        # aggregate
 #' overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 #' daily_agg = "average", # Average hourly values to produce daily values
@@ -457,7 +630,7 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #' head(spline_output)
 #'
 #' @export
-staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "month", start_date = NA, time_interval = "1 hour", knot_locs){
+staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "month", start_date = NA, time_interval = "1 hour", weights_join_tolerance = 0, na_rm = FALSE, knot_locs){
 
   # If the start date is supplied, overwrite the raster's layer names to reflect the specified temporal metadata
   if(!is.na(start_date)){
@@ -469,12 +642,24 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
   if(time_agg == "hour" & daily_agg != "none"){
     message(crayon::yellow("Hourly output requested. Automatically setting daily_agg to \'none\'"))
     daily_agg = "none"
-    }
+  }
+
+  # If tolerance supplied is one number, apply to both x and y.
+  # If two numbers, apply first to x and second to y
+  if(length(weights_join_tolerance) == 1){
+    weights_join_tolerance_x <- weights_join_tolerance
+    weights_join_tolerance_y <- weights_join_tolerance
+  } else if(length(weights_join_tolerance == 2)){
+    weights_join_tolerance_x <- weights_join_tolerance[1]
+    weights_join_tolerance_y <- weights_join_tolerance[2]
+  } else{
+    stop(crayon::red("Please provide one digit or a vector of only two digits for weights_join_tolerance."))
+  }
 
   # Aggregated climate data to daily values
   setup_list <- daily_aggregation(data, overlay_weights, daily_agg, time_interval)
 
-  clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
+  clim_daily <- setup_list[[1]] # Pulls the daily aggregated spatRaster stack
   layer_names <- setup_list[[2]] # Pulls the saved layer names
 
 
@@ -494,7 +679,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
     }
     # Add in spline terms, all of which are 0 if negative
     else{
-      clim_daily_table <- raster::values(clim_daily)
+      clim_daily_table <- terra::values(clim_daily)
 
        part1 <- ifelse((clim_daily_table - knot_locs[x]) > 0,
                        (clim_daily_table - knot_locs[x])^3, 0)
@@ -511,7 +696,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
       clim_daily_table <- part1 - part2 + part3
 
       clim_daily_new <- clim_daily
-      raster::values(clim_daily_new) <- clim_daily_table
+      terra::values(clim_daily_new) <- clim_daily_table
 
       return(clim_daily_new)
 
@@ -531,7 +716,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
   create_dt <- function(x){
 
     # Should output raster cells x/y with 365 days as column names
-    dt <- as.data.table.raster(r[[x]], xy=TRUE)
+    dt <- as_data_table_terra(r[[x]], xy=TRUE)
 
     # Set column names with months
     new_names <- c('x', 'y', layer_names)
@@ -557,7 +742,14 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 
 
   # Aggregate by polygon
-  sum_by_poly <- polygon_aggregation(clim_dt, overlay_weights, list_names, time_agg)
+  sum_by_poly <- polygon_aggregation(
+    clim_dt,
+    overlay_weights,
+    list_names,
+    time_agg,
+    weights_join_tolerance_x = weights_join_tolerance_x,
+    weights_join_tolerance_y = weights_join_tolerance_y,
+    na_rm = na_rm)
 
   return(sum_by_poly)
 }
@@ -589,11 +781,23 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
 #'  required if daily_agg is not `'none'` or if the `start_date` argument is not
 #'  `NA`.
+#' @param weights_join_tolerance the tolerance to use when joining
+#' overlay_weights with the climate data by the x and y columns. This is useful
+#' when the height/width of your data cells expressed in degrees is a very long
+#' decimal. The default, `0`, performs a keyed equi-join. Anything other than 0
+#' performs a nonequi-join wherein latitudes/longitudes within the specified
+#' tolerance (inclusive) are considered a match. Passing a single number results
+#' in the tolerance being the same for x and y, but you can also pass a vector
+#' of two numbers to have the first specify the x tolerance and second specify
+#' the y tolerance.
+#' @param na_rm whether to remove NAs in the climate data and adjust the
+#' overlay weights so that the weights of non-na cells sum to 1 across each
+#' polygon. The default is `FALSE`.
 #' @param bin_breaks A vector of bin boundaries to split the data by
 #'
 #' @examples
 #' bin_output <- staggregate_bin(
-#'   data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and
+#'   data = terra::rast(temp_nj_jun_2024_era5) - 273.15, # Climate data to transform and
 #'                                          # aggregate
 #'   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 #'   daily_agg = "average", # Average hourly values to produce daily values
@@ -613,7 +817,7 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #' head(bin_output)
 #'
 #' @export
-staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month", start_date = NA, time_interval = '1 hour', bin_breaks){
+staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month", start_date = NA, time_interval = '1 hour', weights_join_tolerance = 0, na_rm = FALSE, bin_breaks){
 
   # If the start date is supplied, overwrite the raster's layer names to reflect the specified temporal metadata
   if(!is.na(start_date)){
@@ -627,13 +831,26 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
     daily_agg = "none"
   }
 
+
+  # If tolerance supplied is one number, apply to both x and y.
+  # If two numbers, apply first to x and second to y
+  if(length(weights_join_tolerance) == 1){
+    weights_join_tolerance_x <- weights_join_tolerance
+    weights_join_tolerance_y <- weights_join_tolerance
+  } else if(length(weights_join_tolerance == 2)){
+    weights_join_tolerance_x <- weights_join_tolerance[1]
+    weights_join_tolerance_y <- weights_join_tolerance[2]
+  } else{
+    stop(crayon::red("Please provide one digit or a vector of only two digits for weights_join_tolerance."))
+  }
+
   # Aggregate climate data to daily values
   setup_list <- daily_aggregation(data, overlay_weights, daily_agg, time_interval)
   clim_daily <- setup_list[[1]] # Pulls the daily aggregated raster brick
   layer_names <- setup_list[[2]] # Pulls the saved layer names
 
 
-  clim_daily_table <- raster::values(clim_daily)
+  clim_daily_table <- terra::values(clim_daily)
 
   bin_breaks <- sort(bin_breaks)
 
@@ -654,13 +871,13 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 
   # Function check_bins to determine which bins data points fall into
   check_bins <- function(x){
-    clim_daily_table <- raster::values(clim_daily)
+    clim_daily_table <- terra::values(clim_daily)
 
     if(x == 0){
       clim_daily_table <- ifelse(min(bin_breaks) > clim_daily_table, 1, 0)
     }
     else if(x == length(bin_breaks)){
-      clim_daily_table <- ifelse(max(bin_breaks) < clim_daily_table, 1, 0)
+      clim_daily_table <- ifelse(max(bin_breaks) <= clim_daily_table, 1, 0)
     }
     else{
       clim_daily_table <- ifelse(bin_breaks[x] <= clim_daily_table &
@@ -669,7 +886,7 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 
 
     clim_daily_new <- clim_daily
-    raster::values(clim_daily_new) <- clim_daily_table
+    terra::values(clim_daily_new) <- clim_daily_table
 
     return(clim_daily_new)
   }
@@ -683,7 +900,7 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
   create_dt <- function(x){
 
     # Should output raster cells x/y with 365 days as column names
-    dt <- as.data.table.raster(r[[x]], xy=TRUE)
+    dt <- as_data_table_terra(r[[x]], xy=TRUE)
 
     # Set column names with months
     new_names <- c('x', 'y', layer_names)
@@ -710,7 +927,14 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 
 
   # Aggregate by polygon
-  sum_by_poly <- polygon_aggregation(clim_dt, overlay_weights, list_names, time_agg)
+  sum_by_poly <- polygon_aggregation(
+    clim_dt,
+    overlay_weights,
+    list_names,
+    time_agg,
+    weights_join_tolerance_x = weights_join_tolerance_x,
+    weights_join_tolerance_y = weights_join_tolerance_y,
+    na_rm = na_rm)
 
   return(sum_by_poly)
 }
@@ -741,11 +965,23 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 #'  aggregated. To be input in a format compatible with seq(), e.g.
 #'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
 #'  required if the `start_date` argument is not `NA`.
+#' @param weights_join_tolerance the tolerance to use when joining
+#' overlay_weights with the climate data by the x and y columns. This is useful
+#' when the height/width of your data cells expressed in degrees is a very long
+#' decimal. The default, `0`, performs a keyed equi-join. Anything other than 0
+#' performs a nonequi-join wherein latitudes/longitudes within the specified
+#' tolerance (inclusive) are considered a match. Passing a single number results
+#' in the tolerance being the same for x and y, but you can also pass a vector
+#' of two numbers to have the first specify the x tolerance and second specify
+#' the y tolerance.
+#' @param na_rm whether to remove NAs in the climate data and adjust the
+#' overlay weights so that the weights of non-na cells sum to 1 across each
+#' polygon. The default is `FALSE`.
 #' @param thresholds A vector of temperature thresholds critical to a crop
 #'
 #' @examples
 #' degree_days_output <- staggregate_degree_days(
-#'   data = temp_nj_jun_2024_era5 - 273.15, # Climate data to transform and
+#'   data = terra::rast(temp_nj_jun_2024_era5) - 273.15, # Climate data to transform and
 #'                                          # aggregate
 #'   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
 #'   time_agg = "month", # Sum the transformed daily values across months
@@ -761,12 +997,24 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 #' head(degree_days_output)
 #'
 #' @export
-staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", start_date = NA, time_interval = '1 hour', thresholds){
+staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", start_date = NA, time_interval = '1 hour', weights_join_tolerance = 0, na_rm = FALSE, thresholds){
 
   # If the start date is supplied, overwrite the raster's layer names to reflect the specified temporal metadata
   if(!is.na(start_date)){
     message(crayon::green(sprintf("Rewriting the data's temporal metadata (layer names) to reflect a dataset starting on the supplied start date and with a temporal interval of %s", time_interval)))
     data <- infer_layer_datetimes(data, start_date, time_interval)
+  }
+
+  # If tolerance supplied is one number, apply to both x and y.
+  # If two numbers, apply first to x and second to y
+  if(length(weights_join_tolerance) == 1){
+    weights_join_tolerance_x <- weights_join_tolerance
+    weights_join_tolerance_y <- weights_join_tolerance
+  } else if(length(weights_join_tolerance == 2)){
+    weights_join_tolerance_x <- weights_join_tolerance[1]
+    weights_join_tolerance_y <- weights_join_tolerance[2]
+  } else{
+    stop(crayon::red("Please provide one digit or a vector of only two digits for weights_join_tolerance."))
   }
 
   # Run climate data through daily_aggregation)() (not actually aggregating to daily values)
@@ -793,7 +1041,7 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", s
 
   # Create function to calculate degree days
   calc_deg_days <- function(x){
-    clim_table <- raster::values(clim_rast)
+    clim_table <- terra::values(clim_rast)
     if(x == 0){ # For the lowest threshold, create a variable equal to 0 if the
                 # value is greater than the threshold, and equal to the
                 # threshold minus value otherwise
@@ -816,7 +1064,7 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", s
     }
 
     clim_rast_new <- clim_rast
-    raster::values(clim_rast_new) <- clim_table
+    terra::values(clim_rast_new) <- clim_table
 
     return(clim_rast_new)
   }
@@ -830,7 +1078,7 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", s
   create_dt <- function(x){
 
     # Should output raster cells x/y with 365 days as column names
-    dt <- as.data.table.raster(r[[x]], xy=TRUE)
+    dt <- as_data_table_terra(r[[x]], xy=TRUE)
 
     # Set column names with months
     new_names <- c('x', 'y', layer_names)
@@ -859,7 +1107,14 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", s
 
 
   # Aggregate by polygon
-  sum_by_poly <- polygon_aggregation(clim_dt, overlay_weights, list_names, time_agg)
+  sum_by_poly <- polygon_aggregation(
+    clim_dt,
+    overlay_weights,
+    list_names,
+    time_agg,
+    weights_join_tolerance_x = weights_join_tolerance_x,
+    weights_join_tolerance_y = weights_join_tolerance_y,
+    na_rm = na_rm)
 
   return(sum_by_poly)
 

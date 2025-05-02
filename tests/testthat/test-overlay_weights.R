@@ -1,6 +1,8 @@
 # Test overlay weights
 test_that("overlay_weights outputs are normal", {
 
+  nj_counties <- tigris::counties("nj")
+
   # Run secondary_weights
   crop_weights <- secondary_weights(cropland_nj_2015)
 
@@ -47,6 +49,8 @@ test_that("overlay_weights outputs are normal", {
 
 test_that("overlay_weights works when some secondary weights are NA", {
 
+  nj_counties <- tigris::counties("nj")
+
   # Run secondary_weights
   crop_weights_na <- secondary_weights(cropland_nj_2015)  %>%
     # Set all odd rows to NA
@@ -75,7 +79,7 @@ test_that("overlay_weights works when some secondary weights are NA", {
 
 test_that("overlay_weights warnings", {
 
-
+  nj_counties <- tigris::counties("nj")
 
   # Run secondary_weights
   crop_weights_na <- secondary_weights(cropland_nj_2015) %>%
@@ -104,8 +108,10 @@ test_that("overlay_weights warnings", {
 
 test_that("overlay_weights errors", {
 
+  nj_counties <- tigris::counties("nj")
+
   # Shift the nj_countiespolygons so they are 0-360
-  nj_shift <- nj_counties%>% sf::st_shift_longitude()
+  nj_shift <- nj_counties %>% sf::st_shift_longitude()
 
   # Errors: 3 stops in the overlay_weight function
   ## Error if polygons are in 0-360
