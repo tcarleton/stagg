@@ -21,7 +21,6 @@ Imports:
     dplyr,
     exactextractr,
     lubridate,
-    magrittr,
     methods,
     sf,
     stringr,

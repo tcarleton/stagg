@@ -91,21 +91,21 @@ daily_aggregation <- function(data, overlay_weights, daily_agg, time_interval='1
 
     # Get cropping locations by finding largest gap and making left side's xmax
     # the x value to the left and right side's xmin the x value to the right
-    crop_locs <- data.frame(x_vector) %>%
+    crop_locs <- data.frame(x_vector) |>
       dplyr::mutate(
         diff = x_vector - dplyr::lag(x_vector),
         is_right_xmin = diff == max(diff, na.rm = TRUE),
         is_left_xmax = dplyr::lead(diff) == max(diff, na.rm = TRUE)
         )
 
-    right_xmin <- crop_locs %>%
-      dplyr::filter(is_right_xmin) %>%
-      dplyr::slice(1) %>%
+    right_xmin <- crop_locs |>
+      dplyr::filter(is_right_xmin) |>
+      dplyr::slice(1) |>
       dplyr::pull(x_vector)
 
-    left_xmax <- crop_locs %>%
-      dplyr::filter(is_left_xmax) %>%
-      dplyr::slice(1) %>%
+    left_xmax <- crop_locs |>
+      dplyr::filter(is_left_xmax) |>
+      dplyr::slice(1) |>
       dplyr::pull(x_vector)
 
     # Split into 2 and then merge back together
