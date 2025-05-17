@@ -46,16 +46,18 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
 
   ## check to make sure climate raster is a spatraster, change if not
   if (!inherits(grid, "SpatRaster")) {
-    clim_raster <- terra::rast(grid)
-  } else {
+    grid <- terra::rast(grid)
+  }
 
-    clim_raster <- grid
+  ## check if SpatRaster is in geographic coodrinates
+  if(!terra::is.lonlat(grid)) {
+    stop(crayon::red('Grid does not have geographic coordinates.'))
 
   }
 
   ## Raster cell area
   ## -----------------------------------------------
-  clim_area_raster <- terra::cellSize(clim_raster, unit = "km")
+  clim_area_raster <- terra::cellSize(grid, unit = "km")
 
   ## Raster/polygon alignment
   ## -----------------------------------------------
@@ -67,11 +69,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
   rast_xmax <- terra::ext(clim_area_raster)$xmax
   rast_res <-  terra::xres(clim_area_raster)
 
-  ## check if SpatRaster is in geographic coodrinates
-  if(!terra::is.lonlat(clim_raster)) {
-    stop(crayon::red('Grid does not have geographic coordinates.'))
 
-  }
 
  ## stop if polygons are not in standard coordinate system
  if(poly_xmax > 180) {
@@ -85,7 +83,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
 
     # Make sure the cell widths aren't peculiar otherwise the rotate function will
     # mess things up
-    if(360 %% terra::xres(clim_raster) != 0){
+    if(360 %% terra::xres(grid) != 0){
       stop(crayon::red('Grid is in climate coordinate system (longitude 0 to 360) and grid cell width does not divide 360 evenly, making accurate alignment impossible.'))
     }
 
@@ -118,14 +116,14 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
 
   ## Match raster and polygon crs
   crs_raster <- terra::crs(clim_area_raster)
-  polygons_reproj <- sf::st_transform(polygons, crs = crs_raster)
+  polygons <- sf::st_transform(polygons, crs = crs_raster)
 
   ## Raster / Polygon overlap (using data.table)
   ## -----------------------------------------------
   message(crayon::green('Extracting raster polygon overlap'))
 
-  overlap <- data.table::rbindlist(exactextractr::exact_extract(clim_area_raster, polygons_reproj, progress = F, include_xy = T), idcol = "poly_id")
-  overlap[, ':=' (poly_id = polygons_reproj[[polygon_id_col]][poly_id], cell_area_km2 = value)] # Add the unique id for each polygon based on the input col name
+  overlap <- data.table::rbindlist(exactextractr::exact_extract(clim_area_raster, polygons, progress = F, include_xy = T), idcol = "poly_id")
+  overlap[, ':=' (poly_id = polygons[[polygon_id_col]][poly_id], cell_area_km2 = value)] # Add the unique id for each polygon based on the input col name
 
 
   ## Calculate weights

@@ -74,28 +74,24 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
 
   ## check to make sure climate raster is a spatraster, change if not
   if (!inherits(grid, "SpatRaster")) {
-    clim_raster <- terra::rast(grid)
-  } else {
-
-    clim_raster <- grid
-
+    grid <- terra::rast(grid)
   }
 
   ## check if SpatRaster is in geographic coodrinates
-  if(!terra::is.lonlat(clim_raster)) {
+  if(!terra::is.lonlat(grid)) {
     stop(crayon::red('Grid does not have geographic coordinates.'))
 
   }
 
   # Create climate raster from input raster
-  clim_raster <- clim_raster[[1]] # only reads the first band
+  grid <- grid[[1]] # only reads the first band
 
   ## climate raster information for creating buffer and doing checks/rotations
-  c_rast_xmax <- terra::ext(clim_raster)$xmax
+  c_rast_xmax <- terra::ext(grid)$xmax
 
   ## find xy resolution for rasters
-  c_rast_xres <- terra::xres(clim_raster)
-  c_rast_yres <- terra::yres(clim_raster)
+  c_rast_xres <- terra::xres(grid)
+  c_rast_yres <- terra::yres(grid)
   s_rast_xres <- terra::xres(secondary_raster)
   s_rast_yres <- terra::yres(secondary_raster)
 
@@ -139,7 +135,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
     secondary_raster <- terra::crop(secondary_raster, extent)
   }
 
-  ## Raster alignment: make sure clim_raster is in same coordinate system as secondary
+  ## Raster alignment: make sure grid is in same coordinate system as secondary
   ## can be in either x coord system
   ## -----------------------------------------------
 
@@ -162,7 +158,7 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
     message(crayon::yellow('Longitude coordinates do not match. Aligning longitudes to standard coordinates.'))
 
     ## check if raster needs to be padded, extend if needed
-    c_rast_xmin <- terra::ext(clim_raster)$xmin
+    c_rast_xmin <- terra::ext(grid)$xmin
 
     if(!dplyr::near(c_rast_xmin, 0, tol = c_rast_xres) | !dplyr::near(c_rast_xmax, 360, tol = c_rast_xres)) {
 
@@ -170,12 +166,12 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
       global_extent <- c(0, 360, -90, 90)
 
       ## pad
-      clim_raster <- terra::extend(clim_raster, global_extent)
+      grid <- terra::extend(grid, global_extent)
 
     }
 
     ## rotate
-    clim_raster <- terra::rotate(clim_raster)
+    grid <- terra::rotate(grid)
 
   }
 
@@ -214,11 +210,11 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   ## -----------------------------------------------
 
   # Find the difference between the climate raster resolution and secondary raster resolution
-  clim_raster <- terra::crop(clim_raster, terra::ext(secondary_raster), snap="out")
+  grid <- terra::crop(grid, terra::ext(secondary_raster), snap="out")
 
   ## set crs of secondary raster to match climate data
   ## -----------------------------------------------
-  terra::crs(secondary_raster) <- terra::crs(clim_raster)
+  terra::crs(secondary_raster) <- terra::crs(grid)
 
   ## check if the cropped secondary raster contains NA values
   if(isTRUE(any(is.na(terra::values(secondary_raster, na.rm=FALSE))))) {
@@ -228,11 +224,11 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   }
 
 
-  ## Make the values of the clim_raster resampled weights
+  ## Make the values of the grid resampled weights
   ## -----------------------------------------------
   message(crayon::green("Resampling secondary_raster"))
 
-  resampled_raster <- terra::resample(secondary_raster, clim_raster, method="bilinear")
+  resampled_raster <- terra::resample(secondary_raster, grid, method="bilinear")
 
   ## Make a data.table of the values of the resampled raster with lat/lon
   ## -----------------------------------------------
