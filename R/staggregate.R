@@ -1119,3 +1119,226 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", s
   return(sum_by_poly)
 
 }
+
+
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+
+#                           CODE WORK AHEAD
+# !!!       Untested refactored code in development below                    !!!
+
+
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+
+#' Custom transformation and spatiotemporal aggregation of climate data
+#'
+#' The function `staggregate_custom()` aggregates climate data to the daily
+#' level, performs the desired transformation on these daily values, and
+#' aggregates the transformed values to the polygon level and desired temporal
+#' scale
+#'
+#' @param data the spatRasts or raster brick with the data to be transformed and
+#'  aggregated
+#' @param overlay_weights a table of weights used to perform polygon
+#'  aggregation. These can be generated using the function `overlay_weights()`
+#' @param daily_agg How to aggregate hourly values to daily values prior to
+#'  transformation. Options are `'sum'`, `'average'`, or `'none'` (`'none'`
+#'   will transform values without first aggregating to the daily level)
+#' @param time_agg the temporal scale to aggregate data to. Options are
+#'  `minute`, `'hour`, `'day'`, `'month'`, or `'year'`
+#' @param transformations a list of functions to transform the data prior to
+#'  aggregation. For instance, running `staggregate_polynomial(... degree = 2)`
+#'  is equivalent to running
+#'  `staggregate_custom(... transformations = c(\(x) x, \(x) x^2)`
+#' @param result_cols a vector of strings to use in naming the columns of
+#'  transformed, aggregated values. These must be in the same order as the
+#'  corresponding transformations. In keeping with the example above, passing
+#'  `c("order_1", "order_2")` to the argument will produce the same names as
+#'  `staggregate_polynomial(... degree = 2)`. Default names are fun1, fun2, etc
+#' @param start_date the date (and time, if applicable) of the first layer in
+#'  the raster. To be input in a format compatible with
+#'  lubridate::as_datetime(), e.g. `"1991-10-29"` or `"1991-10-29 00:00:00"`.
+#'  The default is `NA` since the rasters usually already contain temporal
+#'  information in the layer names and they do not need to be manually supplied
+#' @param time_interval the time interval between layers in the raster to be
+#'  aggregated. To be input in a format compatible with seq(), e.g.
+#'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
+#'  required if the `start_date` argument is not `NA`
+#' @param weights_join_tolerance the tolerance to use when joining
+#' overlay_weights with the climate data by the x and y columns. This is useful
+#' when the height/width of your data cells expressed in degrees is a very long
+#' decimal. The default, `0`, performs a keyed equi-join. Anything other than 0
+#' performs a nonequi-join wherein latitudes/longitudes within the specified
+#' tolerance (inclusive) are considered a match. Passing a single number results
+#' in the tolerance being the same for x and y, but you can also pass a vector
+#' of two numbers to have the first specify the x tolerance and second specify
+#' the y tolerance
+#' @param na_rm whether to remove NAs in the climate data and adjust the
+#' overlay weights so that the weights of non-na cells sum to 1 across each
+#' polygon. The default is `FALSE`
+#'
+#' @examples
+#' degree_days_output <- staggregate_degree_days(
+#'   data = terra::rast(temp_nj_jun_2024_era5) - 273.15, # Climate data to transform and
+#'                                          # aggregate
+#'   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
+#'   time_agg = "month", # Sum the transformed daily values across months
+#'   start_date = "2024-06-01 00:00:00", # The start date of the supplied data,
+#'                                       # only required if the layer name
+#'                                       # format is not compatible with stagg
+#'   time_interval = "1 hour", # The temporal interval of the supplied data,
+#'                             # only required if the start_date is not NA
+#'   thresholds = c(0, 10, 20) # Calculate degree days above 0, 10, and 20
+#'                             # degrees Celsius
+#'   )
+#'
+#' head(degree_days_output)
+#'
+#' @export
+staggregate_custom <- function(
+    data,
+    overlay_weights,
+    time_agg = 'month',
+    transformations,
+    result_cols = NA,
+    start_date = NA,
+    time_interval = '1 hour',
+    weights_join_tolerance,
+    na_rm
+){
+
+  # Input Validation and Handling
+  # ____________________________________________________________________________
+
+  # data
+  # -----
+
+  if(inherits(data, "SpatRaster")){
+    clim_stack <- data
+  } else{
+    clim_stack <- terra::rast(data)
+  }
+
+
+  # overlay_weights
+  # ----------------
+
+  # Make sure they're using overlay_weights() output
+  if((sum(c('x', 'y', 'poly_id') %in% names(overlay_weights)) != 3
+     | !('w_area' %in% names(overlay_weights) | 'weight' %in% names(overlay_weights)))){
+    stop(crayon::red("overlay_weight column names are either missing one of 'x', 'y', 'poly_id', or lacks both 'w_area' and 'weight'. Please pass the output from the overlay_weights() function to the overlay_weights argument."))
+  }
+
+
+  # daily_agg
+  # ----------
+
+  # Make sure string is allowed
+  if(!daily_agg %in% c('average', 'sum', 'none')){
+    stop(crayon::red("daily_agg must be 'average', 'sum', or 'none'"))
+  }
+
+  # Change daily_agg to "none" if time_agg is "hour" or "minute"
+  if(time_agg %in% c('hour', 'minute') & daily_agg != 'none'){
+    message(crayon::yellow("Hourly or minute-by-minute output requested. Automatically setting daily_agg to 'none'"))
+    daily_agg = 'none'
+  }
+
+
+  # time_agg
+  # ---------
+  # Make sure string is allowed
+  if(!time_agg %in% c('minute', 'hour', 'day', 'month', 'year')){
+    stop(crayon::red("time_agg must be 'minute', 'hour', 'day', 'month', or 'year'"))
+  }
+
+
+  # transformations
+  # ----------------
+
+  # Make sure transformations are listed functions
+  if(!inherits(transformations, 'list')){
+    stop(crayon::red('transformations must be a list of functions'))
+  }
+
+  for(t in transformations){
+    if(!inherits(t, 'function')){
+      stop(crayon::red('transformations must be a list of functions'))
+    }
+  }
+
+
+  # result_cols
+  # ------------
+
+  # if NA, replace with fun1, fun2, ...
+  if(is.na(result_cols){
+    result_cols <- paste0('fun', 1:length(transformations))
+  })
+
+  # Length result cols must match length transformations
+  if(length(result_cols) != length(transformations)){
+    stop(crayon::red('transformations and result_cols must have the same length'))
+  }
+
+
+  # weights_join_tolerance
+  # -----------------------
+
+  # If tolerance supplied is one number, apply to both x and y
+  if(length(weights_join_tolerance) == 1){
+    weights_join_tolerance_x <- weights_join_tolerance
+    weights_join_tolerance_y <- weights_join_tolerance
+  } else if(length(weights_join_tolerance) == 2){
+  # If two numbers, apply first to x and second to y
+    weights_join_tolerance_x <- weights_join_tolerance[1]
+    weights_join_tolerance_y <- weights_join_tolerance[2]
+  } else{
+    # Stop otherwise
+    stop(crayon::red('Please provide one digit or a vector of only two digits for weights_join'))
+  }
+
+
+  # na_rm
+  # ------
+  if(!na_rm %in% c(TRUE, FALSE)){
+    stop(crayon::red('na_rm must be either TRUE or FALSE'))
+  }
+
+
+
+}
+
