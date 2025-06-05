@@ -1163,6 +1163,381 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", s
 ################################################################################
 
 
+
+# ==============================================================================
+# Internal Helper Functions
+# ==============================================================================
+
+
+
+
+# 1. Input Validation and Error Catching
+# ______________________________________________________________________________
+
+
+
+
+#   a) validate_data
+#   -----------------------------------
+
+#' Make sure `data` is a SpatRaster stack, fix if possible
+#'
+#' The reason we check if already as spatRast is because, if it is,
+#' `terra::rast(data)` turns it to a file name.
+#'
+#' @param data the user-supplied data
+#'
+#' @returns a SpatRaster if coercible/already a SpatRaster, error if not
+#'
+#' @noRd
+validate_data <- function(data){
+  if(!inherits(data, "SpatRaster")){
+    data <- terra::rast(data)
+  }
+  return(data)
+}
+
+
+
+
+#   b) validate_overlay_weights
+#   -----------------------------------
+
+#' Make sure `overlay_weights` contain necessary columns
+#'
+#' The data frame (table) supplied to overlay_weights must have the columns x,
+#' y, and poly_id, and also must have either w_area or weight. Otherwise, the
+#' main function will break later on.
+#'
+#' @param overlay_weights the user-supplied overlay_weights
+#'
+#' @returns Nothing new. Only error if correct column names not found
+#'
+#' @noRD
+validate_overlay_weights <- function(overlay_weights){
+
+  # x, y, and poly_id all present
+  has_all_geo_cols <- c('x', 'y', 'poly_id') %in% names(overlay_weights) |>
+    all()
+
+  # w_area or weight present
+  has_any_weight_col <- c('w_area', 'weight') %in% names(overlay_weights) |>
+    any()
+
+  # Error if not found
+  if(!(has_all_geo_cols & has_any_weight_col)){
+    stop(crayon::red("overlay_weight column names are either missing one of 'x', 'y', 'poly_id', or lacks both 'w_area' and 'weight'. Please pass the output from the overlay_weights() function to the overlay_weights argument."))
+  }
+
+  return(overlay_weights)
+}
+
+
+
+
+#   e) validate_daily_agg
+#   -----------------------------------
+#' Make sure `daily_agg` is an allowed string and makes sense w/ time_agg
+#'
+#' @param daily_agg the user-supplied daily_agg string
+#' @param time_agg the user-supplied time_agg string
+#'
+#' @returns None. Only error if valid string not found
+#'
+#' @noRD
+validate_daily_agg <- function(daily_agg, time_agg){
+
+  # Make sure string is allowed
+  if(!daily_agg %in% c('average', 'sum', 'none')){
+    stop(crayon::red("daily_agg must be 'average', 'sum', or 'none'"))
+  }
+
+  # Change daily_agg to "none" if time_agg is "hour" or "minute"
+  if(time_agg %in% c('hour', 'minute') & daily_agg != 'none'){
+    message(crayon::yellow("Hourly or minute-by-minute output requested. Automatically setting daily_agg to 'none'"))
+    daily_agg = 'none'
+  }
+
+  return(daily_agg)
+
+}
+
+
+
+
+
+#   d) validate_time_agg
+#   -----------------------------------
+
+#' Make sure `time_agg` is an allowed string
+#'
+#' @param time_agg the user-supplied time_agg string
+#'
+#' @returns Nothing new. Only error if valid string not found
+#'
+#' @noRD
+validate_time_agg <- function(time_agg){
+
+  # Make sure string is allowed
+  if(!time_agg %in% c('minute', 'hour', 'day', 'month', 'year')){
+    stop(crayon::red("time_agg must be 'minute', 'hour', 'day', 'month', or 'year'"))
+  }
+
+  return(time_agg)
+}
+
+
+
+
+#   e) validate_transformations
+#   -----------------------------------
+#' Make sure `transformations` is a list of functions
+#'
+#' @param `transformations` the user supplied `transformations` list of
+#' functions
+#'
+#' @returns Nothing new. Only error if valid function list not found
+#'
+#' @noRd
+validate_transformations <- function(transformations){
+
+  if(!inherits(transformations, 'list')){
+    stop(crayon::red('transformations must be a list of functions'))
+  }
+
+  for(t in transformations){
+    if(!inherits(t, 'function')){
+      stop(crayon::red('transformations must be a list of functions'))
+    }
+  }
+
+  return(transformations)
+}
+
+#   f) validate_result_cols
+#   -----------------------------------
+#' Supply default result column names or check length of user supplied names
+#'
+#' @param result_cols the user supplied `result_cols`
+#' @param transformations the user supplied `transformations`
+#'
+#' @returns default result_cols if none supplied
+#'
+#' @noRd
+validate_result_cols <- function(result_cols, transformations){
+
+  # if NA, replace with fun1, fun2, ...
+  if(is.na(result_cols){
+    result_cols <- paste0('fun', 1:length(transformations))
+  })
+
+    # Length result cols must match length transformations
+    if(length(result_cols) != length(transformations)){
+      stop(crayon::red('transformations and result_cols must have the same length'))
+    }
+
+  return(result_cols)
+
+}
+
+
+
+
+#   g) validate_start_date
+#   -----------------------------------
+#' Coerce start_date to datetime
+#'
+#' This function is just in case we want to add more checks, for consistency,
+#' and so we can write tests to verify the behavior of
+#' `lubridate::as_datetime()` doesn't change.
+#'
+#' @param start_date the user-supplied start_date
+#'
+#' @returns Start date, coerced to datetime
+#'
+#' @noRd
+validate_start_date <- function(start_date){
+
+  if(!is.na(start_date)){
+    start_date <- lubridate::as_datetime(start_date)
+  }
+
+
+  return(start_date)
+}
+
+
+
+
+#   h) validate_time_interval
+#   -----------------------------------
+#' Make sure time_interval supplied makes sense given other inputs and is
+#' coercible to duration
+#'
+#' @param time_interval the user-supplied time interval string
+#' @param daily_aggregation the user-supplied `daily_aggregation` string
+#' @param data the user-supplied `data` checked by `validate_data()`
+#'
+#' @returns None. Errors only if needed.
+#'
+#' @noRd
+validate_time_interval <- function(time_interval, data, daily_aggregation){
+
+  # Calculate number of intervals in one day
+  intervals_in_day <- as.numeric(
+    lubridate::duration('1 day') / lubridate::duration(time_interval)
+  )
+
+  # Conditions needed to perform a daily aggregation
+  if(daily_aggregation != 'none'){
+
+    # Time_interval must be less than one day unless daily_agg is 'none'
+    if(intervals_in_day < 1){
+      stop(crayon::red("The time interval must be less than 1 day in order to perform a daily aggregation. Please set `daily_agg` to 'none' to skip pre-transformation aggregating to the daily level"))
+    }
+
+    # Intervals in day must be a whole number
+    if(intervals_in_day %% 1 != 0){
+      stop(crayon::red("The time interval must fit evenly into a 24 hour day in order to perform daily aggregation. Please set `daily_agg` to 'none' to skip pre-transformation aggregating to the daily level"))
+    }
+
+    # climate data must have whole number of days
+    if(!terra::nlyr(data) %% intervals_in_day == 0){
+      stop(crayon::red("Climate data does not appear to contain a whole number of days. Please set `daily_agg` to 'none' to skip pre-transformation aggregating to the daily level"))
+    }
+  }
+}
+
+
+
+#   i) validate_weights_join_tolerance
+#   -----------------------------------
+#' Infer and check user-supplied weights_join_tolerance
+#'
+#' @param weights_join_tolerance the user supplied weights_join_tolerance
+#'
+#' @returns length two vector of form c(x_tol, y_tol)
+#'
+#' @noRD
+validate_weights_join_tolerance(weights_join_tolerance, get_x){
+  # If tolerance supplied is one number, apply to both x and y
+  if(length(weights_join_tolerance) == 1){
+    x_tol <- y_tol <- weights_join_tolerance
+  }else if(length(weights_join_tolerance) == 2){
+    # If two numbers, apply first to x and second to y
+    x_tol <- weights_join_tolerance[1]
+    y_tol <- weights_join_tolerance[2]
+  }else{
+    # Stop otherwise
+    stop(crayon::red('Please provide one digit or a vector of only two digits for weights_join'))
+  }
+
+  return(c(x_tol, y_tol))
+}
+
+
+
+
+#   j) validate_na_rm
+#   -----------------------------------
+#' Check that na_rm is a boolean value
+#'
+#' @param na_rm the user supplied na_rm
+#'
+#' @returns None. Error if necessary
+#'
+#' @noRd
+validate_na_rm(){
+  if(!na_rm %in% c(TRUE, FALSE)){
+    stop(crayon::red('na_rm must be either TRUE or FALSE'))
+  }
+
+  return(na_rm)
+}
+
+
+
+
+# 2. Crop Data to Weights Extent
+# ______________________________________________________________________________
+
+#   (utils) check_alignment
+#   -----------------------------------
+
+#   a) look_for_poly_split
+#   -----------------------------------
+
+#   b) crop_with_poly_split
+#   -----------------------------------
+
+#   (utils) buffered_crop
+#   -----------------------------------
+
+
+# 3. Aggregate to daily level
+# ______________________________________________________________________________
+
+#   a) daily_aggregation
+#   -----------------------------------
+
+
+# 4. Apply Transformations
+# ______________________________________________________________________________
+
+#   a) transform_values
+#   -----------------------------------
+
+#' Create a new SpatRaster stack for each transformation
+#'
+#' This internal function takes our un-aggregated (except for any daily
+#' aggregation) SpatRaster values and applies the listed functions passed to the
+#' argument `transformations`, making a new SpatRaster stack for each and
+#' outputting these as a list.
+#'
+#' @param data the SpatRaster stack output from daily_aggregation
+#' @param transformations the list of functions passed to the main function's
+#' `transformations` argument
+#'
+#' @returns A list of SpatRaster stacks, one for each transformation
+#'
+#' @noRd
+transform_values <- function(data, transformations){
+  data <- lapply(
+    1:length(transformations),
+    FUN = function(x){transformations[[x]](data)}
+  )
+
+  return(data)
+}
+
+
+# 5. Extract Transformed Values to Table
+# ______________________________________________________________________________
+
+#   a) stack_list_to_tables
+#   -----------------------------------
+
+#     (utils) as_data_table_terra
+#     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#   b) join_transformed_values
+#   -----------------------------------
+
+
+# 6. Spatio-Temporal Aggregation
+# ______________________________________________________________________________
+
+#   6. spatiotemporal_agg
+#   -----------------------------------
+
+
+# ==============================================================================
+# Exported Staggregate Functions
+# ==============================================================================
+
+# 1. Main Staggregate function
+# ______________________________________________________________________________
+
 #' Custom transformation and spatiotemporal aggregation of climate data
 #'
 #' The function `staggregate_custom()` aggregates climate data to the daily
@@ -1231,112 +1606,73 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", s
 staggregate_custom <- function(
     data,
     overlay_weights,
+    daily_agg = 'none',
     time_agg = 'month',
     transformations,
     result_cols = NA,
     start_date = NA,
     time_interval = '1 hour',
-    weights_join_tolerance,
-    na_rm
+    weights_join_tolerance = 0,
+    na_rm = FALSE
 ){
 
-  # Input Validation and Handling
+  # 1. Input Validation and Error Catching
   # ____________________________________________________________________________
 
-  # data
-  # -----
+  # Coerce data to spatRast
+  data <- validate_data(data)
 
-  if(inherits(data, "SpatRaster")){
-    clim_stack <- data
-  } else{
-    clim_stack <- terra::rast(data)
+  # Make sure overlay_weights has necessary columns
+  overlay_weights <- validate_overlay_weights(overlay_weights)
+
+  # Make sure daily_agg is one of the listed options and makes sense
+  daily_agg <- validate_daily_agg(daily_agg = daily_agg, time_agg = time_agg)
+
+  # Make sure time_agg is one of the listed options
+  time_agg <- validate_time_agg(time_agg)
+
+  # Make sure transforamtions is a list of functions
+  transformations <- validate_transformations(transformations)
+
+  # Fill default result_cols or verify user passed names
+  result_cols <- validate_result_cols(
+    result_cols = result_cols,
+    transformations = transformations
+  )
+
+  # Make sure start_date is coercible to date_time
+  start_date <- validate_start_date(start_date)
+
+  # Make sure time_interval works w/ given data and daily_agg setting
+  time_interval <- validate_time_interval(
+    time_interval = time_interval,
+    data = data,
+    daily_agg = daily_agg
+  )
+
+  # Interpret and check weights_join_tolerance
+  weights_join_tolerance_x <- validate_weights_join_tolerance(
+    weights_join_tolerance
+  )[1]
+
+  weights_join_tolerance_y <- validate_weights_join_tolerance(
+    weights_join_tolerance
+  )[2]
+
+  # Make sure na_rm is boolean
+  na_rm <- validate_na_rm(na_rm)
+
+
+  # If the start date is supplied, overwrite the spatRaster's layer names to reflect the specified temporal metadata
+  if(!is.na(start_date)){
+    message(crayon::green(sprintf("Rewriting the data's temporal metadata (layer names) to reflect a dataset starting on the supplied start date and with a temporal interval of %s" , time_interval)))
+    data <- infer_layer_datetimes(data, start_date, time_interval)
   }
 
 
-  # overlay_weights
-  # ----------------
+  # Aggregate climate data to daily values
+  data <- daily_aggregation(data, overlay_weights, daily_agg, time_interval)
 
-  # Make sure they're using overlay_weights() output
-  if((sum(c('x', 'y', 'poly_id') %in% names(overlay_weights)) != 3
-     | !('w_area' %in% names(overlay_weights) | 'weight' %in% names(overlay_weights)))){
-    stop(crayon::red("overlay_weight column names are either missing one of 'x', 'y', 'poly_id', or lacks both 'w_area' and 'weight'. Please pass the output from the overlay_weights() function to the overlay_weights argument."))
-  }
-
-
-  # daily_agg
-  # ----------
-
-  # Make sure string is allowed
-  if(!daily_agg %in% c('average', 'sum', 'none')){
-    stop(crayon::red("daily_agg must be 'average', 'sum', or 'none'"))
-  }
-
-  # Change daily_agg to "none" if time_agg is "hour" or "minute"
-  if(time_agg %in% c('hour', 'minute') & daily_agg != 'none'){
-    message(crayon::yellow("Hourly or minute-by-minute output requested. Automatically setting daily_agg to 'none'"))
-    daily_agg = 'none'
-  }
-
-
-  # time_agg
-  # ---------
-  # Make sure string is allowed
-  if(!time_agg %in% c('minute', 'hour', 'day', 'month', 'year')){
-    stop(crayon::red("time_agg must be 'minute', 'hour', 'day', 'month', or 'year'"))
-  }
-
-
-  # transformations
-  # ----------------
-
-  # Make sure transformations are listed functions
-  if(!inherits(transformations, 'list')){
-    stop(crayon::red('transformations must be a list of functions'))
-  }
-
-  for(t in transformations){
-    if(!inherits(t, 'function')){
-      stop(crayon::red('transformations must be a list of functions'))
-    }
-  }
-
-
-  # result_cols
-  # ------------
-
-  # if NA, replace with fun1, fun2, ...
-  if(is.na(result_cols){
-    result_cols <- paste0('fun', 1:length(transformations))
-  })
-
-  # Length result cols must match length transformations
-  if(length(result_cols) != length(transformations)){
-    stop(crayon::red('transformations and result_cols must have the same length'))
-  }
-
-
-  # weights_join_tolerance
-  # -----------------------
-
-  # If tolerance supplied is one number, apply to both x and y
-  if(length(weights_join_tolerance) == 1){
-    weights_join_tolerance_x <- weights_join_tolerance
-    weights_join_tolerance_y <- weights_join_tolerance
-  } else if(length(weights_join_tolerance) == 2){
-  # If two numbers, apply first to x and second to y
-    weights_join_tolerance_x <- weights_join_tolerance[1]
-    weights_join_tolerance_y <- weights_join_tolerance[2]
-  } else{
-    # Stop otherwise
-    stop(crayon::red('Please provide one digit or a vector of only two digits for weights_join'))
-  }
-
-
-  # na_rm
-  # ------
-  if(!na_rm %in% c(TRUE, FALSE)){
-    stop(crayon::red('na_rm must be either TRUE or FALSE'))
-  }
 
 
 
