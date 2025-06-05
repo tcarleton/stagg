@@ -1213,7 +1213,7 @@ validate_data <- function(data){
 #'
 #' @returns Nothing new. Only error if correct column names not found
 #'
-#' @noRD
+#' @noRd
 validate_overlay_weights <- function(overlay_weights){
 
   # x, y, and poly_id all present
@@ -1244,7 +1244,7 @@ validate_overlay_weights <- function(overlay_weights){
 #'
 #' @returns None. Only error if valid string not found
 #'
-#' @noRD
+#' @noRd
 validate_daily_agg <- function(daily_agg, time_agg){
 
   # Make sure string is allowed
@@ -1275,7 +1275,7 @@ validate_daily_agg <- function(daily_agg, time_agg){
 #'
 #' @returns Nothing new. Only error if valid string not found
 #'
-#' @noRD
+#' @noRd
 validate_time_agg <- function(time_agg){
 
   # Make sure string is allowed
@@ -1327,9 +1327,9 @@ validate_transformations <- function(transformations){
 validate_result_cols <- function(result_cols, transformations){
 
   # if NA, replace with fun1, fun2, ...
-  if(is.na(result_cols){
+  if(is.na(result_cols)){
     result_cols <- paste0('fun', 1:length(transformations))
-  })
+  }
 
     # Length result cols must match length transformations
     if(length(result_cols) != length(transformations)){
@@ -1381,7 +1381,7 @@ validate_start_date <- function(start_date){
 #' @returns None. Errors only if needed.
 #'
 #' @noRd
-validate_time_interval <- function(time_interval, data, daily_aggregation){
+validate_time_interval <- function(time_interval, data, daily_agg){
 
   # Calculate number of intervals in one day
   intervals_in_day <- as.numeric(
@@ -1389,7 +1389,7 @@ validate_time_interval <- function(time_interval, data, daily_aggregation){
   )
 
   # Conditions needed to perform a daily aggregation
-  if(daily_aggregation != 'none'){
+  if(daily_agg != 'none'){
 
     # Time_interval must be less than one day unless daily_agg is 'none'
     if(intervals_in_day < 1){
@@ -1418,8 +1418,8 @@ validate_time_interval <- function(time_interval, data, daily_aggregation){
 #'
 #' @returns length two vector of form c(x_tol, y_tol)
 #'
-#' @noRD
-validate_weights_join_tolerance(weights_join_tolerance, get_x){
+#' @noRd
+validate_weights_join_tolerance <- function(weights_join_tolerance){
   # If tolerance supplied is one number, apply to both x and y
   if(length(weights_join_tolerance) == 1){
     x_tol <- y_tol <- weights_join_tolerance
@@ -1447,7 +1447,7 @@ validate_weights_join_tolerance(weights_join_tolerance, get_x){
 #' @returns None. Error if necessary
 #'
 #' @noRd
-validate_na_rm(){
+validate_na_rm <- function(na_rm){
   if(!na_rm %in% c(TRUE, FALSE)){
     stop(crayon::red('na_rm must be either TRUE or FALSE'))
   }
