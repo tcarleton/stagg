@@ -1210,8 +1210,9 @@ validate_data <- function(data){
 #' main function will break later on.
 #'
 #' @param overlay_weights the user-supplied overlay_weights
+#' @param data the user-supplied and validated data
 #'
-#' @returns Nothing new. Only error if correct column names not found
+#' @returns Nothing new. Only error if correct column names not found or alignemnt not present.
 #'
 #' @noRd
 validate_overlay_weights <- function(overlay_weights){
@@ -1228,6 +1229,13 @@ validate_overlay_weights <- function(overlay_weights){
   if(!(has_all_geo_cols & has_any_weight_col)){
     stop(crayon::red("overlay_weight column names are either missing one of 'x', 'y', 'poly_id', or lacks both 'w_area' and 'weight'. Please pass the output from the overlay_weights() function to the overlay_weights argument."))
   }
+
+  # Make sure overlay_weights are in the same coord alignment as data, fix otherwise
+  if(check_alignment(data) != check_alignment(overlay_weights)){
+    stop(crayon::red('overlay_weights are not aligned with data'))
+  }
+
+
 
   return(overlay_weights)
 }
@@ -1313,6 +1321,9 @@ validate_transformations <- function(transformations){
 
   return(transformations)
 }
+
+
+
 
 #   f) validate_result_cols
 #   -----------------------------------
@@ -1466,6 +1477,50 @@ validate_na_rm <- function(na_rm){
 
 #   a) look_for_poly_split
 #   -----------------------------------
+#' Evaluate whether overlay_weights() likely split the polygons along 0 or 180
+#'
+#' @param data validated data
+#' @param overlay_weights validated overlay weights
+#' @param coord_alignment output from check_alignment()
+#'
+#' @returns A boolean value indicating whether a polygon split likely occurred
+#'
+#' @noRd
+look_for_poly_split <- function(data, overlay_weights, coord_alignment){
+
+  # If currently in climate coords, data near 0 and 360 suggests standard coord polygons were split along prime meridian
+  if(coord_alignment == 'climate'){
+
+    # overlay_weights has cell near 360
+    near_360 <- max(overlay_weights[,x]) > 360 - terra::xres(data)
+
+    # overlay_weights has cell near 0
+    near_0 <- min(overlay_weights[,x]) < terra:xres(clim_stack)
+
+    # If both are true, likely had polygon split
+    polygons_split <- near_360 & near_0
+  }
+
+  # If currently in standard coords, data near -180 and 180 suggests climate coord polygons were split along date line
+  if(coord_alignment == 'standard'){
+
+    # overlay_weights has cell near 180
+    near_180 <- max(overlay_weights[,x]) > 180 - terra::xres(data)
+
+    # overlay_weights has cell near -180
+    near_n180 <- min(overlay_weights[,x]) < -180 + terra::xres(data)
+
+    # If both are true, likely had polygon split
+    polygons_split <- near_180 & near_n180
+  }
+
+  # If overlay_weights span the entire globe, assume polygons weren't split
+  if(length(unique(overlay_weights[,x])) >= terra::ncol(data)){
+    polygons_split <- FALSE
+  }
+
+  return(polygons_split)
+}
 
 #   b) crop_with_poly_split
 #   -----------------------------------
@@ -1631,7 +1686,7 @@ staggregate_custom <- function(
   # Make sure time_agg is one of the listed options
   time_agg <- validate_time_agg(time_agg)
 
-  # Make sure transforamtions is a list of functions
+  # Make sure transformations is a list of functions
   transformations <- validate_transformations(transformations)
 
   # Fill default result_cols or verify user passed names
@@ -1663,6 +1718,25 @@ staggregate_custom <- function(
   na_rm <- validate_na_rm(na_rm)
 
 
+
+
+
+  # 2. Crop Data to Weights Extent
+  # ____________________________________________________________________________
+
+  # Check whether data (and consequently overlay_weights) is in climate or standard coordinates
+  coord_alignment <- check_alignment(data)
+
+  # Now determine if the polygons were likely to have originally been in a different coordinate system and were split in the "rotation"
+  polygons_split <- look_for_poly_split(data, overlay_weights, coord_alignment)
+
+
+
+
+
+
+  # Upcoming parts
+  # ____________________________________________________________________________
   # If the start date is supplied, overwrite the spatRaster's layer names to reflect the specified temporal metadata
   if(!is.na(start_date)){
     message(crayon::green(sprintf("Rewriting the data's temporal metadata (layer names) to reflect a dataset starting on the supplied start date and with a temporal interval of %s" , time_interval)))
@@ -1672,6 +1746,7 @@ staggregate_custom <- function(
 
   # Aggregate climate data to daily values
   data <- daily_aggregation(data, overlay_weights, daily_agg, time_interval)
+
 
 
 
