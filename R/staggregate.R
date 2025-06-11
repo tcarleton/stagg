@@ -1524,9 +1524,98 @@ look_for_poly_split <- function(data, overlay_weights, coord_alignment){
 
 #   b) crop_with_poly_split
 #   -----------------------------------
+#' Search for efficient cropping location with split polygons
+#'
+#' If "rotating" the overlay weights to align with the climate data split the
+#' polygons across the prime meridian / date line, then we want to crop out the
+#' middle to save memory. Find the largest xgap that exists to be the cropping
+#' location. For instance, if polygons (overlay_weights) are from 0 to 120
+#' and from 300 to 360, we'd want to crop out the 120 to 300 portion.
+#'
+#' @param data validated data
+#' @param overlay_weights validated overlay_weights
+#'
+#' @returns data cropped (in the middle) to the extent of overlay_weights
+#'
+#' @noRd
+crop_with_poly_split <- function(data, overlay_weights, polygons_split){
 
-#   (utils) buffered_crop
+  # Get x values in overlay_weights
+  x_vector <- sot(unique(overlay_weights[,x]))
+
+  # Find largest gap and then make left side's xmax the x value on the left of
+  # the gap and then make right side's xmin the x value on the right of the gap
+  crop_locs <- data.frame(x_vector) |>
+    dplyr::mutate(
+      diff = x_vector - dplyr::lag(x_vector),
+      is_right_xmin = diff == max(diff, na.rm = TRUE),
+      is_left_xmax = dplyr::lead(diff) == max(diff, na.rm = TRUE)
+    )
+
+  right_xmin <- crop_locs |>
+    dplyr::filter(is_right_min) |>
+    dplyr::slice(1) |>
+    dplyr::pull(x_vector)
+
+  left_xmax <- crop_locs |>
+    dplyr::filter(is_left_xmax) |>
+    dplyr::slice(1) |>
+    dplyr::pull(x_vector)
+
+  # Split into 2 and then merge back together
+  left_xmin <- 0 - 2*terra::xres(data)
+  left_xmax <- left_xmax + 2*terra::xres(data)
+
+  right_xmin <- right_xmin - 2*terra::xres(data)
+  right_xmax <- 360 + 2*terra::xres(data)
+
+  ymin <- min(overlay_weights[,y]) - 2*terra::yres(data)
+  ymax <- max(overlay_weights[,y]) + 2*terra::yres(data)
+
+  weights_ext_left <- terra::ext(left_xmin, left_xmax, ymin, ymax)
+  weights_ext_right <- terra::ext(right_xmin, right_xmax, ymin, ymax)
+
+  data_left <- terra::crop(data, weights_ext_left, snap = 'out')
+  data_right <- terra::crop(data, weights_ext_right, snap = 'out')
+
+  data <- terra::merge(data_left, data_right)
+
+  # Assign layer names (dates) from data_left
+  terra::names(data) <- terra::names(data_left)
+
+  return(data)
+}
+
+#   c) buffered_crop
 #   -----------------------------------
+#' Buffered crop
+#'
+#' Crop data to a table of weights with a 2 cell buffer
+#'
+#' @param data validated data
+#' @param overlay_weights validated overlay_weights
+#'
+#' @returns the data cropped (around the outside) to just beyond the extent of
+#' overlay_weights
+#'
+#' @noRd
+buffered_crop <- function(data, overlay_weights){
+
+  # Base buffer on cell size of data
+  x_buffer <- 2*terra::xres(data)
+  y_buffer <- 2*terra::yres(data)
+
+  # Get cropping extent
+  xmin <- min(overlay_weights[,x]) - x_buffer
+  xmax <- max(overlay_weights[,x]) + x_buffer
+  ymin <- min(overlay_weights[,y]) - y_buffer
+  ymax <- max(overlay_weights[,y]) + y_buffer
+
+  crop_ext <- terra::ext(xmin, xmax, ymin, ymax)
+
+  data <- terra::crop(data, crop_ext)
+}
+
 
 
 # 3. Aggregate to daily level
@@ -1730,6 +1819,14 @@ staggregate_custom <- function(
   # Now determine if the polygons were likely to have originally been in a different coordinate system and were split in the "rotation"
   polygons_split <- look_for_poly_split(data, overlay_weights, coord_alignment)
 
+  # If polygons split and data doesn't have peculiar cell widths, look for
+  # efficient internal cropping locations
+  if(polygons_split & 360 %% terra::xres(data) == 0){
+
+  } else{
+
+
+  }
 
 
 
