@@ -1621,7 +1621,10 @@ buffered_crop <- function(data, overlay_weights){
 # 3. Aggregate to daily level
 # ______________________________________________________________________________
 
-#   a) daily_aggregation
+#   a) infer_layer_datetimes
+#   -----------------------------------
+
+#   b) daily_aggregation
 #   -----------------------------------
 
 
@@ -1671,7 +1674,13 @@ transform_values <- function(data, transformations){
 # 6. Spatio-Temporal Aggregation
 # ______________________________________________________________________________
 
-#   6. spatiotemporal_agg
+#   a) join_centroids_exact
+#   -----------------------------------
+
+#   a) tolerance_join_on_centroids
+#   -----------------------------------
+
+#   b) spatiotemporal_agg
 #   -----------------------------------
 
 
