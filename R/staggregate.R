@@ -1363,13 +1363,30 @@ validate_result_cols <- function(result_cols, transformations){
 #' `lubridate::as_datetime()` doesn't change.
 #'
 #' @param start_date the user-supplied start_date datetime / string
+#' @param data the validated data spatRast stack
 #'
 #' @returns Start date, coerced to datetime
 #'
 #' @noRd
-validate_start_date <- function(start_date){
+validate_start_date <- function(start_date, data){
 
-  if(!is.na(start_date)){
+  # If start_date is na, make sure layer names actually are compatible (error only, don't return datetime objects)
+  if(is.na(start_date)){
+
+    date_strings <- names(data) |>
+
+      # Function below will error if not compatible
+      layer_names_to_dates() |>
+
+      # Convert back to string for pretty printing
+      format('%Y-%m-%d %H:%M:%S')
+
+    message(crayon::yellow(sprintf(
+      'No start_date supplied. Infering time stamps from layer names, starting with %s, %s, %s, etc...',
+      date_strings[1], date_strings[2], date_strings[3]
+      )))
+
+  }else{
     start_date <- lubridate::as_datetime(start_date)
   }
 
@@ -1727,22 +1744,150 @@ transform_values <- function(data, transformations){
 
 #   a) stack_list_to_tables
 #   -----------------------------------
+#' Turn spatRaster stacks into tables of values
+#'
+#' @param data the data list of the transformed spatRaster stacks
+#' @param result_cols the validates result_cols string to serve as new names for
+#' the columns with transformed values
+#' @param transformation_index The index of the data list element to iterate over
+#'
+#' @returns A list of tables, with columns x, y, date, and one column for each
+#' table of transformed values
+#'
+#' @noRd
+stack_list_to_tables <- function(data, result_cols, transformation_index){
 
-#     (utils) as_data_table_terra
-#     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # output spatRaster cells as table with columns x, y, and one col for each layer
+  data <- as_data_table_terra(data[[transformation_index]])
+
+  # Set column names with timestamps
+  new_names <- c('x', 'y', names(data[[transformation_index]]))
+  data.table::setnames(data, new_names)
+
+  # Pivot from wide to long format
+  data <- data.table::melt(data, id.vars = c('x', 'y'))
+
+  # Update column names after pivoting
+  var_names <- c('date', result_cols[transformation_index])
+  data.table::setnames(data, old = c('variable', 'value'), new = var_names)
+
+  return(data)
+}
+
+
+
 
 #   b) join_transformed_values
 #   -----------------------------------
+#' Join a list of data.tables by columns x, y, and datetime
+#'
+#' @param data the list of data.tables with the transformed climate values
+#'
+#' @returns One table with columns x, y, and one for each transformed value
+#'
+#' @noRd
+join_transformed_values <- function(data){
+  Reduce(\(...) merge(..., by = c('x', 'y', 'date')), data)
+}
 
 
 # 6. Spatio-Temporal Aggregation
 # ______________________________________________________________________________
 
-#   a) join_centroids_exact
+#   a) join_weights_exact
 #   -----------------------------------
+#' Merge weights with climate raster on exact x and y
+#'
+#' @param data the data.table with transformed climate values
+#' @param overlay_weights the validated overlay_weights data.table
+#'
+#' @returns a data.table of centroids, dates, transformed values, and weights
+#'
+#' @noRd
+join_weights_exact <- function(data, overlay_weights){
 
-#   b) join_centroids_tolerance
+  # Set key column in the climate data.table
+  data.table::setkeyv(data, c('x', 'y'))
+
+  # Keyed merge on x/y columns
+  data <- data[overlay_weights, allow.cartesian = TRUE]
+
+
+  return(data)
+}
+
+
+
+
+
+#   b) join_weights_tolerance
 #   -----------------------------------
+#' Merge weights with climate raster on x and y with tolerance matching
+#'
+#' @param data the data.table with transformed climate values
+#' @param overlay_weights the validated overlay_weights data.table
+#' @param weights_join_tolerance_x the validated tolerance number for x matches
+#' @param weights_join_tolerance_y the validated tolerance number for y matches
+#'
+#' @returns a data.table of centroids (retaining data x and y), transformed
+#' values, and weights
+#'
+#' @noRd
+join_weights_tolerance <- function(data,
+                                   overlay_weights,
+                                   weights_join_tolerance_x,
+                                   weights_join_tolerance_y){
+
+  # Since data.table doesn't allow arithmetic in nonequi-joins, create tolerance columns now
+  overlay_weights[, x_low := x - weights_join_tolerance_x]
+  overlay_weights[, x_high := x + weights_join_tolerance_x]
+  overlay_weights[, y_low := y - weights_join_tolerance_y]
+  overlay_weights[, y_high := y + weights_join_tolerance_y]
+
+  # Remove x and y columns to avoid confusion in join
+  overlay_weights[, x := NULL]
+  overlay_weights[, y := NULL]
+
+
+
+  # Determine which columns to keep in join, format as arguments that can
+  # be directly supplied to j throug eval and parse
+  cols_to_keep <- c(
+
+    # Add x and y in manually (referring to data$x by x.x prevents the column
+    # from being overwritten in the nonequi join below)
+    'x.x',
+    'x.y',
+
+    # Omit x and y from data columns since they'll be renamed to x.x and x.y
+    setdiff(colnames(data), c('x', 'y')),
+
+    # Omit tolerance columns since we don't want to keep those
+    setdiff(colnames(overlay_weights), c('x_low', 'x_high', 'y_low', 'y_high'))
+  )
+
+
+  # merge based on tolerance columns, right join
+  data <- data[
+    overlay_weights,
+    allow.cartesian = TRUE,
+    j = ..cols_to_keep,
+    on = .(x >= x_low,
+           x <= x_high,
+           y >= y_low,
+           y <= y_high)
+  ]
+
+  # Reassign names of x and y
+  data.table::setnames(data, c('x.x', 'x.y'), c('x', 'y'))
+
+  return(data)
+
+}
+
+
+
+
 
 #   c) spatiotemporal_agg
 #   -----------------------------------
@@ -1930,6 +2075,38 @@ staggregate_custom <- function(
 
 
 
+
+  # 4. Transform values prior to aggregation
+  # ____________________________________________________________________________
+
+  # Apply transformations to create a list of stacks, one for each transformation
+  data <- transform_values(data, transformations)
+
+
+
+
+  # 5. Extract Transformed Values to Data.Table
+  # ____________________________________________________________________________
+
+  # Make each spatRaster stack a data.table
+  data <- lapply(
+    1:length(result_cols),
+    \(x) stack_list_to_tables(data, result_cols, x)
+  )
+
+  # Merge each data.table on x, y, and datetime
+  data <- join_transformed_values(data)
+
+
+
+
+  # 6. Spatio-Temporal Aggregation
+  # ____________________________________________________________________________
+
+  # Coerce date column from string to datetime
+  data[, date := layer_names_to_dates(date)]
+
+  #
 
 
 

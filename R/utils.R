@@ -51,3 +51,28 @@ calc_intervals_in_day <- function(time_interval){
     (lubridate::duration("1 day") / lubridate::duration(time_interval))
   )
 }
+
+
+
+#' Layer names to dates
+#'
+#' Wrapper function around lubridate::as_datetime() to remove the leading
+#' non-digit characters
+#'
+#' @param layer_names vector of strings to coerce to datetime objects
+#'
+#' @returns A vector of datetimes. Error if not compatible with
+#' lubridate::as_datetime()
+#'
+#' @noRd
+layer_names_to_dates <- function(layer_names){
+
+
+  layer_names |>
+
+    # Remove any non-digit characters from the start of the string
+    stringr::str_replace('[^0-9]+', '') |>
+
+    # Coerce to datetimes
+    lubridate::as_datetime()
+}
