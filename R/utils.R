@@ -9,6 +9,8 @@
 #' @param x_res the cell width
 #'
 #' @returns either 'climate' or 'standard'
+#'
+#' @noRd
 check_alignment <- function(data, x_res){
 
   # Get max longitudinal extent
@@ -30,4 +32,22 @@ check_alignment <- function(data, x_res){
 
   return(alignment)
 
+}
+
+
+
+
+#' Calculate time steps per day
+#'
+#' Take a given time interval and calculate the number of intervals within 1 day
+#'
+#' @param time_interval a string compatible with lubridate::duration()
+#'
+#' @returns A numeric timesteps per day
+#'
+#' @noRd
+calc_intervals_in_day <- function(time_interval){
+  as.numeric(
+    (lubridate::duration("1 day") / lubridate::duration(time_interval))
+  )
 }

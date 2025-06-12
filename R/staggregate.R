@@ -1185,7 +1185,7 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", s
 #' The reason we check if already as spatRast is because, if it is,
 #' `terra::rast(data)` turns it to a file name.
 #'
-#' @param data the user-supplied data
+#' @param data the user-supplied data object
 #'
 #' @returns a SpatRaster if coercible/already a SpatRaster, error if not
 #'
@@ -1209,13 +1209,13 @@ validate_data <- function(data){
 #' y, and poly_id, and also must have either w_area or weight. Otherwise, the
 #' main function will break later on.
 #'
-#' @param overlay_weights the user-supplied overlay_weights
-#' @param data the user-supplied and validated data
+#' @param overlay_weights the user-supplied overlay_weights data.table
+#' @param data the user-supplied and the validated data spatRaster stack
 #'
 #' @returns Nothing new. Only error if correct column names not found or alignemnt not present.
 #'
 #' @noRd
-validate_overlay_weights <- function(overlay_weights){
+validate_overlay_weights <- function(overlay_weights, data){
 
   # x, y, and poly_id all present
   has_all_geo_cols <- c('x', 'y', 'poly_id') %in% names(overlay_weights) |>
@@ -1243,7 +1243,7 @@ validate_overlay_weights <- function(overlay_weights){
 
 
 
-#   e) validate_daily_agg
+#   c) validate_daily_agg
 #   -----------------------------------
 #' Make sure `daily_agg` is an allowed string and makes sense w/ time_agg
 #'
@@ -1301,7 +1301,7 @@ validate_time_agg <- function(time_agg){
 #   -----------------------------------
 #' Make sure `transformations` is a list of functions
 #'
-#' @param `transformations` the user supplied `transformations` list of
+#' @param `transformations` the user supplied transformations list of
 #' functions
 #'
 #' @returns Nothing new. Only error if valid function list not found
@@ -1362,7 +1362,7 @@ validate_result_cols <- function(result_cols, transformations){
 #' and so we can write tests to verify the behavior of
 #' `lubridate::as_datetime()` doesn't change.
 #'
-#' @param start_date the user-supplied start_date
+#' @param start_date the user-supplied start_date datetime / string
 #'
 #' @returns Start date, coerced to datetime
 #'
@@ -1386,8 +1386,8 @@ validate_start_date <- function(start_date){
 #' coercible to duration
 #'
 #' @param time_interval the user-supplied time interval string
-#' @param daily_aggregation the user-supplied `daily_aggregation` string
-#' @param data the user-supplied `data` checked by `validate_data()`
+#' @param data the validated data spatRaster stack
+#' @param daily_aggregation the user-supplied daily_aggregation string
 #'
 #' @returns None. Errors only if needed.
 #'
@@ -1395,9 +1395,7 @@ validate_start_date <- function(start_date){
 validate_time_interval <- function(time_interval, data, daily_agg){
 
   # Calculate number of intervals in one day
-  intervals_in_day <- as.numeric(
-    lubridate::duration('1 day') / lubridate::duration(time_interval)
-  )
+  intervals_in_day <- calc_intervals_in_day(time_interval)
 
   # Conditions needed to perform a daily aggregation
   if(daily_agg != 'none'){
@@ -1417,6 +1415,8 @@ validate_time_interval <- function(time_interval, data, daily_agg){
       stop(crayon::red("Climate data does not appear to contain a whole number of days. Please set `daily_agg` to 'none' to skip pre-transformation aggregating to the daily level"))
     }
   }
+
+  return(time_interval)
 }
 
 
@@ -1426,6 +1426,7 @@ validate_time_interval <- function(time_interval, data, daily_agg){
 #' Infer and check user-supplied weights_join_tolerance
 #'
 #' @param weights_join_tolerance the user supplied weights_join_tolerance
+#' integer or vector
 #'
 #' @returns length two vector of form c(x_tol, y_tol)
 #'
@@ -1453,7 +1454,7 @@ validate_weights_join_tolerance <- function(weights_join_tolerance){
 #   -----------------------------------
 #' Check that na_rm is a boolean value
 #'
-#' @param na_rm the user supplied na_rm
+#' @param na_rm the user supplied na_rm boolean
 #'
 #' @returns None. Error if necessary
 #'
@@ -1479,9 +1480,9 @@ validate_na_rm <- function(na_rm){
 #   -----------------------------------
 #' Evaluate whether overlay_weights() likely split the polygons along 0 or 180
 #'
-#' @param data validated data
+#' @param data the validated data spatRaster stack
 #' @param overlay_weights validated overlay weights
-#' @param coord_alignment output from check_alignment()
+#' @param coord_alignment string output from check_alignment()
 #'
 #' @returns A boolean value indicating whether a polygon split likely occurred
 #'
@@ -1495,7 +1496,7 @@ look_for_poly_split <- function(data, overlay_weights, coord_alignment){
     near_360 <- max(overlay_weights[,x]) > 360 - terra::xres(data)
 
     # overlay_weights has cell near 0
-    near_0 <- min(overlay_weights[,x]) < terra:xres(clim_stack)
+    near_0 <- min(overlay_weights[,x]) < terra::xres(data)
 
     # If both are true, likely had polygon split
     polygons_split <- near_360 & near_0
@@ -1532,16 +1533,17 @@ look_for_poly_split <- function(data, overlay_weights, coord_alignment){
 #' location. For instance, if polygons (overlay_weights) are from 0 to 120
 #' and from 300 to 360, we'd want to crop out the 120 to 300 portion.
 #'
-#' @param data validated data
-#' @param overlay_weights validated overlay_weights
+#' @param data the validated data spatRaster stack
+#' @param overlay_weights the validated overlay_weights data.table
 #'
-#' @returns data cropped (in the middle) to the extent of overlay_weights
+#' @returns data spatRaster stack cropped (in the middle) to the extent of
+#' overlay_weights
 #'
 #' @noRd
 crop_with_poly_split <- function(data, overlay_weights, polygons_split){
 
   # Get x values in overlay_weights
-  x_vector <- sot(unique(overlay_weights[,x]))
+  x_vector <- sort(unique(overlay_weights[,x]))
 
   # Find largest gap and then make left side's xmax the x value on the left of
   # the gap and then make right side's xmin the x value on the right of the gap
@@ -1553,7 +1555,7 @@ crop_with_poly_split <- function(data, overlay_weights, polygons_split){
     )
 
   right_xmin <- crop_locs |>
-    dplyr::filter(is_right_min) |>
+    dplyr::filter(is_right_xmin) |>
     dplyr::slice(1) |>
     dplyr::pull(x_vector)
 
@@ -1581,7 +1583,7 @@ crop_with_poly_split <- function(data, overlay_weights, polygons_split){
   data <- terra::merge(data_left, data_right)
 
   # Assign layer names (dates) from data_left
-  terra::names(data) <- terra::names(data_left)
+  names(data) <- names(data_left)
 
   return(data)
 }
@@ -1592,11 +1594,11 @@ crop_with_poly_split <- function(data, overlay_weights, polygons_split){
 #'
 #' Crop data to a table of weights with a 2 cell buffer
 #'
-#' @param data validated data
-#' @param overlay_weights validated overlay_weights
+#' @param data the validated data spatRaster stack
+#' @param overlay_weights the validated overlay_weights data.table
 #'
-#' @returns the data cropped (around the outside) to just beyond the extent of
-#' overlay_weights
+#' @returns the data spatRaster stack cropped (around the outside) to just
+#' beyond the extent of overlay_weights
 #'
 #' @noRd
 buffered_crop <- function(data, overlay_weights){
@@ -1621,11 +1623,74 @@ buffered_crop <- function(data, overlay_weights){
 # 3. Aggregate to daily level
 # ______________________________________________________________________________
 
-#   a) infer_layer_datetimes
+#   a) infer_datetime_layers
 #   -----------------------------------
+#' Assign datetime layer names compatible with rest of staggregate function
+#'
+#' @param data the cropped data spatRaster stack
+#' @param start_date the validated start_date datetime
+#' @param time_interval the validated time_interval string
+#'
+#' @returns the data spatRaster stack with new layer names
+#'
+#' @noRd
+infer_datetime_layers <- function(datat, start_date, time_interval){
 
-#   b) daily_aggregation
+  # Number of layers in the spatRaster stack
+  num_layers <- terra::nlyr(data)
+
+  # Generate the sequence of date-times for each layer
+  layer_dates <- seq(start_date, by = time_interval, length.out = num_layers)
+
+  # Make sure the full date shows up in the string every time
+  formatted_dates <- format(layer_dates, "X%Y.%m.%d.%H.%M.%S")
+
+  # Assign the inferred date-times to the spatRaster layers
+  names(data) <- as.character(formatted_dates)
+
+  return(data)
+}
+
+#   b) agg_to_daily
 #   -----------------------------------
+#' Pre-transformation temporal aggregation to the daily level
+#'
+#' Using time interval, group layers by day and, for each cell, compute
+#' specified daily_agg function to summarize each cell for each day. This
+#' step is designed to improve memory/compute efficiency at the loss of minimal
+#' temporal granularity.
+#'
+#' @param data the cropped data spatRaster stack with compatible datetime layer
+#' names
+#' @param daily_agg the validated daily_agg string
+#' @param time_interval the validated time_interval string
+#'
+#' @returns the data spatRaster stack summarized to daily values
+#'
+#' @noRd
+agg_to_daily <- function(data, daily_agg, time_interval){
+
+  # Calculate the number of time steps per day
+  layers_per_day <- calc_intervals_in_day(time_interval)
+
+  # Get all layer names
+  all_layer_names <- terra::names(data)
+
+  # Pull one layer name per day
+  day_layer_names <- all_layer_names[seq(1, length(all_layer_names), layers_per_day)]
+
+  # Assign indices such that each layer shares index with all others in same day
+  indices <- rep(1:(terra::nlyr(data) / layers_per_day), each = layers_per_day)
+
+
+  # Aggregate to daily level
+  message(crayon::green(sprintf('Computing %s over %d layers per day to summarize daily values', daily_agg, layers_per_day)))
+  data <- terra::tapp(data, indices, fun = daily_agg)
+
+
+  return(data)
+}
+
 
 
 # 4. Apply Transformations
@@ -1641,9 +1706,8 @@ buffered_crop <- function(data, overlay_weights){
 #' argument `transformations`, making a new SpatRaster stack for each and
 #' outputting these as a list.
 #'
-#' @param data the SpatRaster stack output from daily_aggregation
-#' @param transformations the list of functions passed to the main function's
-#' `transformations` argument
+#' @param data the data SpatRaster stack aggregated to the daily level
+#' @param transformations the validated transformations list of functions
 #'
 #' @returns A list of SpatRaster stacks, one for each transformation
 #'
@@ -1677,10 +1741,10 @@ transform_values <- function(data, transformations){
 #   a) join_centroids_exact
 #   -----------------------------------
 
-#   a) tolerance_join_on_centroids
+#   b) join_centroids_tolerance
 #   -----------------------------------
 
-#   b) spatiotemporal_agg
+#   c) spatiotemporal_agg
 #   -----------------------------------
 
 
@@ -1828,30 +1892,42 @@ staggregate_custom <- function(
   # Now determine if the polygons were likely to have originally been in a different coordinate system and were split in the "rotation"
   polygons_split <- look_for_poly_split(data, overlay_weights, coord_alignment)
 
-  # If polygons split and data doesn't have peculiar cell widths, look for
-  # efficient internal cropping locations
+
   if(polygons_split & 360 %% terra::xres(data) == 0){
+
+    # If polygons split and data doesn't have peculiar cell widths, look for
+    # efficient internal cropping locations
+    data <- crop_with_poly_split(data, overlay_weights)
 
   } else{
 
-
+    # otherwise, crop as normal to just beyond the extent of overlay_weights
+    data <- buffered_crop(data, overlay_weights)
   }
 
 
 
 
 
-  # Upcoming parts
+  # 3. Aggregate to daily level
   # ____________________________________________________________________________
+
   # If the start date is supplied, overwrite the spatRaster's layer names to reflect the specified temporal metadata
   if(!is.na(start_date)){
     message(crayon::green(sprintf("Rewriting the data's temporal metadata (layer names) to reflect a dataset starting on the supplied start date and with a temporal interval of %s" , time_interval)))
-    data <- infer_layer_datetimes(data, start_date, time_interval)
+
+    data <- infer_datetime_layers(data, start_date, time_interval)
   }
 
 
-  # Aggregate climate data to daily values
-  data <- daily_aggregation(data, overlay_weights, daily_agg, time_interval)
+  # Aggregate climate data to daily values if daily_agg not 'none'
+  if(daily_agg == 'none'){
+    message(crayon::yellow("Skipping pre-transformation aggregation to daily level"))
+  } else{
+    data <- agg_to_daily(data, daily_agg, time_interval)
+  }
+
+
 
 
 
