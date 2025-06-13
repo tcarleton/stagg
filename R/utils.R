@@ -11,11 +11,12 @@
 #' @returns either 'climate' or 'standard'
 #'
 #' @noRd
-check_alignment <- function(data, x_res){
+check_alignment <- function(data, x_res = NA){
 
   # Get max longitudinal extent
   if(inherits(data, "SpatRaster")){
     max_x <- terra::ext(data)$xmax
+    x_res <- terra::xres(data)
   }else if(inherits(data, 'data.table')){
     # Go out half a cell width since this is a table of centroids
     max_x <- max(data[,x]) + (x_res / 2)
@@ -24,7 +25,7 @@ check_alignment <- function(data, x_res){
   }
 
   # Definition of climate coords: data has cell which is entirely "right" of 180
-  if(max_x >= 180 + x_res){
+  if(max_x >= (180 + x_res)){
     alignment <- 'climate'
   } else{
     alignment <- 'standard'

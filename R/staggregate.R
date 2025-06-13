@@ -1212,7 +1212,8 @@ validate_data <- function(data){
 #' @param overlay_weights the user-supplied overlay_weights data.table
 #' @param data the user-supplied and the validated data spatRaster stack
 #'
-#' @returns Nothing new. Only error if correct column names not found or alignemnt not present.
+#' @returns Nothing new except removes w_area if weights present. Only error if
+#' correct column names not found or alignemnt not present.
 #'
 #' @noRd
 validate_overlay_weights <- function(overlay_weights, data){
@@ -1231,8 +1232,14 @@ validate_overlay_weights <- function(overlay_weights, data){
   }
 
   # Make sure overlay_weights are in the same coord alignment as data, fix otherwise
-  if(check_alignment(data) != check_alignment(overlay_weights)){
+  if(check_alignment(data) != check_alignment(overlay_weights, terra::xres(data))){
     stop(crayon::red('overlay_weights are not aligned with data'))
+  }
+
+
+  # Drop w_area if weights present
+  if('weight' %in% names(overlay_weights) & 'w_area' %in% names(overlay_weights)){
+    overlay_weights[, w_area := NULL]
   }
 
 
@@ -1255,8 +1262,13 @@ validate_overlay_weights <- function(overlay_weights, data){
 #' @noRd
 validate_daily_agg <- function(daily_agg, time_agg){
 
+  # Replace 'average' with 'mean'
+  if(daily_agg == 'average'){
+    daily_agg <- 'mean'
+  }
+
   # Make sure string is allowed
-  if(!daily_agg %in% c('average', 'sum', 'none')){
+  if(!daily_agg %in% c('mean', 'sum', 'none')){
     stop(crayon::red("daily_agg must be 'average', 'sum', or 'none'"))
   }
 
@@ -1338,7 +1350,7 @@ validate_transformations <- function(transformations){
 validate_result_cols <- function(result_cols, transformations){
 
   # if NA, replace with fun1, fun2, ...
-  if(is.na(result_cols)){
+  if(any(is.na(result_cols))){
     result_cols <- paste0('fun', 1:length(transformations))
   }
 
@@ -1651,7 +1663,7 @@ buffered_crop <- function(data, overlay_weights){
 #' @returns the data spatRaster stack with new layer names
 #'
 #' @noRd
-infer_datetime_layers <- function(datat, start_date, time_interval){
+infer_datetime_layers <- function(data, start_date, time_interval){
 
   # Number of layers in the spatRaster stack
   num_layers <- terra::nlyr(data)
@@ -1704,6 +1716,8 @@ agg_to_daily <- function(data, daily_agg, time_interval){
   message(crayon::green(sprintf('Computing %s over %d layers per day to summarize daily values', daily_agg, layers_per_day)))
   data <- terra::tapp(data, indices, fun = daily_agg)
 
+  # Restore names
+  names(data) <- day_layer_names
 
   return(data)
 }
@@ -1757,12 +1771,14 @@ transform_values <- function(data, transformations){
 #' @noRd
 stack_list_to_tables <- function(data, result_cols, transformation_index){
 
+  # get timestamps from layer names
+  layer_names <- names(data[[transformation_index]])
+
   # output spatRaster cells as table with columns x, y, and one col for each layer
-  data <- as_data_table_terra(data[[transformation_index]])
+  data <- as_data_table_terra(data[[transformation_index]], xy = TRUE)
 
   # Set column names with timestamps
-  new_names <- c('x', 'y', names(data[[transformation_index]]))
-  data.table::setnames(data, new_names)
+  data.table::setnames(data, c('x', 'y', layer_names))
 
   # Pivot from wide to long format
   data <- data.table::melt(data, id.vars = c('x', 'y'))
@@ -1872,10 +1888,11 @@ join_weights_tolerance <- function(data,
     overlay_weights,
     allow.cartesian = TRUE,
     j = ..cols_to_keep,
-    on = .(x >= x_low,
-           x <= x_high,
-           y >= y_low,
-           y <= y_high)
+    on = .(
+      x >= x_low,
+      x <= x_high,
+      y >= y_low,
+      y <= y_high)
   ]
 
   # Reassign names of x and y
@@ -1889,9 +1906,104 @@ join_weights_tolerance <- function(data,
 
 
 
-#   c) spatiotemporal_agg
+#   c) execute_na_rm
 #   -----------------------------------
+#' Remove na data values so they don't "count" towards the polygon mean
+#'
+#' Note: it may be more efficient to do na_rm by summing weights during the
+#' summing of values and then doing the reweighting there, but this assumes the
+#' na data cells are the same for every layer. Need to do some benchmarking to
+#' figure out if it is worth adding this option, but for now we'll do it layer
+#' by layer so it works in all cases.
+#'
+#' @param data the data.table of transformed data values joined with
+#' overlay_weights
+#' @param result_cols the vector of strings corresponding the names of the value
+#' columns to look for NAs in
+#'
+#' @returns the data.table of transformed data values joined with
+#' overlay_weights, but only those rows for the transformed values are not NA
+#'
+#' @noRd
+execute_na_rm <- function(data, result_cols){
 
+
+
+  # Remove rows with NA values
+  data <- na.omit(data, cols = result_cols)
+
+
+  # Assess which weight column is present
+  if('weight' %in% names(data)){
+    weight_col <- 'weight'
+  }else{
+    weight_col <- 'w_area'
+  }
+
+  # Recalculate weights so that, for each polygon in each layer, they all sum to 1
+  data.table::setkeyv(data, cols = c('x', 'y', 'date'))
+  data[, weight_sum := sum(.SD), by = c('x','y','date'), .SD = weight_col]
+  data[, (weight_col) := lapply(.SD, function(x) {x / weight_sum}), .SDcols = weight_col]
+  data[, weight_sum := NULL]
+
+
+  return(data)
+}
+
+
+
+#   d) spatiotemporal_agg
+#   -----------------------------------
+#' Aggregate to the polygon level and desired temporal scale
+#'
+#' @param data the data.table of transformed data values joined with
+#' overlay_weights, re-weighted with nas removed if necessary
+#' @param time_agg the validated time_agg string specifying the desired temporal scale
+#' @param result_cols the vector of strings corresponding the names of the value
+#' columns to aggregate
+#'
+#' @returns the final output of the main staggregate function
+#'
+#' @noRd
+spatiotemporal_agg <- function(data, time_agg, result_cols){
+
+  # Multiply transformed data by area weights
+  if('weight' %in% names(data)){
+
+    # Multiply by secondary weights if 'weights' column present
+    data[, (result_cols) := lapply(result_cols, \(col_i) get(col_i) * weight)]
+  }else{
+
+    # Otherwise multiply just by area weights
+    data[, (result_cols) := lapply(result_cols, \(col_i) get(col_i) * w_area)]
+  }
+
+  # Separate year, month, day, and time columns
+  data[, ':=' (
+    year = lubridate::year(date),
+    month = lubridate::month(date),
+    day = lubridate::day(date),
+    hour = lubridate::hour(date),
+    minute = lubridate::minute(date)
+  )]
+
+  # Figure out which time columns to group by
+  group_cols <- c('poly_id', 'year', 'month', 'day', 'hour', 'minute')
+  group_cols <- group_cols[1:which(group_cols == time_agg)]
+
+  # Aggregate cells to polygons and desired temporal scale
+  message(crayon::green(paste0('Aggregating by polygon and ', time_agg)))
+  data <- data[, lapply(.SD, sum), by = group_cols, .SDcols = result_cols]
+
+  # Reorder columns
+  data.table::setcolorder(
+    data,
+    neworder = c(group_cols[2:length(group_cols)], 'poly_id', result_cols)
+  )
+
+  return(data)
+
+}
 
 # ==============================================================================
 # Exported Staggregate Functions
@@ -1913,7 +2025,7 @@ join_weights_tolerance <- function(data,
 #'  aggregation. These can be generated using the function `overlay_weights()`
 #' @param daily_agg How to aggregate hourly values to daily values prior to
 #'  transformation. Options are `'sum'`, `'average'`, or `'none'` (`'none'`
-#'   will transform values without first aggregating to the daily level)
+#'  will transform values without first aggregating to the daily level)
 #' @param time_agg the temporal scale to aggregate data to. Options are
 #'  `minute`, `'hour`, `'day'`, `'month'`, or `'year'`
 #' @param transformations a list of functions to transform the data prior to
@@ -1948,21 +2060,25 @@ join_weights_tolerance <- function(data,
 #' polygon. The default is `FALSE`
 #'
 #' @examples
-#' degree_days_output <- staggregate_degree_days(
+#' staggregate_output <- staggregate_custom(
 #'   data = terra::rast(temp_nj_jun_2024_era5) - 273.15, # Climate data to transform and
 #'                                          # aggregate
 #'   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
+#'   daily_agg = "average", # Average hourly values to produce daily values
+#'                          # before transformation
 #'   time_agg = "month", # Sum the transformed daily values across months
 #'   start_date = "2024-06-01 00:00:00", # The start date of the supplied data,
 #'                                       # only required if the layer name
 #'                                       # format is not compatible with stagg
 #'   time_interval = "1 hour", # The temporal interval of the supplied data,
-#'                             # only required if the start_date is not NA
-#'   thresholds = c(0, 10, 20) # Calculate degree days above 0, 10, and 20
-#'                             # degrees Celsius
+#'                             # required if daily_agg is not "none" or if the
+#'                             # start_date argument is not NA
+#'   transformations = c(\(x) x, \(x) x^2, \(x) x^3) # List of functions for
+#'                                                   # aggregation
+#'                                                   # transformation
 #'   )
 #'
-#' head(degree_days_output)
+#' head(staggregate_output)
 #'
 #' @export
 staggregate_custom <- function(
@@ -1985,7 +2101,7 @@ staggregate_custom <- function(
   data <- validate_data(data)
 
   # Make sure overlay_weights has necessary columns
-  overlay_weights <- validate_overlay_weights(overlay_weights)
+  overlay_weights <- validate_overlay_weights(overlay_weights, data)
 
   # Make sure daily_agg is one of the listed options and makes sense
   daily_agg <- validate_daily_agg(daily_agg = daily_agg, time_agg = time_agg)
@@ -2103,12 +2219,28 @@ staggregate_custom <- function(
   # 6. Spatio-Temporal Aggregation
   # ____________________________________________________________________________
 
+  # Join data with overlay_weights, w/ tolerance if desired
+  if(weights_join_tolerance_x == 0 & weights_join_tolerance_y == 0){
+    data <- join_weights_exact(data, overlay_weights)
+  } else{
+    data <- join_weights_tolerance(
+      data,
+      overlay_weights,
+      weights_join_tolerance_x,
+      weights_join_tolerance_y
+    )
+  }
+
   # Coerce date column from string to datetime
   data[, date := layer_names_to_dates(date)]
 
-  #
+  # Remove NAs if desired
+  if(na_rm){
+    data <- execute_na_rm(data, result_cols)
+  }
 
-
+  # Aggregate to the polygon level and desired temporal scale
+  data <- spatiotemporal_agg(data, time_agg, result_cols)
 
 }
 

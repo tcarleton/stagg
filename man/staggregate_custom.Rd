@@ -74,20 +74,24 @@ aggregates the transformed values to the polygon level and desired temporal
 scale
 }
 \examples{
-degree_days_output <- staggregate_degree_days(
+staggregate_output <- staggregate_custom(
   data = terra::rast(temp_nj_jun_2024_era5) - 273.15, # Climate data to transform and
                                          # aggregate
   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
+  daily_agg = "average", # Average hourly values to produce daily values
+                         # before transformation
   time_agg = "month", # Sum the transformed daily values across months
   start_date = "2024-06-01 00:00:00", # The start date of the supplied data,
                                       # only required if the layer name
                                       # format is not compatible with stagg
   time_interval = "1 hour", # The temporal interval of the supplied data,
-                            # only required if the start_date is not NA
-  thresholds = c(0, 10, 20) # Calculate degree days above 0, 10, and 20
-                            # degrees Celsius
+                            # required if daily_agg is not "none" or if the
+                            # start_date argument is not NA
+  transformations = c(\(x) x, \(x) x^2, \(x) x^3) # List of functions for
+                                                  # aggregation
+                                                  # transformation
   )
 
-head(degree_days_output)
+head(staggregate_output)
 
 }
