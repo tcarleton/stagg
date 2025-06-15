@@ -22,6 +22,7 @@ Imports:
     exactextractr,
     lubridate,
     methods,
+    rlang,
     sf,
     stringr,
     terra
@@ -36,5 +37,5 @@ Suggests:
     tigris
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-Remotes:  
+Remotes: 
     mikejohnson51/climateR

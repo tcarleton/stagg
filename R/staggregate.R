@@ -1218,6 +1218,9 @@ validate_data <- function(data){
 #' @noRd
 validate_overlay_weights <- function(overlay_weights, data){
 
+  # create a deep copy of the object so we don't modify the user's (data.table modify's things in place)
+  overlay_weights <- copy(overlay_weights)
+
   # x, y, and poly_id all present
   has_all_geo_cols <- c('x', 'y', 'poly_id') %in% names(overlay_weights) |>
     all()
@@ -1311,16 +1314,17 @@ validate_time_agg <- function(time_agg){
 
 #   e) validate_transformations
 #   -----------------------------------
-#' Make sure `transformations` is a list of functions
+#' Make sure `transformations` is a list of functions that can run on terra
 #'
 #' @param `transformations` the user supplied transformations list of
 #' functions
 #'
-#' @returns Nothing new. Only error if valid function list not found
+#' @returns List of functions which have been wrapped for error handling
 #'
 #' @noRd
 validate_transformations <- function(transformations){
 
+  # Make sure transformations is a list of functions
   if(!inherits(transformations, 'list')){
     stop(crayon::red('transformations must be a list of functions'))
   }
@@ -1331,8 +1335,58 @@ validate_transformations <- function(transformations){
     }
   }
 
+
+  # Make sure transformations will run on SpatRasters, wrap with call to cell
+  # values if not.
+  for(t in 1:length(transformations)){
+
+    # Test transformation on small SpatRaster
+    test_rast <- terra::rast(vals = c(1))
+    cnd <- rlang::catch_cnd(transformations[[t]](test_rast), 'error')
+
+    # If this produces an error, wrap function with call to values and then return to rast
+    if(!is.null(cnd)){
+      old_transformation <- transformations[[t]]
+
+      new_transformation <- function(old_transformation, x){
+        x_matrix <- terra::values(x)
+        x_matrix <- old_transformation(x_matrix)
+        terra::values(x) <- x_matrix
+
+        return(x)
+      }
+
+      # Warn user that we're doing this
+      message(crayon::yellow(
+        paste0("Modifying transformations element ", t, " as it is not vectorized for SpatRasters. This may decrease performance.")
+      ))
+
+
+      # Overwrite non-working function with new, wrapped function
+      transformations[[t]] <- function(x){
+        force(old_transformation)
+        new_transformation(old_transformation, x)
+      }
+
+      # Test it again, error if it still didn't work
+      cnd <- rlang::catch_cnd(transformations[[t]](test_rast), 'error')
+
+      if(!is.null(cnd)){
+        stop(crayon::red(paste0("Running transformations element ", t, " on a SpatRaster threw the following error: ", cnd$message)))
+      }
+    }
+
+
+  }
+
+
+
+
+
+
   return(transformations)
 }
+
 
 
 
@@ -2006,7 +2060,7 @@ spatiotemporal_agg <- function(data, time_agg, result_cols){
 }
 
 # ==============================================================================
-# Exported Staggregate Functions
+# Exported Staggregate Function
 # ==============================================================================
 
 # 1. Main Staggregate function
@@ -2020,44 +2074,45 @@ spatiotemporal_agg <- function(data, time_agg, result_cols){
 #' scale
 #'
 #' @param data the spatRasts or raster brick with the data to be transformed and
-#'  aggregated
+#'   aggregated
 #' @param overlay_weights a table of weights used to perform polygon
-#'  aggregation. These can be generated using the function `overlay_weights()`
+#'   aggregation. These can be generated using the function `overlay_weights()`
 #' @param daily_agg How to aggregate hourly values to daily values prior to
-#'  transformation. Options are `'sum'`, `'average'`, or `'none'` (`'none'`
-#'  will transform values without first aggregating to the daily level)
+#'   transformation. Options are `'sum'`, `'average'`, or `'none'` (`'none'`
+#'   will transform values without first aggregating to the daily level)
 #' @param time_agg the temporal scale to aggregate data to. Options are
-#'  `minute`, `'hour`, `'day'`, `'month'`, or `'year'`
-#' @param transformations a list of functions to transform the data prior to
-#'  aggregation. For instance, running `staggregate_polynomial(... degree = 2)`
-#'  is equivalent to running
-#'  `staggregate_custom(... transformations = c(\(x) x, \(x) x^2)`
-#' @param result_cols a vector of strings to use in naming the columns of
-#'  transformed, aggregated values. These must be in the same order as the
-#'  corresponding transformations. In keeping with the example above, passing
-#'  `c("order_1", "order_2")` to the argument will produce the same names as
-#'  `staggregate_polynomial(... degree = 2)`. Default names are fun1, fun2, etc
+#'   `minute`, `'hour`, `'day'`, `'month'`, or `'year'`
 #' @param start_date the date (and time, if applicable) of the first layer in
-#'  the raster. To be input in a format compatible with
-#'  lubridate::as_datetime(), e.g. `"1991-10-29"` or `"1991-10-29 00:00:00"`.
-#'  The default is `NA` since the rasters usually already contain temporal
-#'  information in the layer names and they do not need to be manually supplied
+#'   the raster. To be input in a format compatible with
+#'   lubridate::as_datetime(), e.g. `"1991-10-29"` or `"1991-10-29 00:00:00"`.
+#'   The default is `NA` since the rasters usually already contain temporal
+#'   information in the layer names and they do not need to be manually supplied
 #' @param time_interval the time interval between layers in the raster to be
-#'  aggregated. To be input in a format compatible with seq(), e.g.
-#'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
-#'  required if the `start_date` argument is not `NA`
+#'   aggregated. To be input in a format compatible with seq(), e.g. `'1 day'`
+#'   or `'3 months'`. The default is `'1 hour'` and this argument is required if
+#'   the `start_date` argument is not `NA`
 #' @param weights_join_tolerance the tolerance to use when joining
-#' overlay_weights with the climate data by the x and y columns. This is useful
-#' when the height/width of your data cells expressed in degrees is a very long
-#' decimal. The default, `0`, performs a keyed equi-join. Anything other than 0
-#' performs a nonequi-join wherein latitudes/longitudes within the specified
-#' tolerance (inclusive) are considered a match. Passing a single number results
-#' in the tolerance being the same for x and y, but you can also pass a vector
-#' of two numbers to have the first specify the x tolerance and second specify
-#' the y tolerance
-#' @param na_rm whether to remove NAs in the climate data and adjust the
-#' overlay weights so that the weights of non-na cells sum to 1 across each
-#' polygon. The default is `FALSE`
+#'   overlay_weights with the climate data by the x and y columns. This is
+#'   useful when the height/width of your data cells expressed in degrees is a
+#'   very long decimal. The default, `0`, performs a keyed equi-join. Anything
+#'   other than 0 performs a nonequi-join wherein latitudes/longitudes within
+#'   the specified tolerance (inclusive) are considered a match. Passing a
+#'   single number results in the tolerance being the same for x and y, but you
+#'   can also pass a vector of two numbers to have the first specify the x
+#'   tolerance and second specify the y tolerance
+#' @param na_rm whether to remove NAs in the climate data and adjust the overlay
+#'   weights so that the weights of non-na cells sum to 1 across each polygon.
+#'   The default is `FALSE`
+#'
+#' @param transformations a list of functions to transform the data prior to
+#'   aggregation. For instance, running `staggregate_polynomial(... degree = 2)`
+#'   is equivalent to running `staggregate_custom(... transformations = c(\(x)
+#'   x, \(x) x^2)`
+#' @param result_cols a vector of strings to use in naming the columns of
+#'   transformed, aggregated values. These must be in the same order as the
+#'   corresponding transformations. In keeping with the example above, passing
+#'   `c("order_1", "order_2")` to the argument will produce the same names as
+#'   `staggregate_polynomial(... degree = 2)`. Default names are fun1, fun2, etc
 #'
 #' @examples
 #' staggregate_output <- staggregate_custom(
@@ -2086,12 +2141,12 @@ staggregate_custom <- function(
     overlay_weights,
     daily_agg = 'none',
     time_agg = 'month',
-    transformations,
-    result_cols = NA,
     start_date = NA,
     time_interval = '1 hour',
     weights_join_tolerance = 0,
-    na_rm = FALSE
+    na_rm = FALSE,
+    transformations,
+    result_cols = NA
 ){
 
   # 1. Input Validation and Error Catching
