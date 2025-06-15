@@ -1,7 +1,7 @@
 #' Area and cropland weights in ERA5 grid for New Jersey counties
 #'
-#' A table of weights returned by running overlay_weights() with nj_counties and
-#' secondary cropland weights.
+#' A table of weights returned by running overlay_weights() with
+#' tigris::counties('nj') and secondary cropland weights.
 #'
 #' @format a data.table with 141 observations of 5 variables
 #'   \describe{

@@ -529,7 +529,7 @@ get_deg_day_funs <- function(thresholds, i, x){
       0
     )
 
-  } else if(i == length(bin_breaks)){
+  } else if(i == length(thresholds)){
 
     # Highest threshold, x - threshold if x > threshold, 0 otherwise
     output <- terra::ifel(
@@ -583,7 +583,7 @@ get_deg_day_names <- function(thresholds){
   for(i in 0:length(thresholds)){
     if(i == 0){
       result_cols <- paste0('threshold_ninf_to_', min(thresholds))
-    } else if(i == length(bin_breaks)){
+    } else if(i == length(thresholds)){
       result_cols <- c(
         result_cols,
         paste0('threshold_', max(thresholds), '_to_inf')
@@ -591,7 +591,7 @@ get_deg_day_names <- function(thresholds){
     } else{
       result_cols <- c(
         result_cols,
-        paste0('threshold_', bin_breaks[i], '_to_', bin_breaks[i+1])
+        paste0('threshold_', thresholds[i], '_to_', thresholds[i+1])
       )
     }
   }
@@ -645,14 +645,14 @@ staggregate_degree_days_new <- function(
 
 
   # Make sure bin_breaks are ordered vector
-  thresholds <- validate_bin_breaks(thresholds)
+  thresholds <- validate_thresholds(thresholds)
 
   # Create list of functions corresponding to each bin
   transformations <- lapply(
     0:length(thresholds),
     function(threshold_index){
       force(thresholds)
-      force(thresholds_index)
+      force(threshold_index)
       \(x) get_deg_day_funs(
         thresholds = thresholds,
         i = threshold_index,

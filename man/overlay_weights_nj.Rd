@@ -20,7 +20,7 @@ weight}
 overlay_weights_nj
 }
 \description{
-A table of weights returned by running overlay_weights() with nj_counties and
-secondary cropland weights.
+A table of weights returned by running overlay_weights() with
+tigris::counties('nj') and secondary cropland weights.
 }
 \keyword{datasets}
