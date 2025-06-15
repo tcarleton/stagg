@@ -1219,7 +1219,7 @@ validate_data <- function(data){
 validate_overlay_weights <- function(overlay_weights, data){
 
   # create a deep copy of the object so we don't modify the user's (data.table modify's things in place)
-  overlay_weights <- copy(overlay_weights)
+  overlay_weights <- data.table::copy(overlay_weights)
 
   # x, y, and poly_id all present
   has_all_geo_cols <- c('x', 'y', 'poly_id') %in% names(overlay_weights) |>
@@ -1995,8 +1995,8 @@ execute_na_rm <- function(data, result_cols){
   }
 
   # Recalculate weights so that, for each polygon in each layer, they all sum to 1
-  data.table::setkeyv(data, cols = c('x', 'y', 'date'))
-  data[, weight_sum := sum(.SD), by = c('x','y','date'), .SD = weight_col]
+  data.table::setkeyv(data, cols = c('date', 'poly_id'))
+  data[, weight_sum := sum(.SD), by = c('date', 'poly_id'), .SD = weight_col]
   data[, (weight_col) := lapply(.SD, function(x) {x / weight_sum}), .SDcols = weight_col]
   data[, weight_sum := NULL]
 
@@ -2151,6 +2151,8 @@ staggregate_custom <- function(
 
   # 1. Input Validation and Error Catching
   # ____________________________________________________________________________
+
+  # Validation functions always take the form validate_arg(arg, ...) and return arg
 
   # Coerce data to spatRast
   data <- validate_data(data)
