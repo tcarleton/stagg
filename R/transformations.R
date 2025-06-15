@@ -1,3 +1,19 @@
+# Staggregate Transformation Presets
+#
+# This file contains several different wrapper functions for
+# staggregate_custom(). They all implement a different transformation based on
+# one or more unique arguments (staggregate_polynomial() takes degree, for
+# instance) and then pass that transformation, and all of the arguments supplied
+# by the user, to staggregate_custom() and output its result.
+
+# For this reason, running
+# staggregate_custom(..., transformations = c(function(x){x}, function(x){x^2}))
+# is equivalent to running staggregate_polynomial(..., degree = 2) as long as
+# the ... arguments are identical. All staggregate_polynomial is doing is taking
+# the information supplied to degree = 2 and interpreting this as a list of two
+# transformations, x and x^2. It then passes these to staggregate_custom() along
+# with all the ... arguments the user supplied to it, and runs
+# staggregate_custom "under the hood".
 
 # ==============================================================================
 # Polynomial Transformation Version of Staggregate
@@ -132,6 +148,10 @@ validate_knot_locs <- function(knot_locs){
 }
 
 
+
+
+#   b) u_pos
+#   -----------------------------------
 #' Terra compatible eval of  turn to zero if negative (helper for get_spline_eq)
 #'
 #' @param u value to evaluate and return 0 if negative
@@ -141,6 +161,11 @@ validate_knot_locs <- function(knot_locs){
 #' @noRd
 u_pos <- function(u){terra::ifel(u > 0, u, 0)}
 
+
+
+
+#   c) get_spline_eq
+#   -----------------------------------
 #' Generate restricted cubic spline equation for element in knot_loc vector
 #'
 #' Function to create 1 f(x)=x function and k - 2 restricted cubic spline
@@ -343,11 +368,11 @@ get_bin_names <- function(bin_breaks){
   # Assign bin column names
   for(i in 0:length(bin_breaks)){
     if(i == 0){
-      result_cols <- paste0('bin_ninf_to_', bin_breaks[1])
+      result_cols <- paste0('bin_ninf_to_', min(bin_breaks))
     } else if(i == length(bin_breaks)){
       result_cols <- c(
         result_cols,
-        paste0('bin_', bin_breaks[length(bin_breaks)], '_to_inf')
+        paste0('bin_', max(bin_breaks), '_to_inf')
       )
     } else{
       result_cols <- c(
@@ -446,3 +471,218 @@ staggregate_bin_new <- function(
 
   return(data)
 }
+
+
+
+
+# ==============================================================================
+# Degree Days Transformation Version of Staggregate
+# ==============================================================================
+
+# Internal Helper Functions
+# ______________________________________________________________________________
+
+#   a) validate_thresholds
+#   -----------------------------------
+#' Make sure thresholds are in order
+#'
+#' @param thresholds The user supplied thresholds
+#'
+#' @returns the numeric vector of thresholds in order from least to greatest
+#'
+#' @noRd
+validate_thresholds <- function(thresholds){
+  if(!is.numeric(thresholds)){
+    stop(crayon::red('thresholds must be a numeric vector'))
+  }
+
+  thresholds <- sort(thresholds)
+
+  return(thresholds)
+}
+
+
+
+
+#   b) get_deg_days_fun
+#   -----------------------------------
+#' Create a list degree days functions from `thresholds`
+#'
+#' @param thresholds the ascending numeric vector of thresholds
+#' @param i the index 0 to length(thresholds) to iterate over (corresponds to
+#'   threshold number)
+#' @param x the value to run through each function. This should receive the
+#'   actual climate data and be the only non-fixed variable in the
+#'   transformations list
+#'
+#' @returns a list of functions to pass to `transformations`
+#'
+#' @noRd
+get_deg_day_funs <- function(thresholds, i, x){
+
+  if(i == 0){
+
+    # Lowest threshold, threshold - x if x < threshold, 0 otherwise,
+    output <- terra::ifel(
+      x < min(thresholds),
+      min(thresholds) - x,
+      0
+    )
+
+  } else if(i == length(bin_breaks)){
+
+    # Highest threshold, x - threshold if x > threshold, 0 otherwise
+    output <- terra::ifel(
+      x > max(thresholds),
+      x - max(thresholds),
+      0
+    )
+
+  } else{
+    # Can't use case_when here because it doesn't work on terra objects.
+    # Potential suggestion for terra team
+
+    # All other thresholds:
+    # 0 if x < threshold,
+    # next_threshhold - threshold if x > next_threshold
+    # x - threshold otherwise
+    output <- terra::ifel(
+
+      # x below range
+      x < thresholds[i],
+      0,
+
+      # x above range
+      terra::ifel(
+        x > thresholds[i + 1],
+        thresholds[i + 1] - thresholds[i],
+
+        # x in range
+        x - thresholds[i]
+      )
+    )
+  }
+
+  return(output)
+
+}
+
+
+#   c) get_deg_day_names
+#   -----------------------------------
+#' Assign bin column names
+#'
+#' @param thresholds the ascending numeric vector of bin_breaks
+#'
+#' @returns the bin names to be supplied to result_cols
+#'
+#' @noRd
+get_deg_day_names <- function(thresholds){
+
+  # Assign bin column names
+  for(i in 0:length(thresholds)){
+    if(i == 0){
+      result_cols <- paste0('threshold_ninf_to_', min(thresholds))
+    } else if(i == length(bin_breaks)){
+      result_cols <- c(
+        result_cols,
+        paste0('threshold_', max(thresholds), '_to_inf')
+      )
+    } else{
+      result_cols <- c(
+        result_cols,
+        paste0('threshold_', bin_breaks[i], '_to_', bin_breaks[i+1])
+      )
+    }
+  }
+
+  result_cols <- sub('-', 'n', result_cols)
+
+  return(result_cols)
+}
+
+# Exported Main Function
+# ______________________________________________________________________________
+#
+#' Degree day transformation and aggregation of climate data
+#'
+#' The function `staggregate_degree_days()` aggregates climate data to the daily
+#' level, performs a degree days transformation on these daily values, and
+#' aggregates the transformed values to the polygon level and desired temporal
+#' scale
+#'
+#' @inheritParams staggregate_custom
+#'
+#' @param thresholds A vector of temperature thresholds critical to a crop
+#'
+#' @examples
+#' degree_days_output <- staggregate_degree_days(
+#'   data = terra::rast(temp_nj_jun_2024_era5) - 273.15, # Climate data to transform and
+#'                                          # aggregate
+#'   overlay_weights = overlay_weights_nj, # Output from overlay_weights()
+#'   time_agg = "month", # Sum the transformed daily values across months
+#'   start_date = "2024-06-01 00:00:00", # The start date of the supplied data,
+#'                                       # only required if the layer name
+#'                                       # format is not compatible with stagg
+#'   time_interval = "1 hour", # The temporal interval of the supplied data,
+#'                             # only required if the start_date is not NA
+#'   thresholds = c(0, 10, 20) # Calculate degree days above 0, 10, and 20
+#'                             # degrees Celsius
+#'   )
+#'
+#' head(degree_days_output)
+#'
+#' @export
+staggregate_degree_days_new <- function(
+    data,
+    overlay_weights,
+    time_agg = "month",
+    start_date = NA,
+    time_interval = '1 hour',
+    weights_join_tolerance = 0,
+    na_rm = FALSE,
+    thresholds){
+
+
+  # Make sure bin_breaks are ordered vector
+  thresholds <- validate_bin_breaks(thresholds)
+
+  # Create list of functions corresponding to each bin
+  transformations <- lapply(
+    0:length(thresholds),
+    function(threshold_index){
+      force(thresholds)
+      force(thresholds_index)
+      \(x) get_deg_day_funs(
+        thresholds = thresholds,
+        i = threshold_index,
+        x = x
+      )
+    }
+  )
+
+  # Assign bin names
+  result_cols <- get_deg_day_names(thresholds)
+
+  # Automatically supply none to daily_agg
+  daily_agg <- 'none'
+
+  # Run staggregate_custom()
+  data <- staggregate_custom(
+    data = data,
+    overlay_weights = overlay_weights,
+    daily_agg = daily_agg,
+    time_agg = time_agg,
+    start_date = start_date,
+    time_interval = time_interval,
+    weights_join_tolerance = weights_join_tolerance,
+    na_rm = na_rm,
+    transformations = transformations,
+    result_cols = result_cols
+  )
+
+
+  return(data)
+}
+
+
