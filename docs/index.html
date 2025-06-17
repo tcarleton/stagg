@@ -8,8 +8,8 @@
 <title>Spatiotemporal Aggregation for Climate Data • stagg</title>
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.4.2/css/all.min.css" rel="stylesheet">
-<link href="deps/font-awesome-6.4.2/css/v4-shims.min.css" rel="stylesheet">
+<script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Spatiotemporal Aggregation for Climate Data">
 <meta name="description" content="The R Package `stagg` aims to harmonize the preparation of spatiotemporal raster data, in particular climate observations, for use in statistical analyses. This allows for more efficient use of researchers' time, and avoids common missteps. The end goal is a greater quantity of quality research into the study of coupled human-geophysical systems.">
 <meta property="og:description" content="The R Package `stagg` aims to harmonize the preparation of spatiotemporal raster data, in particular climate observations, for use in statistical analyses. This allows for more efficient use of researchers' time, and avoids common missteps. The end goal is a greater quantity of quality research into the study of coupled human-geophysical systems.">
@@ -78,7 +78,7 @@
 <p><strong>Important</strong></p>
 <p>The <code>stagg</code> package currently does not include functions to download climate data. There are many packages that can be used to download climate data. For example, <a href="https://github.com/mikejohnson51/climateR" class="external-link"><code>climateR</code></a> provides access to climate datasets from over 2000 different data providers. ERA5 climate data can be download through <a href="https://github.com/bluegreen-labs/ecmwfr" class="external-link"><code>ecmwfr</code></a>, which provides an interface to two European Centre for Medium-Range Weather Forecast APIs. The <a href="https://github.com/ErikKusch/KrigR" class="external-link"><code>KrigR</code></a> package provides a helpful wrapper function for the <code>ecmwfr</code> package to enable direct downloading of ERA5 climate data in R. ECMWF also provides a general <a href="https://confluence.ecmwf.int/display/CKB/How+to+download+ERA5" class="external-link">guide to downloading ERA5 data</a>.</p>
 <p>In this example we use ERA5 climate data, and the package includes a global raster layer of ERA5 climate data which can be used as a default in the <code><a href="reference/secondary_weights.html">secondary_weights()</a></code> and <code><a href="reference/overlay_weights.html">overlay_weights()</a></code> functions. However, other climate datasets can easily be accommodated.</p>
-<p>For compatibility with <code>stagg</code>, input climate data should be a raster or layered raster (read in using <code><a href="https://rdrr.io/pkg/raster/man/raster.html" class="external-link">raster::raster()</a></code>/<code><a href="https://rdrr.io/pkg/terra/man/rast.html" class="external-link">terra::rast()</a></code> or <code><a href="https://rdrr.io/pkg/raster/man/stack.html" class="external-link">raster::stack()</a></code>/<code><a href="https://rdrr.io/pkg/terra/man/c.html" class="external-link">terra::c()</a></code>; data can originally be stored in formats such as netCDF or .tif) with at least an annual temporal resolution, since the most coarse temporal aggregation offered by stagg is annual. If the temporal resolution is sub-daily, the number of layers per day should be consistent. By default, hourly time steps are assumed (i.e., 24 time steps per day), though a different number can be specified using the time_interval argument in the <code>staggregate_*()</code> functions.</p>
+<p>For compatibility with <code>stagg</code>, input climate data should be a raster or layered raster (read in using <code><a href="https://rdrr.io/pkg/raster/man/raster.html" class="external-link">raster::raster()</a></code>/<code><a href="https://rspatial.github.io/terra/reference/rast.html" class="external-link">terra::rast()</a></code> or <code><a href="https://rdrr.io/pkg/raster/man/stack.html" class="external-link">raster::stack()</a></code>/<code><a href="https://rspatial.github.io/terra/reference/c.html" class="external-link">terra::c()</a></code>; data can originally be stored in formats such as netCDF or .tif) with at least an annual temporal resolution, since the most coarse temporal aggregation offered by stagg is annual. If the temporal resolution is sub-daily, the number of layers per day should be consistent. By default, hourly time steps are assumed (i.e., 24 time steps per day), though a different number can be specified using the time_interval argument in the <code>staggregate_*()</code> functions.</p>
 <p>In order for the temporal aggregation to happen properly, stagg must have a way of knowing the temporal information associated with the raster stack being aggregated. This can be achieved one of two ways: 1) the layer names use a string-date-time or string-date format; or 2) the start date-time and temporal time steps of the raster stack must be specified in <code>staggregate_*()</code>. For example, layer names for ERA5 and data retrieved using <code>climateR</code> uses the format x2021.01.01.00.00.00 or x2021.01.01 and variable_2021-01-01 respectively, both of which are compatible with <code>stagg</code>. Alternatively, the user can specify the start datetime and temporal interval of the data in the <code>staggregate_*()</code> functions using the <code>start_date</code> and <code>time_interval</code> arguments.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tcarleton.github.io/stagg">stagg</a></span><span class="op">)</span></span></code></pre></div>
@@ -552,11 +552,11 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Tyler Liddell <br><small class="roles"> Author </small>  </li>
-<li>Anna Boser <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-7336-0117" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
-<li>Sara Orofino <br><small class="roles"> Author </small>  </li>
-<li>Tracey Mangin <br><small class="roles"> Author </small>  </li>
-<li>Tamma Carleton <br><small class="roles"> Author </small>  </li>
+<li>Tyler Liddell <br><small class="roles"> Author </small>   </li>
+<li>Anna Boser <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-7336-0117" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
+<li>Sara Orofino <br><small class="roles"> Author </small>   </li>
+<li>Tracey Mangin <br><small class="roles"> Author </small>   </li>
+<li>Tamma Carleton <br><small class="roles"> Author </small>   </li>
 </ul>
 </div>
 
@@ -571,7 +571,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.2.</p>
 </div>
 
     </footer>

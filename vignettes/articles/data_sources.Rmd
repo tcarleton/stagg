@@ -17,9 +17,9 @@ knitr::opts_chunk$set(
 ```
 
 # Introduction
-This vignette demonstrates how to use the `stagg` package with data from `climateR`, as well as other data sources that do not have temporal metadata in a format that `stagg` accepts in the layer names. 
+This article demonstrates how to use the `stagg` package with data from `climateR`, as well as other data sources that do not have temporal metadata in a format that `stagg` accepts in the layer names. 
 
-First, we load the packages used in this vignette. 
+First, we load the packages used in this article. 
 ```{r message=FALSE, warning=FALSE, results="hide"}
 library(climateR) # Obtain climate data
 library(tigris) # Polygons to request and aggregate climate data over

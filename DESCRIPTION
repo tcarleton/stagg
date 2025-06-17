@@ -39,3 +39,4 @@ Config/testthat/edition: 3
 VignetteBuilder: knitr
 Remotes: 
     mikejohnson51/climateR
+Config/Needs/website: rmarkdown
