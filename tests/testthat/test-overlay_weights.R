@@ -1,6 +1,7 @@
 # Test overlay weights
 test_that("overlay_weights outputs are normal", {
 
+  skip_if_offline()
   nj_counties <- tigris::counties("nj")
 
   # Run secondary_weights
@@ -48,7 +49,7 @@ test_that("overlay_weights outputs are normal", {
 })
 
 test_that("overlay_weights works when some secondary weights are NA", {
-
+  skip_if_offline()
   nj_counties <- tigris::counties("nj")
 
   # Run secondary_weights
@@ -78,7 +79,7 @@ test_that("overlay_weights works when some secondary weights are NA", {
 })
 
 test_that("overlay_weights warnings", {
-
+  skip_if_offline()
   nj_counties <- tigris::counties("nj")
 
   # Run secondary_weights
@@ -107,7 +108,7 @@ test_that("overlay_weights warnings", {
 })
 
 test_that("overlay_weights errors", {
-
+  skip_if_offline()
   nj_counties <- tigris::counties("nj")
 
   # Shift the nj_countiespolygons so they are 0-360

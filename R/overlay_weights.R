@@ -15,13 +15,14 @@
 #' @return a data.table of area weights and possibly secondary weights for each
 #'   cell within each polygon
 #'
-#' @examples
+#' @examplesIf interactive()
 #' overlay_output_with_secondary_weights <- overlay_weights(
-#'   polygons = tigris::counties("nj"), # Polygons outlining the 21 counties of New Jersey
+#'   polygons = tigris::counties("nj"), # Polygons outlining the 21 counties of
+#'                                      # New Jersey
 #'   polygon_id_col = "COUNTYFP", # The name of the column with the unique
 #'                                # county identifiers
-#'   grid = era5_grid, # The grid to use when extracting area weights (era5_grid is the
-#'                     # default)
+#'   grid = era5_grid, # The grid to use when extracting area weights (era5_grid
+#'                     # is the default)
 #'   secondary_weights = cropland_world_2015_era5 # Output from
 #'                                                # secondary_weights
 #'                                                # (cropland_world_2015_era5 is
@@ -33,13 +34,40 @@
 #'
 #'
 #' overlay_output_without_secondary_weights <- overlay_weights(
-#'   polygons = tigris::counties("nj"), # Polygons outlining the 21 counties of New Jersey
+#'   polygons = tigris::counties("nj"), # Polygons outlining the 21 counties of
+#'                                      # New Jersey
 #'   polygon_id_col = "COUNTYFP" # The name of the column with the unique county
 #'                               # identifiers
 #'   )
 #'
 #' head(overlay_output_without_secondary_weights)
 #'
+#'
+#'
+#' @examplesIf !interactive()
+#' overlay_output_with_secondary_weights <- overlay_weights(
+#'   polygons = nj_polygon, # Polygon roughly outlining the state of New Jersey
+#'   polygon_id_col = "GEOID", # The name of the column with the unique
+#'                             # identifier
+#'   grid = era5_grid, # The grid to use when extracting area weights (era5_grid
+#'                     # is the default)
+#'   secondary_weights = cropland_world_2015_era5 # Output from
+#'                                                # secondary_weights
+#'                                                # (cropland_world_2015_era5 is
+#'                                                # available to the# user)
+#'   )
+#'
+#' head(overlay_output_with_secondary_weights)
+#'
+#'
+#'
+#' overlay_output_without_secondary_weights <- overlay_weights(
+#'   polygons = nj_polygon, # Polygon roughly outlining the state of New Jersey
+#'   polygon_id_col = "GEOID", # The name of the column with the unique
+#'                             # identifier
+#'   )
+#'
+#' head(overlay_output_without_secondary_weights)
 #'
 #' @export
 overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondary_weights = NULL){

@@ -46,6 +46,7 @@ test_that("secondary_weights warnings", {
 
 test_that("secondary_weights errors", {
 
+  skip_if_offline()
   # Extent type that is not compatible
   nj_counties <- tigris::counties("nj")
   extent_poly <- sf::st_as_sfc(sf::st_bbox(nj_counties))
