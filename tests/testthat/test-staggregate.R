@@ -237,3 +237,66 @@ testthat::test_that(
 
 #   a) validate_data
 #   -----------------------------------
+
+# Test that the data types we expect are correctly handled by validate_data()
+test_that('validate_data() correctly handles SpatRaster stacks', {
+
+  # Generate testing SpatRaster stack
+  test_rast <- terra::rast(vals = 1, ncol = 10, nrow = 10, nlyr = 5)
+
+  # Run validate_data()
+  validated_rast <- validate_data(test_rast)
+
+  # Make sure object is still a SpatRaster
+  expect_true(inherits(validated_rast, 'SpatRaster'))
+
+  # Make sure layer names preserved
+  expect_equal(names(test_rast), names(validated_rast))
+
+  # Make sure values are preserved
+  expect_equal(terra::values(test_rast), terra::values(validated_rast))
+})
+
+
+test_that('validate_data() correctly handles raster bricks', {
+
+  # Generate testing raster brick and raster stack
+  test_brick <- raster::brick(ncol = 10, nrow = 10, nl = 5)
+  raster::values(test_brick) <- 1
+
+  # Run validate_data()
+  validated_rast <- validate_data(test_brick)
+
+  # Make sure object was coerced to a SpatRaster
+  expect_true(inherits(validated_rast, 'SpatRaster'))
+
+  # Make sure layer names preserved
+  expect_equal(names(test_brick), names(validated_rast))
+
+  # Make sure values are preserved
+  expect_equal(raster::values(test_brick), terra::values(validated_rast))
+
+})
+
+test_that('validate_data() correctly handles raster stacks', {
+
+  # Generate testing raster brick and raster stack
+  test_stack <- raster::brick(ncol = 10, nrow = 10, nl = 5) |>
+    raster::stack()
+  raster::values(test_stack) <- 1
+
+  # Run validate_data()
+  validated_rast <- validate_data(test_stack)
+
+  # Make sure object was coerced to a SpatRaster
+  expect_true(inherits(validated_rast, 'SpatRaster'))
+
+  # Make sure layer names preserved
+  expect_equal(names(test_stack), names(validated_rast))
+
+  # Make sure values are preserved
+  expect_equal(raster::values(test_stack), terra::values(validated_rast))
+})
+
+#   b) validate
+
