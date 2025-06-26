@@ -298,5 +298,10 @@ test_that('validate_data() correctly handles raster stacks', {
   expect_equal(raster::values(test_stack), terra::values(validated_rast))
 })
 
+
+test_that('validate_data() errors when expected')
+
+# Test that the data types we don't expect error properly
+
 #   b) validate
 

@@ -172,3 +172,9 @@ test_that('old staggregate_degree_days output is the same as new', {
   )
 
 })
+
+
+
+
+
+
