@@ -56,3 +56,30 @@ test_that("secondary_weights errors", {
                                  extent = extent_poly),
                regexp = "User-defined extent not compatible with raster.")
 })
+
+
+
+################################################################################
+# Tests to keep after refactoring
+################################################################################
+
+# Fix issue 50
+test_that('secondary_weights works with mismatched projections', {
+
+  # Create test data
+  test_secondary_raster <- terra::rast(cropland_nj_2015, crs = "+proj=laea +lat_1=52 +lon_0=-10 +ellps=GRS80") |>
+    terra::project("+proj=laea +lat_1=52 +lon_0=-10 +ellps=GRS80")
+  test_grid <- terra::rast(temp_nj_jun_2024_era5, crs = "ESRI:102761")[[1]] |>
+    terra::project("ESRI:102761")
+
+  # Run secondary_weights on test data
+  test_output <- secondary_weights(test_secondary_raster, test_grid)
+
+  # Get validation data
+  validation_secondary_raster <- terra::rast(cropland_nj_2015)
+  validation_grid <- terra::rast(temp_nj_jun_2024_era5)[[1]]
+  validation_output <- secondary_weights(validation_secondary_raster, validation_grid)
+
+  # Compare
+  expect_true(all.equal(test_output, validation_output))
+})
