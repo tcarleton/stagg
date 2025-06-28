@@ -299,9 +299,25 @@ test_that('validate_data() correctly handles raster stacks', {
 })
 
 
-test_that('validate_data() errors when expected')
+test_that('validate_data() errors when expected', {
 
-# Test that the data types we don't expect error properly
+  # Vector
+  expect_error(
+    validate_data(c(1, 2, 3))
+  )
 
-#   b) validate
+  # Missing
+  expect_error(
+    validate_data()
+  )
+
+  # Data Frame
+  df <- data.frame(x = c(1,2), y = c(1, 2), value = c(3,4))
+
+  expect_error(
+    validate_data(df)
+  )
+
+})
+
 

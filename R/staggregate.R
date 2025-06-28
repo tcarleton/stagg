@@ -1191,6 +1191,16 @@ staggregate_degree_days <- function(data, overlay_weights, time_agg = "month", s
 #'
 #' @noRd
 validate_data <- function(data){
+
+  # Don't allow a data.frame or matrix to prevent accidentally passing something
+  # like overlay_weights output or other arguments
+  if(inherits(data, c('data.frame', 'matrix', 'string'))){
+
+    stop(crayon::red("Incompatible class supplied to data argument. Try coercing to a list of SpatRasters, a RasterBrick, or a RasterStack"))
+  }
+
+
+  # If not a SpatRaster, coerce to one
   if(!inherits(data, "SpatRaster")){
     data <- terra::rast(data)
   }
