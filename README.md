@@ -4,6 +4,7 @@
 # stagg
 
 <!-- badges: start -->
+
 <!-- badges: end -->
 
 The R Package `stagg` aims to harmonize the preparation of
@@ -151,13 +152,11 @@ cropland_weights <- secondary_weights(
 )
 ```
 
-    #> Loading required package: raster
+    #> Loading required namespace: raster
 
-    #> Loading required package: sp
+    #> Warning: [is.lonlat] coordinates are out of range for lon/lat
 
     #> Checking for raster alignment
-
-    #> Longitude coordinates do not match. Aligning longitudes to standard coordinates.
 
     #> Resampling secondary_raster
 
@@ -169,6 +168,7 @@ cropland_weights
 ```
 
     #>           x     y    weight
+    #>       <num> <num>     <num>
     #>   1: -76.25 41.75 0.2294976
     #>   2: -76.00 41.75 0.2198315
     #>   3: -75.75 41.75 0.1777267
@@ -221,7 +221,7 @@ county_weights <- overlay_weights(
 
     #> Checking for raster/polygon alignment
 
-    #> Aligning longitudes to standard coordinates.
+    #> Warning: [is.lonlat] coordinates are out of range for lon/lat
 
     #> Extracting raster polygon overlap
 
@@ -236,18 +236,20 @@ county_weights <- overlay_weights(
 print(county_weights, digits = 4)
 ```
 
+    #> Key: <x, y>
     #>          x     y poly_id    w_area    weight
-    #>   1: 284.5 39.25     011 0.0172211 0.0360401
-    #>   2: 284.5 39.25     033 0.0058164 0.0060266
-    #>   3: 284.5 39.50     011 0.0170331 0.0307720
-    #>   4: 284.5 39.50     033 0.3550727 0.3175946
-    #>   5: 284.5 39.75     015 0.0219317 0.0193611
+    #>      <num> <num>  <char>     <num>     <num>
+    #>   1: -75.5 39.25     011 0.0172211 0.0360401
+    #>   2: -75.5 39.25     033 0.0058164 0.0060266
+    #>   3: -75.5 39.50     011 0.0170331 0.0307720
+    #>   4: -75.5 39.50     033 0.3550727 0.3175946
+    #>   5: -75.5 39.75     015 0.0219342 0.0193573
     #>  ---                                        
-    #> 137: 286.0 40.75     013 0.0096002 0.0057514
-    #> 138: 286.0 40.75     003 0.1828252 0.1307450
-    #> 139: 286.0 40.75     031 0.0065855 0.0028879
-    #> 140: 286.0 41.00     003 0.5410449 0.6773374
-    #> 141: 286.0 41.00     031 0.0007097 0.0005448
+    #> 137: -74.0 40.75     013 0.0095999 0.0057512
+    #> 138: -74.0 40.75     003 0.1828252 0.1307450
+    #> 139: -74.0 40.75     031 0.0065823 0.0028849
+    #> 140: -74.0 41.00     003 0.5410449 0.6773374
+    #> 141: -74.0 41.00     031 0.0007093 0.0005442
 
 You can see that the function outputs multiple rows for each polygon,
 one for every grid cell it overlaps. The column `w_area` represents the
@@ -297,10 +299,8 @@ polynomial_output <- staggregate_polynomial(
   
   data = temp_nj_jun_2024_era5 - 273.15, # A raster brick of our primary data, 
                                          # typically but not necessarily climate 
-                                         # data. For now, data must start at 
-                                         # midnight and be hourly. We're 
-                                         # converting from Kelvin to Celsius 
-                                         # here.
+                                         # data. We're converting from Kelvin to 
+                                         # Celsius here.
   
   overlay_weights = county_weights, # Output from Step 2, determined here by 
                                     # area-normalized cropland weights for grid 
@@ -334,29 +334,30 @@ polynomial_output <- staggregate_polynomial(
 polynomial_output
 ```
 
-    #>     year month poly_id  order_1  order_2  order_3
-    #>  1: 2024     6     011 729.4373 17894.66 442930.1
-    #>  2: 2024     6     033 733.7415 18118.51 451662.6
-    #>  3: 2024     6     015 729.0098 17892.01 443419.8
-    #>  4: 2024     6     009 686.3300 15807.50 366563.4
-    #>  5: 2024     6     007 730.9659 17987.04 446942.1
-    #>  6: 2024     6     041 684.4207 15918.44 377139.5
-    #>  7: 2024     6     019 705.7509 16878.38 410117.8
-    #>  8: 2024     6     001 724.9572 17682.29 435310.3
-    #>  9: 2024     6     005 726.9852 17802.18 440440.8
-    #> 10: 2024     6     021 721.3909 17561.50 432688.6
-    #> 11: 2024     6     027 687.8256 16056.56 381378.6
-    #> 12: 2024     6     037 663.3327 14985.00 345519.8
-    #> 13: 2024     6     023 718.5814 17424.03 427602.5
-    #> 14: 2024     6     035 710.1241 17067.68 416336.7
-    #> 15: 2024     6     029 720.6808 17499.87 429477.7
-    #> 16: 2024     6     025 711.0168 17042.99 413123.1
-    #> 17: 2024     6     039 702.9571 16690.28 401409.8
-    #> 18: 2024     6     013 698.6267 16473.52 393206.3
-    #> 19: 2024     6     031 670.6985 15279.59 354428.6
-    #> 20: 2024     6     017 704.8867 16733.28 401281.4
-    #> 21: 2024     6     003 688.9643 16026.13 377468.5
-    #>     year month poly_id  order_1  order_2  order_3
+    #>      year month poly_id  order_1  order_2  order_3
+    #>     <num> <num>  <char>    <num>    <num>    <num>
+    #>  1:  2024     6     011 729.4372 17894.66 442929.9
+    #>  2:  2024     6     033 733.7413 18118.50 451662.2
+    #>  3:  2024     6     015 729.0091 17891.97 443418.4
+    #>  4:  2024     6     009 686.3299 15807.50 366563.3
+    #>  5:  2024     6     007 730.9656 17987.03 446942.0
+    #>  6:  2024     6     041 684.4208 15918.45 377139.6
+    #>  7:  2024     6     019 705.7509 16878.38 410117.7
+    #>  8:  2024     6     001 724.9572 17682.30 435310.4
+    #>  9:  2024     6     005 726.9852 17802.18 440440.8
+    #> 10:  2024     6     021 721.3909 17561.50 432688.5
+    #> 11:  2024     6     027 687.8299 16056.75 381385.2
+    #> 12:  2024     6     037 663.3331 14985.01 345520.2
+    #> 13:  2024     6     023 718.5814 17424.04 427602.6
+    #> 14:  2024     6     035 710.1244 17067.69 416337.1
+    #> 15:  2024     6     029 720.6809 17499.87 429477.8
+    #> 16:  2024     6     025 711.0168 17042.99 413123.2
+    #> 17:  2024     6     039 702.9568 16690.27 401409.4
+    #> 18:  2024     6     013 698.6268 16473.52 393206.4
+    #> 19:  2024     6     031 670.6924 15279.35 354421.5
+    #> 20:  2024     6     017 704.8866 16733.27 401281.2
+    #> 21:  2024     6     003 688.9646 16026.15 377469.0
+    #>      year month poly_id  order_1  order_2  order_3
 
 You can see that 3 variables are created. `order_1` represents the
 original values, linearly aggregated to the county, monthly level.
@@ -393,10 +394,8 @@ spline_output <- staggregate_spline(
   
   data = temp_nj_jun_2024_era5 - 273.15, # A raster brick of our primary data, 
                                          # typically but not necessarily climate 
-                                         # data. For now, data must start at 
-                                         # midnight and be hourly. We're
-                                         # converting from Kelvin to Celsius 
-                                         # here.
+                                         # data. We're converting from Kelvin to 
+                                         # Celsius here.
   
   overlay_weights = county_weights, # Output from Step 2, determined here by 
                                     # area-normalized cropland weights for grid
@@ -427,29 +426,30 @@ spline_output <- staggregate_spline(
 spline_output
 ```
 
-    #>     year month poly_id    value   term_1   term_2
-    #>  1: 2024     6     011 729.4373 303327.9 61769.48
-    #>  2: 2024     6     033 733.7415 306556.2 62576.55
-    #>  3: 2024     6     015 729.0098 303007.5 61689.39
-    #>  4: 2024     6     009 686.3300 270997.7 53686.97
-    #>  5: 2024     6     007 730.9659 304474.5 62056.15
-    #>  6: 2024     6     041 684.4207 269634.4 53356.42
-    #>  7: 2024     6     019 705.7509 285580.9 57335.39
-    #>  8: 2024     6     001 724.9572 299967.9 60929.49
-    #>  9: 2024     6     005 726.9852 301489.3 61309.89
-    #> 10: 2024     6     021 721.3909 297294.5 60261.31
-    #> 11: 2024     6     027 687.8256 272164.9 53985.60
-    #> 12: 2024     6     037 663.3327 253918.9 49442.64
-    #> 13: 2024     6     023 718.5814 295187.0 59734.38
-    #> 14: 2024     6     035 710.1241 288852.2 58151.92
-    #> 15: 2024     6     029 720.6808 296761.1 60127.84
-    #> 16: 2024     6     025 711.0168 289513.4 58315.97
-    #> 17: 2024     6     039 702.9571 283473.7 56806.81
-    #> 18: 2024     6     013 698.6267 280224.5 55994.30
-    #> 19: 2024     6     031 670.6985 259371.1 50794.87
-    #> 20: 2024     6     017 704.8867 284915.9 57166.60
-    #> 21: 2024     6     003 688.9643 272983.2 54184.80
-    #>     year month poly_id    value   term_1   term_2
+    #>      year month poly_id    value   term_1   term_2
+    #>     <num> <num>  <char>    <num>    <num>    <num>
+    #>  1:  2024     6     011 729.4372 303327.9 61769.47
+    #>  2:  2024     6     033 733.7413 306556.0 62576.51
+    #>  3:  2024     6     015 729.0091 303007.0 61689.27
+    #>  4:  2024     6     009 686.3299 270997.7 53686.96
+    #>  5:  2024     6     007 730.9656 304474.4 62056.11
+    #>  6:  2024     6     041 684.4208 269634.4 53356.44
+    #>  7:  2024     6     019 705.7509 285580.9 57335.39
+    #>  8:  2024     6     001 724.9572 299968.0 60929.50
+    #>  9:  2024     6     005 726.9852 301489.3 61309.88
+    #> 10:  2024     6     021 721.3909 297294.4 60261.29
+    #> 11:  2024     6     027 687.8299 272168.2 53986.42
+    #> 12:  2024     6     037 663.3331 253919.2 49442.70
+    #> 13:  2024     6     023 718.5814 295187.0 59734.39
+    #> 14:  2024     6     035 710.1244 288852.4 58151.97
+    #> 15:  2024     6     029 720.6809 296761.1 60127.85
+    #> 16:  2024     6     025 711.0168 289513.5 58315.99
+    #> 17:  2024     6     039 702.9568 283473.5 56806.75
+    #> 18:  2024     6     013 698.6268 280224.6 55994.31
+    #> 19:  2024     6     031 670.6924 259366.6 50793.75
+    #> 20:  2024     6     017 704.8866 284915.8 57166.57
+    #> 21:  2024     6     003 688.9646 272983.4 54184.86
+    #>      year month poly_id    value   term_1   term_2
 
 You can see that your output looks very similar to the table from the
 polynomial transformation. The only difference here is that 4 - 2
@@ -468,10 +468,8 @@ bin_output <- staggregate_bin(
   
   data = temp_nj_jun_2024_era5 - 273.15, # A raster brick of our primary data, 
                                          # typically but not necessarily climate 
-                                         # data. For now, data must start at 
-                                         # midnight and be hourly. We're 
-                                         # converting from Kelvin to Celsius
-                                         # here.
+                                         # data. We're converting from Kelvin to 
+                                         # Celsius here.
   
   overlay_weights = county_weights,  # Output from Step 2, determined here by 
                                      # area-normalized cropland weights for grid 
@@ -502,30 +500,32 @@ bin_output <- staggregate_bin(
 bin_output
 ```
 
-    #>     year month poly_id bin_ninf_to_0 bin_0_to_2.5 bin_2.5_to_5 bin_5_to_7.5
-    #>  1: 2024     6     011             0            0            0            0
-    #>  2: 2024     6     033             0            0            0            0
-    #>  3: 2024     6     015             0            0            0            0
-    #>  4: 2024     6     009             0            0            0            0
-    #>  5: 2024     6     007             0            0            0            0
-    #>  6: 2024     6     041             0            0            0            0
-    #>  7: 2024     6     019             0            0            0            0
-    #>  8: 2024     6     001             0            0            0            0
-    #>  9: 2024     6     005             0            0            0            0
-    #> 10: 2024     6     021             0            0            0            0
-    #> 11: 2024     6     027             0            0            0            0
-    #> 12: 2024     6     037             0            0            0            0
-    #> 13: 2024     6     023             0            0            0            0
-    #> 14: 2024     6     035             0            0            0            0
-    #> 15: 2024     6     029             0            0            0            0
-    #> 16: 2024     6     025             0            0            0            0
-    #> 17: 2024     6     039             0            0            0            0
-    #> 18: 2024     6     013             0            0            0            0
-    #> 19: 2024     6     031             0            0            0            0
-    #> 20: 2024     6     017             0            0            0            0
-    #> 21: 2024     6     003             0            0            0            0
-    #>     year month poly_id bin_ninf_to_0 bin_0_to_2.5 bin_2.5_to_5 bin_5_to_7.5
+    #>      year month poly_id bin_ninf_to_0 bin_0_to_2.5 bin_2.5_to_5 bin_5_to_7.5
+    #>     <num> <num>  <char>         <num>        <num>        <num>        <num>
+    #>  1:  2024     6     011             0            0            0            0
+    #>  2:  2024     6     033             0            0            0            0
+    #>  3:  2024     6     015             0            0            0            0
+    #>  4:  2024     6     009             0            0            0            0
+    #>  5:  2024     6     007             0            0            0            0
+    #>  6:  2024     6     041             0            0            0            0
+    #>  7:  2024     6     019             0            0            0            0
+    #>  8:  2024     6     001             0            0            0            0
+    #>  9:  2024     6     005             0            0            0            0
+    #> 10:  2024     6     021             0            0            0            0
+    #> 11:  2024     6     027             0            0            0            0
+    #> 12:  2024     6     037             0            0            0            0
+    #> 13:  2024     6     023             0            0            0            0
+    #> 14:  2024     6     035             0            0            0            0
+    #> 15:  2024     6     029             0            0            0            0
+    #> 16:  2024     6     025             0            0            0            0
+    #> 17:  2024     6     039             0            0            0            0
+    #> 18:  2024     6     013             0            0            0            0
+    #> 19:  2024     6     031             0            0            0            0
+    #> 20:  2024     6     017             0            0            0            0
+    #> 21:  2024     6     003             0            0            0            0
+    #>      year month poly_id bin_ninf_to_0 bin_0_to_2.5 bin_2.5_to_5 bin_5_to_7.5
     #>     bin_7.5_to_10 bin_10_to_inf
+    #>             <num>         <num>
     #>  1:             0            30
     #>  2:             0            30
     #>  3:             0            30
@@ -573,10 +573,8 @@ crops. This is used to generate estimates for piecewise functions.
 staggregate_degree_days(
   data = temp_nj_jun_2024_era5 - 273.15, # A raster brick of our primary data, 
                                          # typically but not necessarily climate 
-                                         # data. For now, data must start at 
-                                         # midnight and be hourly. We're
-                                         # converting from Kelvin to Celsius
-                                         # here. 
+                                         # data. We're converting from Kelvin to 
+                                         # Celsius here. 
   
   overlay_weights = county_weights, # Output from Step 2, determined here by 
                                     # area-normalized cropland weights for grid 
@@ -600,52 +598,54 @@ staggregate_degree_days(
 
     #> Aggregating by polygon and month
 
-    #>     year month poly_id threshold_ninf_to_0 threshold_0_to_10 threshold_10_to_20
-    #>  1: 2024     6     011                   0              7200           7033.869
-    #>  2: 2024     6     033                   0              7200           6996.451
-    #>  3: 2024     6     015                   0              7200           6929.859
-    #>  4: 2024     6     009                   0              7200           7129.929
-    #>  5: 2024     6     007                   0              7200           6935.451
-    #>  6: 2024     6     041                   0              7200           6486.642
-    #>  7: 2024     6     019                   0              7200           6661.205
-    #>  8: 2024     6     001                   0              7200           6965.391
-    #>  9: 2024     6     005                   0              7200           6902.068
-    #> 10: 2024     6     021                   0              7200           6822.985
-    #> 11: 2024     6     027                   0              7200           6549.290
-    #> 12: 2024     6     037                   0              7200           6336.393
-    #> 13: 2024     6     023                   0              7200           6834.659
-    #> 14: 2024     6     035                   0              7200           6712.329
-    #> 15: 2024     6     029                   0              7200           6894.822
-    #> 16: 2024     6     025                   0              7200           6886.335
-    #> 17: 2024     6     039                   0              7200           6794.602
-    #> 18: 2024     6     013                   0              7200           6812.126
-    #> 19: 2024     6     031                   0              7200           6438.093
-    #> 20: 2024     6     017                   0              7200           6947.556
-    #> 21: 2024     6     003                   0              7200           6755.068
-    #>     year month poly_id threshold_ninf_to_0 threshold_0_to_10 threshold_10_to_20
-    #>     threshold_20_to_inf
-    #>  1:            3272.625
-    #>  2:            3413.344
-    #>  3:            3366.375
-    #>  4:            2141.990
-    #>  5:            3407.730
-    #>  6:            2739.455
-    #>  7:            3076.817
-    #>  8:            3233.581
-    #>  9:            3345.578
-    #> 10:            3290.398
-    #> 11:            2758.524
-    #> 12:            2383.593
-    #> 13:            3211.295
-    #> 14:            3130.650
-    #> 15:            3201.517
-    #> 16:            2978.067
-    #> 17:            2876.369
-    #> 18:            2754.916
-    #> 19:            2458.671
-    #> 20:            2769.725
-    #> 21:            2580.074
-    #>     threshold_20_to_inf
+    #>      year month poly_id threshold_ninf_to_0 threshold_0_to_10
+    #>     <num> <num>  <char>               <num>             <num>
+    #>  1:  2024     6     011                   0              7200
+    #>  2:  2024     6     033                   0              7200
+    #>  3:  2024     6     015                   0              7200
+    #>  4:  2024     6     009                   0              7200
+    #>  5:  2024     6     007                   0              7200
+    #>  6:  2024     6     041                   0              7200
+    #>  7:  2024     6     019                   0              7200
+    #>  8:  2024     6     001                   0              7200
+    #>  9:  2024     6     005                   0              7200
+    #> 10:  2024     6     021                   0              7200
+    #> 11:  2024     6     027                   0              7200
+    #> 12:  2024     6     037                   0              7200
+    #> 13:  2024     6     023                   0              7200
+    #> 14:  2024     6     035                   0              7200
+    #> 15:  2024     6     029                   0              7200
+    #> 16:  2024     6     025                   0              7200
+    #> 17:  2024     6     039                   0              7200
+    #> 18:  2024     6     013                   0              7200
+    #> 19:  2024     6     031                   0              7200
+    #> 20:  2024     6     017                   0              7200
+    #> 21:  2024     6     003                   0              7200
+    #>      year month poly_id threshold_ninf_to_0 threshold_0_to_10
+    #>     threshold_10_to_20 threshold_20_to_inf
+    #>                  <num>               <num>
+    #>  1:           7033.869            3272.623
+    #>  2:           6996.451            3413.340
+    #>  3:           6929.858            3366.361
+    #>  4:           7129.929            2141.989
+    #>  5:           6935.445            3407.731
+    #>  6:           6486.645            2739.454
+    #>  7:           6661.205            3076.817
+    #>  8:           6965.392            3233.581
+    #>  9:           6902.066            3345.578
+    #> 10:           6822.981            3290.399
+    #> 11:           6549.321            2758.597
+    #> 12:           6336.398            2383.596
+    #> 13:           6834.658            3211.297
+    #> 14:           6712.330            3130.655
+    #> 15:           6894.821            3201.520
+    #> 16:           6886.335            2978.070
+    #> 17:           6794.598            2876.366
+    #> 18:           6812.126            2754.917
+    #> 19:           6437.996            2458.621
+    #> 20:           6947.556            2769.722
+    #> 21:           6755.069            2580.080
+    #>     threshold_10_to_20 threshold_20_to_inf
 
 `staggregate_degree_days()` operates directly on the hourly values.
 Passing a vector of length `n` to `thresholds` creates `n + 1` columns,

@@ -32,15 +32,15 @@ unless \code{daily_agg = 'none'})}
 
 \item{start_date}{the date (and time, if applicable) of the first layer in
 the raster. To be input in a format compatible with
-lubridate::as_datetime(), e.g. \code{"1991-10-29"} or \code{"1991-10-29 00:00:00"}.
+lubridate::as_datetime(), e.g. \code{'1991-10-29'} or \code{'1991-10-29 00:00:00'}.
 The default is \code{NA} since the rasters usually already contain temporal
 information in the layer names and they do not need to be manually supplied.}
 
-\item{time_interval}{the time interval between layers in the raster to be
-aggregated. To be input in a format compatible with seq(), e.g.
-\code{'1 day'} or \code{'3 months'}. The default is \code{'1 hour'} and this argument is
-required if daily_agg is not \code{'none'} or if the \code{start_date} argument is not
-\code{NA}.}
+\item{time_interval}{the time interval between layers in the spatRaster to be
+aggregated. To be input in a format compatible with
+\code{lubridate::as.duration()} such as \code{'30 minutes'}, \code{'2 hours'}, \code{'1 day'},
+etc. The default is \code{'1 hour'} and this argument is required if daily_agg is
+not \code{'none'} or if the \code{start_date} argument is not \code{NA}.}
 
 \item{weights_join_tolerance}{the tolerance to use when joining
 overlay_weights with the climate data by the x and y columns. This is useful

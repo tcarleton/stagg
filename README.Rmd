@@ -153,10 +153,8 @@ polynomial_output <- staggregate_polynomial(
   
   data = temp_nj_jun_2024_era5 - 273.15, # A raster brick of our primary data, 
                                          # typically but not necessarily climate 
-                                         # data. For now, data must start at 
-                                         # midnight and be hourly. We're 
-                                         # converting from Kelvin to Celsius 
-                                         # here.
+                                         # data. We're converting from Kelvin to 
+                                         # Celsius here.
   
   overlay_weights = county_weights, # Output from Step 2, determined here by 
                                     # area-normalized cropland weights for grid 
@@ -197,10 +195,8 @@ spline_output <- staggregate_spline(
   
   data = temp_nj_jun_2024_era5 - 273.15, # A raster brick of our primary data, 
                                          # typically but not necessarily climate 
-                                         # data. For now, data must start at 
-                                         # midnight and be hourly. We're
-                                         # converting from Kelvin to Celsius 
-                                         # here.
+                                         # data. We're converting from Kelvin to 
+                                         # Celsius here.
   
   overlay_weights = county_weights, # Output from Step 2, determined here by 
                                     # area-normalized cropland weights for grid
@@ -235,10 +231,8 @@ bin_output <- staggregate_bin(
   
   data = temp_nj_jun_2024_era5 - 273.15, # A raster brick of our primary data, 
                                          # typically but not necessarily climate 
-                                         # data. For now, data must start at 
-                                         # midnight and be hourly. We're 
-                                         # converting from Kelvin to Celsius
-                                         # here.
+                                         # data. We're converting from Kelvin to 
+                                         # Celsius here.
   
   overlay_weights = county_weights,  # Output from Step 2, determined here by 
                                      # area-normalized cropland weights for grid 
@@ -272,10 +266,8 @@ The final transformation offered is degree days, which measures the degrees over
 staggregate_degree_days(
   data = temp_nj_jun_2024_era5 - 273.15, # A raster brick of our primary data, 
                                          # typically but not necessarily climate 
-                                         # data. For now, data must start at 
-                                         # midnight and be hourly. We're
-                                         # converting from Kelvin to Celsius
-                                         # here. 
+                                         # data. We're converting from Kelvin to 
+                                         # Celsius here. 
   
   overlay_weights = county_weights, # Output from Step 2, determined here by 
                                     # area-normalized cropland weights for grid 
