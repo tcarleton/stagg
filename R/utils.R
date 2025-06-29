@@ -77,3 +77,6 @@ layer_names_to_dates <- function(layer_names){
     # Coerce to datetimes
     lubridate::as_datetime()
 }
+
+
+

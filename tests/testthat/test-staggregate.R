@@ -320,4 +320,42 @@ test_that('validate_data() errors when expected', {
 
 })
 
+#   b) validate_overlay_weights
+#   -----------------------------------
 
+#   c) validate_daily_agg
+#   -----------------------------------
+
+#   d) validate_time_agg
+#   -----------------------------------
+
+#   e) validate_transformations
+#   -----------------------------------
+
+#   f) validate_result_cols
+#   -----------------------------------
+
+#   g) validate_start_date
+#   -----------------------------------
+
+#   h) validate_time_interval
+#   -----------------------------------
+
+#   i) validate_weights_join_tolerance
+#   -----------------------------------
+
+#   j) validate_na_rm
+#   -----------------------------------
+
+# 2. Crop Data to Weights Extent
+# ______________________________________________________________________________
+
+#   a) look_for_poly_split
+#   -----------------------------------
+test_that("look_for_poly_split correctly identifies split polygons"){
+
+  # Create polygons spanning prime meridian to run overlay_weights on
+  two_triangles <- gen_two_triangles(edge_case = 'span_pm')
+
+
+}
