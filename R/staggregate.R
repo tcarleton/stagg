@@ -431,14 +431,14 @@ polygon_aggregation <- function(clim_dt, weights_dt, list_names, time_agg, weigh
 #'   unless `daily_agg = 'none'`)
 #' @param start_date the date (and time, if applicable) of the first layer in
 #'  the stack. To be input in a format compatible with
-#'  lubridate::as_datetime(), e.g. `"1991-10-29"` or `"1991-10-29 00:00:00"`.
+#'  lubridate::as_datetime(), e.g. `'1991-10-29'` or `'1991-10-29 00:00:00'`.
 #'  The default is `NA` since the spatRasters usually already contain temporal
 #'  information in the layer names and they do not need to be manually supplied.
 #' @param time_interval the time interval between layers in the spatRaster to be
-#'  aggregated. To be input in a format compatible with seq(), e.g.
-#'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
-#'  required if daily_agg is not `'none'` or if the `start_date` argument is not
-#'  `NA`.
+#'  aggregated. To be input in a format compatible with
+#'  `lubridate::as.duration()` such as `'30 minutes'`, `'2 hours'`, `'1 day'`,
+#'  etc. The default is `'1 hour'` and this argument is required if daily_agg is
+#'  not `'none'` or if the `start_date` argument is not `NA`.
 #' @param weights_join_tolerance the tolerance to use when joining
 #' overlay_weights with the climate data by the x and y columns. This is useful
 #' when the height/width of your data cells expressed in degrees is a very long
@@ -588,14 +588,14 @@ staggregate_polynomial <- function(data, overlay_weights, daily_agg, time_agg = 
 #'   unless `daily_agg = 'none'`)
 #' @param start_date the date (and time, if applicable) of the first layer in
 #'  the stack. To be input in a format compatible with
-#'  lubridate::as_datetime(), e.g. `"1991-10-29"` or `"1991-10-29 00:00:00"`.
+#'  lubridate::as_datetime(), e.g. `'1991-10-29'` or `'1991-10-29 00:00:00'`.
 #'  The default is `NA` since the spatRasters usually already contain temporal
 #'  information in the layer names and they do not need to be manually supplied.
 #' @param time_interval the time interval between layers in the spatRaster to be
-#'  aggregated. To be input in a format compatible with seq(), e.g.
-#'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
-#'  required if daily_agg is not `'none'` or if the `start_date` argument is not
-#'  `NA`.
+#'  aggregated. To be input in a format compatible with
+#'  `lubridate::as.duration()` such as `'30 minutes'`, `'2 hours'`, `'1 day'`,
+#'  etc. The default is `'1 hour'` and this argument is required if daily_agg is
+#'  not `'none'` or if the `start_date` argument is not `NA`.
 #' @param weights_join_tolerance the tolerance to use when joining
 #' overlay_weights with the climate data by the x and y columns. This is useful
 #' when the height/width of your data cells expressed in degrees is a very long
@@ -773,14 +773,14 @@ staggregate_spline <- function(data, overlay_weights, daily_agg, time_agg = "mon
 #'   unless `daily_agg = 'none'`)
 #' @param start_date the date (and time, if applicable) of the first layer in
 #'  the raster. To be input in a format compatible with
-#'  lubridate::as_datetime(), e.g. `"1991-10-29"` or `"1991-10-29 00:00:00"`.
+#'  lubridate::as_datetime(), e.g. `'1991-10-29'` or `'1991-10-29 00:00:00'`.
 #'  The default is `NA` since the rasters usually already contain temporal
 #'  information in the layer names and they do not need to be manually supplied.
-#' @param time_interval the time interval between layers in the raster to be
-#'  aggregated. To be input in a format compatible with seq(), e.g.
-#'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
-#'  required if daily_agg is not `'none'` or if the `start_date` argument is not
-#'  `NA`.
+#' @param time_interval the time interval between layers in the spatRaster to be
+#'  aggregated. To be input in a format compatible with
+#'  `lubridate::as.duration()` such as `'30 minutes'`, `'2 hours'`, `'1 day'`,
+#'  etc. The default is `'1 hour'` and this argument is required if daily_agg is
+#'  not `'none'` or if the `start_date` argument is not `NA`.
 #' @param weights_join_tolerance the tolerance to use when joining
 #' overlay_weights with the climate data by the x and y columns. This is useful
 #' when the height/width of your data cells expressed in degrees is a very long
@@ -958,13 +958,14 @@ staggregate_bin <- function(data, overlay_weights, daily_agg, time_agg = "month"
 #'   `'month'`, or `'year'`
 #' @param start_date the date (and time, if applicable) of the first layer in
 #'  the raster. To be input in a format compatible with
-#'  lubridate::as_datetime(), e.g. `"1991-10-29"` or `"1991-10-29 00:00:00"`.
+#'  lubridate::as_datetime(), e.g. `'1991-10-29'` or `'1991-10-29 00:00:00'`.
 #'  The default is `NA` since the rasters usually already contain temporal
 #'  information in the layer names and they do not need to be manually supplied.
-#' @param time_interval the time interval between layers in the raster to be
-#'  aggregated. To be input in a format compatible with seq(), e.g.
-#'  `'1 day'` or `'3 months'`. The default is `'1 hour'` and this argument is
-#'  required if the `start_date` argument is not `NA`.
+#' @param time_interval the time interval between layers in the spatRaster to be
+#'  aggregated. To be input in a format compatible with
+#'  `lubridate::as.duration()` such as `'30 minutes'`, `'2 hours'`, `'1 day'`,
+#'  etc. The default is `'1 hour'` and this argument is required if daily_agg is
+#'  not `'none'` or if the `start_date` argument is not `NA`.
 #' @param weights_join_tolerance the tolerance to use when joining
 #' overlay_weights with the climate data by the x and y columns. This is useful
 #' when the height/width of your data cells expressed in degrees is a very long

@@ -29,6 +29,16 @@
 #' @export
 secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full"){
 
+  ## check to make sure climate raster is a spatraster, change if not
+  if (!inherits(grid, "SpatRaster")) {
+    clim_raster <- terra::rast(grid)
+  } else {
+
+    clim_raster <- grid
+
+  }
+
+
   ## Return error if terra::extent can't inherit from the value supplied
   ## won't be able to check if secondary raster fully overlaps if
   ## this input isn't compatible with terra::extent()
@@ -72,14 +82,6 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
 
   }
 
-  ## check to make sure climate raster is a spatraster, change if not
-  if (!inherits(grid, "SpatRaster")) {
-    clim_raster <- terra::rast(grid)
-  } else {
-
-    clim_raster <- grid
-
-  }
 
   ## check if SpatRaster is in geographic coodrinates
   if(!terra::is.lonlat(clim_raster)) {
@@ -131,7 +133,8 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
 
       extent <- extent
 
-    }
+  }
+
 
   ## If an extent was included, crop it to the extent to save ram
   ## -----------------------------------------------
@@ -208,6 +211,15 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
 
   }
 
+  # Reproject if necessary
+  if(terra::crs(secondary_raster, TRUE) != terra::crs(grid, TRUE)){
+
+    message(crayon::yellow("Warning: reprojecting secondary_raster to match grid, which may affect data"))
+    secondary_raster <- terra::project(secondary_raster, clim_raster)
+
+  }
+
+
 
   ## crop the ERA/climate raster to the appropriate extent
   ## use the extent of the previously user-cropped secondary raster
@@ -216,9 +228,6 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   # Find the difference between the climate raster resolution and secondary raster resolution
   clim_raster <- terra::crop(clim_raster, terra::ext(secondary_raster), snap="out")
 
-  ## set crs of secondary raster to match climate data
-  ## -----------------------------------------------
-  terra::crs(secondary_raster) <- terra::crs(clim_raster)
 
   ## check if the cropped secondary raster contains NA values
   if(isTRUE(any(is.na(terra::values(secondary_raster, na.rm=FALSE))))) {
