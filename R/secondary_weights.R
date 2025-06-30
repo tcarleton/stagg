@@ -214,9 +214,8 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   # Reproject if necessary
   if(terra::crs(secondary_raster, TRUE) != terra::crs(grid, TRUE)){
 
-    message(crayon::red("Warning: reprojecting secondary_raster to match grid, which may affect data"))
+    message(crayon::yellow("Warning: reprojecting secondary_raster to match grid, which may affect data"))
     secondary_raster <- terra::project(secondary_raster, clim_raster)
-    terra::crs(secondary_raster) <- terra::crs(clim_raster, TRUE)
 
   }
 

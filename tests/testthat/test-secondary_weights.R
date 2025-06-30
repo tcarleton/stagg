@@ -69,7 +69,6 @@ test_that('secondary_weights works with mismatched projections', {
   # Create test data
   test_secondary_raster <- terra::rast(cropland_nj_2015) |>
     terra::project("ESRI:54008")
-  terra::crs(test_secondary_raster) <- "ESRI:54008"
 
   # Run secondary_weights on test data
   test_output <- secondary_weights(test_secondary_raster)
