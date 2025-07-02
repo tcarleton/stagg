@@ -85,7 +85,7 @@ overlay_weights <- function(polygons, polygon_id_col, grid = era5_grid, secondar
 
     # Make sure the cell widths aren't peculiar otherwise the rotate function will
     # mess things up
-    if(360 %% terra::xres(clim_raster) != 0){
+    if(360 %% as.double(terra::xres(clim_raster)) != 0){
       stop(crayon::red('Grid is in climate coordinate system (longitude 0 to 360) and grid cell width does not divide 360 evenly, making accurate alignment impossible.'))
     }
 

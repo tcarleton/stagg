@@ -95,11 +95,11 @@ secondary_weights <- function(secondary_raster, grid = era5_grid, extent = "full
   ## climate raster information for creating buffer and doing checks/rotations
   c_rast_xmax <- terra::ext(clim_raster)$xmax
 
-  ## find xy resolution for rasters
-  c_rast_xres <- terra::xres(clim_raster)
-  c_rast_yres <- terra::yres(clim_raster)
-  s_rast_xres <- terra::xres(secondary_raster)
-  s_rast_yres <- terra::yres(secondary_raster)
+  ## find xy resolution for rasters (convert to double to avoid floating point errors)
+  c_rast_xres <- terra::xres(clim_raster) |> as.double()
+  c_rast_yres <- terra::yres(clim_raster) |> as.double()
+  s_rast_xres <- terra::xres(secondary_raster) |> as.double()
+  s_rast_yres <- terra::yres(secondary_raster) |> as.double()
 
   ## add buffer to extent
   buffer_size <- max(c_rast_xres,
