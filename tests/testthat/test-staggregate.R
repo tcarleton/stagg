@@ -393,7 +393,7 @@ test_that("look_for_poly_split correctly identifies polygons split by prime merr
 
 test_that("look_for_poly_split correctly identifies polygons split by date line", {
 
-  # Create polygons spanning prime meridian
+  # Create polygons spanning international date line
   two_triangles <- gen_two_triangles(edge_case = 'span_dl')
 
   # Create a grid in standard coordinates with 1x1 resolution
@@ -427,6 +427,49 @@ test_that("look_for_poly_split correctly identifies polygons split by date line"
   )
 
   expect_true(polygons_split)
+
+})
+
+
+test_that("look_for_poly_split correctly returns false when it should", {
+
+  # Create polygons in standard coordinates
+  two_triangles <- gen_two_triangles(edge_case = 'none')
+
+  # Create a grid in standard coordinates with 1x1 resolution
+  standard_grid <- terra::rast(
+    xmin = -180,
+    xmax = 180,
+    ncol = 360,
+    ymin = -90,
+    ymax = 90,
+    nrow = 180
+  )
+
+  # Visualize Overlay
+  standard_grid_cropped <- terra::crop(standard_grid, c(10, 12, 0, 2))
+  terra::values(standard_grid_cropped) <- c(1,2,3,4)
+  plot_overlay(standard_grid_cropped, two_triangles)
+
+  # Run overlay weights to generate test input to look for poly split
+  # NOTE: eventually, may want to replace this call to overlay_weights(), in
+  # this test and the two above, with the calculated, expected data. That way,
+  # if overlay_weights() breaks, it doesn't trigger these tests too, making it
+  # easier to pinpoint where the failure occurred. But until overlay_weights()
+  # is refactored and unit tested, let's leave as is.
+  overlay_weights_output <- overlay_weights(
+    polygons = two_triangles,
+    polygon_id_col = 'poly',
+    grid = standard_grid
+  )
+
+  polygons_split <- look_for_poly_split(
+    data = standard_grid,
+    overlay_weights = overlay_weights_output,
+    coord_alignment = 'standard'
+  )
+
+  expect_false(polygons_split)
 
 })
 
