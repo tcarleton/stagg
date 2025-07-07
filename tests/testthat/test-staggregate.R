@@ -352,10 +352,84 @@ test_that('validate_data() errors when expected', {
 
 #   a) look_for_poly_split
 #   -----------------------------------
-test_that("look_for_poly_split correctly identifies split polygons"){
+test_that("look_for_poly_split correctly identifies polygons split by prime merridean", {
 
-  # Create polygons spanning prime meridian to run overlay_weights on
+  # Create polygons spanning prime meridian
   two_triangles <- gen_two_triangles(edge_case = 'span_pm')
 
+  # Create a grid in climate coordinates with 1x1 resolution
+  climate_grid <- terra::rast(
+    xmin = 0,
+    xmax = 360,
+    ncol = 360,
+    ymin = -90,
+    ymax = 90,
+    nrow = 180
+  )
 
-}
+  # # Visualize post alignment overlay
+  # climate_grid_rotated <- terra::rotate(climate_grid) |>
+  #   terra::crop(c(-1, 1, 0, 2))
+  # terra::values(climate_grid_rotated) <- c(1,2,3,4)
+  # plot_overlay(climate_grid_rotated, two_triangles)
+
+  # Run overlay_weights to generate test input to look_for_poly_split
+  overlay_weights_output <- overlay_weights(
+    polygons = two_triangles,
+    polygon_id_col = 'poly',
+    grid = climate_grid
+  )
+
+  # Run look_for_poly_split
+  polygons_split <- look_for_poly_split(
+    data = climate_grid,
+    overlay_weights = overlay_weights_output,
+    coord_alignment = 'climate'
+  )
+
+  expect_true(polygons_split)
+
+})
+
+test_that("look_for_poly_split correctly identifies polygons split by date line", {
+
+  # Create polygons spanning prime meridian
+  two_triangles <- gen_two_triangles(edge_case = 'span_dl')
+
+  # Create a grid in standard coordinates with 1x1 resolution
+  standard_grid <- terra::rast(
+    xmin = -180,
+    xmax = 180,
+    ncol = 360,
+    ymin = -90,
+    ymax = 90,
+    nrow = 180
+  )
+
+  # # Visualize post alignment overlay
+  # standard_grid_rotated <- terra::rotate(standard_grid, left = F) |>
+  #   terra::crop(c(179, 181, 0, 2))
+  # terra::values(standard_grid_rotated) <- c(1,2,3,4)
+  # plot_overlay(standard_grid_rotated, sf::st_shift_longitude(two_triangles))
+
+  # Run overlay_weights to generate test input to look_for_poly_split
+  overlay_weights_output <- overlay_weights(
+    polygons = two_triangles,
+    polygon_id_col = 'poly',
+    grid = standard_grid
+  )
+
+  # Run look_for_poly_split
+  polygons_split <- look_for_poly_split(
+    data = standard_grid,
+    overlay_weights = overlay_weights_output,
+    coord_alignment = 'standard'
+  )
+
+  expect_true(polygons_split)
+
+})
+
+
+
+

@@ -42,7 +42,15 @@ gen_two_triangles <- function(edge_case = 'none'){
     # summarize points to polygons
     dplyr::group_by(poly) |>
     dplyr::summarize(geometry = sf::st_combine(geometry)) |>
-    sf::st_cast('POLYGON')
+    sf::st_cast('POLYGON') |>
+    sf::st_set_crs(4326)
+
+  if(edge_case == 'span_dl'){
+    output <- output |>
+      sf::st_wrap_dateline()
+  }
+
+  return(output)
 
 }
 
